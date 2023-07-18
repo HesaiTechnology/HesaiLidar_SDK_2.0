@@ -52,20 +52,20 @@ typedef struct InputParam
 {
   SourceType source_type = DATA_FROM_PCAP;
    ///< Ip of LiDAR
-  std::string device_ip_address = "192.168.1.201";   
+  std::string device_ip_address = "Your lidar ip";   
   ///< Address of multicast
   std::string multicast_ip_address = "";  
   ///< Address of host
-  std::string host_ip_address = "192.168.1.100"; 
+  std::string host_ip_address = "Your host ip"; 
   ///< udp packet port number       
   uint16_t udp_port = 2368;   
   ///< ptc packet port number                
   uint16_t ptc_port = 9347;                 
   bool read_pcap = true;          ///< true: The driver will process the pcap through pcap_path. false: The driver will
                                    ///< Get data from online LiDAR
-  std::string pcap_path = "/home/hesai/Downloads/PVConfigFiles(1)/PVConfigFiles/pcap/204.pcap";  ///< Absolute path of pcap file
-  std::string correction_file_path = "/home/hesai/Downloads/PVConfigFiles(1)/PVConfigFiles/angle_correction/204.dat";   ///< Path of angle calibration files(angle.csv).Only used for internal debugging.
-  std::string firetimes_path = "/home/zhangyu/Downloads/firetimes/AT128E2X_Firetime Correction File.csv";
+  std::string pcap_path = "Your pcap file path";  ///< Absolute path of pcap file
+  std::string correction_file_path = "Your correction file path";   ///< Path of angle calibration files(angle.csv).Only used for internal debugging.
+  std::string firetimes_path = "Your firetime file path";  ///< Path of firetime files(angle.csv).
 } InputParam;
 
 ///< The LiDAR driver parameter
