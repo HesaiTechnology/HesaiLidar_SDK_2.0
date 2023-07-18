@@ -177,6 +177,19 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   const HS_LIDAR_BODY_AZIMUTH_ME_V4 *pAzimuth =
       reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_ME_V4 *>(
           (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ME_V4));
+  if(pHeader->HasFuncSafety()) {
+    const auto *function_savety_ptr = reinterpret_cast<const HS_LIDAR_FUNC_SAFETY_ME_V4 *>(
+      (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ME_V4) +
+      (sizeof(HS_LIDAR_BODY_AZIMUTH_ME_V4) + 
+      (pHeader->HasConfidenceLevel()
+              ? sizeof(HS_LIDAR_BODY_CHN_UNIT_ME_V4)
+              : sizeof(HS_LIDAR_BODY_CHN_UNIT_NO_CONF_ME_V4)) *
+            pHeader->GetLaserNum()) *
+            pHeader->GetBlockNum() +
+        sizeof(HS_LIDAR_BODY_CRC_ME_V4)
+    );
+    output.lidar_state = function_savety_ptr->GetLidarState();
+  }
 
   const auto *pTail = reinterpret_cast<const HS_LIDAR_TAIL_ME_V4 *>(
       (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ME_V4) +
@@ -206,7 +219,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   this->spin_speed_ = pTail->m_u16MotorSpeed;
   this->is_dual_return_= pTail->IsDualReturn();
   output.spin_speed = pTail->m_u16MotorSpeed;
-
+  output.work_mode = pTail->getOperationMode();
   output.host_timestamp = GetMicroTickCountU64();
   // 如下三条：max min这样的参数一点用都没有
   output.maxPoints = pHeader->GetBlockNum() * pHeader->GetLaserNum();

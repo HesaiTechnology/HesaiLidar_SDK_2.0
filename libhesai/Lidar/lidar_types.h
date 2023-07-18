@@ -122,6 +122,8 @@ struct LidarDecodedPacket
     float elevation[kMaxPointsNumPerPacket];
     uint16_t azimuths;
     uint16_t spin_speed;
+    uint8_t lidar_state;
+    uint8_t work_mode;
     bool IsDecodedPacketValid() {
       return block_num != 0;
     }
@@ -207,6 +209,8 @@ class LidarDecodedFrame
     bool scan_complete;
     double distance_unit;
     int frame_index;
+    uint8_t lidar_state;
+    uint8_t work_mode;
 };
 
 
