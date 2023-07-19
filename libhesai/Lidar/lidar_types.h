@@ -187,6 +187,8 @@ class LidarDecodedFrame
       packet_index = 0;
       scan_complete = false;
       distance_unit = 0;
+      lidar_state = -1;
+      work_mode = -1;
       frame_index++;
     }
     uint64_t host_timestamp;   

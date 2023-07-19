@@ -181,6 +181,27 @@ int Lidar<T_Point>::LoadCorrectionForUdpParser() {
 }
 
 template <typename T_Point>
+int Lidar<T_Point>::SaveCorrectionFile(std::string correction_save_path) {
+  int ret = -1;
+  u8Array_t raw_data;
+  if (ptc_client_->GetCorrectionInfo(raw_data) != 0) {
+    std::cout << __func__ << "get correction info fail\n";
+    return ret;
+  }
+  std::string correction_content_str = (char*) raw_data.data();
+  std::ofstream out_file(correction_save_path, std::ios::out);
+  if(out_file.is_open()) {
+    out_file << correction_content_str;
+    ret = 0;
+    out_file.close();
+    return ret;
+  } else {
+    std::cout << __func__ << "create correction file fail\n";
+    return ret;
+  }
+}
+
+template <typename T_Point>
 int Lidar<T_Point>::SetLidarType(std::string lidar_type) {
   int ret = -1;
   if (udp_parser_) {

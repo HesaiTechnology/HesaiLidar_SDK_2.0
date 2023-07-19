@@ -102,6 +102,8 @@ public:
   int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udp_packet);
   // Determine whether all pointxyzi info is parsed in this frame
   bool ComputeXYZIComplete(int index);
+  // save lidar correction file from ptc
+  int SaveCorrectionFile(std::string correction_save_path);
   // get lidar correction file from ptc,and pass to udp parser
   int LoadCorrectionForUdpParser();
   // get lidar correction file from local file,and pass to udp parser 

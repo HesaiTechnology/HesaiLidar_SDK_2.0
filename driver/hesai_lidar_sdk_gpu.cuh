@@ -188,6 +188,8 @@ public:
           frame.distance_unit = decoded_packet.distance_unit;
           frame.sensor_timestamp[packet_index] = decoded_packet.sensor_timestamp;
           frame.points_num = frame.points_num + decoded_packet.block_num * decoded_packet.laser_num;
+          frame.lidar_state = decoded_packet.lidar_state;
+          frame.work_mode = decoded_packet.work_mode;
           packet_index++;
         }
         

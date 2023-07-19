@@ -129,6 +129,8 @@ double Udp1_4Parser<T_Point>::GetFiretimesCorrection(int laserId, double speed, 
 
 template<typename T_Point>
 int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
+  frame.lidar_state = packet.lidar_state;
+  frame.work_mode = packet.work_mode;
   for (int blockid = 0; blockid < packet.block_num; blockid++) {
     T_Point point;
     int Azimuth = packet.azimuth[blockid * packet.laser_num];
@@ -189,6 +191,8 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
         sizeof(HS_LIDAR_BODY_CRC_ME_V4)
     );
     output.lidar_state = function_savety_ptr->GetLidarState();
+  } else {
+    output.lidar_state = -1;
   }
 
   const auto *pTail = reinterpret_cast<const HS_LIDAR_TAIL_ME_V4 *>(
