@@ -89,12 +89,12 @@ int Udp4_3Parser<T_Point>::LoadCorrectionString(char *data) {
           memcpy((void *)&m_PandarAT_corrections.end_frame, p,
                  sizeof(uint16_t) * frame_num);
           p += sizeof(uint16_t) * frame_num;
-          printf("frame_num: %d\n", frame_num);
-          printf("start_frame, end_frame: \n");
+          // printf("frame_num: %d\n", frame_num);
+          // printf("start_frame, end_frame: \n");
           for (int i = 0; i < frame_num; ++i)
-            printf("%lf,   %lf\n",
-                   m_PandarAT_corrections.start_frame[i] / kResolutionFloat,
-                   m_PandarAT_corrections.end_frame[i] / kResolutionFloat);
+            // printf("%lf,   %lf\n",
+            //        m_PandarAT_corrections.start_frame[i] / kResolutionFloat,
+            //        m_PandarAT_corrections.end_frame[i] / kResolutionFloat);
           memcpy((void *)&m_PandarAT_corrections.azimuth, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;
@@ -140,8 +140,8 @@ int Udp4_3Parser<T_Point>::LoadCorrectionString(char *data) {
           memcpy((void *)&m_PandarAT_corrections.SHA256, p,
                  sizeof(uint8_t) * 32);
           p += sizeof(uint8_t) * 32;
-          printf("frame_num: %d\n", frame_num);
-          printf("start_frame, end_frame: \n");
+          // printf("frame_num: %d\n", frame_num);
+          // printf("start_frame, end_frame: \n");
           for (int i = 0; i < frame_num; ++i) {
             m_PandarAT_corrections.l.start_frame[i] =
                 m_PandarAT_corrections.l.start_frame[i] *
@@ -149,9 +149,9 @@ int Udp4_3Parser<T_Point>::LoadCorrectionString(char *data) {
             m_PandarAT_corrections.l.end_frame[i] =
                 m_PandarAT_corrections.l.end_frame[i] *
                 m_PandarAT_corrections.header.resolution;
-            printf("%lf,   %lf\n",
-                   m_PandarAT_corrections.l.start_frame[i] / AZIMUTH_UNIT,
-                   m_PandarAT_corrections.l.end_frame[i] / AZIMUTH_UNIT);
+            // printf("%lf,   %lf\n",
+            //        m_PandarAT_corrections.l.start_frame[i] / AZIMUTH_UNIT,
+            //        m_PandarAT_corrections.l.end_frame[i] / AZIMUTH_UNIT);
           }
           for (int i = 0; i < AT128_LASER_NUM; i++) {
             m_PandarAT_corrections.l.azimuth[i] =

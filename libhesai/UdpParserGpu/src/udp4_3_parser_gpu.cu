@@ -156,11 +156,11 @@ int Udp4_3ParserGpu<T_Point>::LoadCorrectionString(char *p) {
     std::cerr << "Correction Header delimiter not right" << std::endl;
     return -1;
   }
-  printf("mirror_num: %d,\t channel_num=%d,\tversion=%d\n",
-         corrections_header.nframes, corrections_header.max_channel_num,
-         corrections_header.version[1]);
-  printf("resolution: %d\n",
-         corrections_header.resolution);
+  // printf("mirror_num: %d,\t channel_num=%d,\tversion=%d\n",
+  //        corrections_header.nframes, corrections_header.max_channel_num,
+  //        corrections_header.version[1]);
+  // printf("resolution: %d\n",
+  //        corrections_header.resolution);
   if (corrections_loaded_) {
     return 0;
     if (deles_cu) cudaFree(deles_cu);
@@ -212,9 +212,9 @@ int Udp4_3ParserGpu<T_Point>::LoadCorrectionString(char *p) {
             corrections.mirror_azi_ends[i] =
                 corrections.mirror_azi_ends[i] *
                 corrections.header.resolution;
-            printf("%lf,   %lf\n",
-                   corrections.mirror_azi_begins[i] / (kFineResolutionFloat * kResolutionFloat),
-                   corrections.mirror_azi_ends[i] / (kFineResolutionFloat * kResolutionFloat));
+            // printf("%lf,   %lf\n",
+            //        corrections.mirror_azi_begins[i] / (kFineResolutionFloat * kResolutionFloat),
+            //        corrections.mirror_azi_ends[i] / (kFineResolutionFloat * kResolutionFloat));
           }
       CUDACheck(cudaMalloc(&channel_azimuths_cu_, sizeof(CorrectionsV1_5::channel_azimuths)));
       CUDACheck(cudaMalloc(&channel_elevations_cu_, sizeof(CorrectionsV1_5::channel_elevations)));
@@ -230,7 +230,7 @@ int Udp4_3ParserGpu<T_Point>::LoadCorrectionString(char *p) {
       CUDACheck(cudaMemcpy(mirror_azi_ends_cu, corrections.mirror_azi_ends, sizeof(corrections.mirror_azi_ends), cudaMemcpyHostToDevice));
       for (auto i = 0; i < 128; ++i) {
           channel_azimuths[i] = corrections.channel_azimuths[i] * corrections.header.resolution / kFineResolutionFloat;
-          std::cout << corrections.channel_azimuths[i] * corrections.header.resolution / kFineResolutionFloat << std::endl;
+          // std::cout << corrections.channel_azimuths[i] * corrections.header.resolution / kFineResolutionFloat << std::endl;
       }
       break;
     }

@@ -369,7 +369,8 @@ void Lidar<T_Point>::RecieveUdpThread() {
       usleep(5000);
       continue;
     }
-    while(origin_packets_buffer_.full()) usleep(1000);
+    while(origin_packets_buffer_.full() && running_) usleep(1000);
+    if(running_ == false) break;
 
     switch (len) {
       case 0:
