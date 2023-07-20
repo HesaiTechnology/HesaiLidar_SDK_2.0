@@ -45,6 +45,9 @@ typedef struct DecoderParam
   bool enable_udp_thread = true;
   bool enable_parser_thread = true;
   bool pcap_play_synchronization = true;
+  //start a new frame when lidar azimuth greater than frame_azimuth
+  //range:1-359, set frame_azimuth less than 0 if you do want to use it
+  float frame_azimuth = 359;
 } DecoderParam;
 
 ///< The LiDAR input parameter

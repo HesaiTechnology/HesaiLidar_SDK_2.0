@@ -159,6 +159,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     LoadFiretimesFile(param.input_param.firetimes_path);
     /********************************************************************************/
     udp_parser_->SetPcapPlay(param.decoder_param.pcap_play_synchronization, param.input_param.source_type);
+    udp_parser_->SetFrameAzimuth(param.decoder_param.frame_azimuth);
     res = 0;
     return res;
 }

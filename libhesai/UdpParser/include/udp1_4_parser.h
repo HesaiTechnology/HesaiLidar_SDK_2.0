@@ -82,6 +82,7 @@ class Udp1_4Parser : public GeneralParser<T_Point> {
   float distance_correction_para_h_; 
   float distance_correction_para_c_; 
   float distance_correction_para_d_; 
+  bool use_frame_azimuth_ = true;
 };
 }  // namespace lidar
 }  // namespace hesai

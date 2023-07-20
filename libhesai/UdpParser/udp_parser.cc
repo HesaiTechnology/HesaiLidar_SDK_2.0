@@ -355,3 +355,13 @@ void UdpParser<T_Point>::SetPcapPlay(bool pcap_time_synchronization, int source_
   pcap_time_synchronization_ = pcap_time_synchronization;
   source_type_ = source_type;
 }
+
+template<typename T_Point>
+void UdpParser<T_Point>::SetFrameAzimuth(float frame_azimuth) {
+  if (parser_ != nullptr) {
+    parser_->SetFrameAzimuth(frame_azimuth);
+  } else {
+    printf("parser is nullptr\n");
+  }
+  return;
+}

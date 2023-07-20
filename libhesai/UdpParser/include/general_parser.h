@@ -189,6 +189,9 @@ class GeneralParser {
   // compute xyzi of points from decoded packet
   // param packet is the decoded packet; xyzi of points after computed is puted in frame  
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
+
+  //set frame azimuth
+  virtual void SetFrameAzimuth(float frame_azimuth);
   void TransformPoint(float& x, float& y, float& z);
   void SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
   void EnableUpdateMonitorInfo();
@@ -223,6 +226,7 @@ class GeneralParser {
   bool enable_firetime_correction_;
   bool enable_distance_correction_;
   Transform transform_;
+  float frame_azimuth_;
 };
 }
 }
