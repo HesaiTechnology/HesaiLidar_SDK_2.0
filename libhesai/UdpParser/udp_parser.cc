@@ -357,9 +357,9 @@ void UdpParser<T_Point>::SetPcapPlay(bool pcap_time_synchronization, int source_
 }
 
 template<typename T_Point>
-void UdpParser<T_Point>::SetFrameAzimuth(float frame_azimuth) {
+void UdpParser<T_Point>::SetFrameAzimuth(float frame_start_azimuth) {
   if (parser_ != nullptr) {
-    parser_->SetFrameAzimuth(frame_azimuth);
+    parser_->SetFrameAzimuth(frame_start_azimuth);
   } else {
     printf("parser is nullptr\n");
   }

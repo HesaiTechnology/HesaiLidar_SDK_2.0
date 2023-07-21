@@ -39,7 +39,7 @@ Udp1_4Parser<T_Point>::Udp1_4Parser() {
   distance_correction_para_h_ = 0.04; 
   distance_correction_para_c_ = std::sqrt(distance_correction_para_b_ * distance_correction_para_b_ + distance_correction_para_h_  * distance_correction_para_h_); 
   distance_correction_para_d_ = std::atan(distance_correction_para_b_  / distance_correction_para_h_); 
-  use_frame_azimuth_ = true;
+  use_frame_start_azimuth_ = true;
 }
 
 template<typename T_Point>
@@ -318,17 +318,17 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
 template<typename T_Point>
 bool Udp1_4Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
   if (this->last_azimuth_ > azimuth && (this->last_azimuth_- azimuth > kSplitFrameMinAngle)) {
-      use_frame_azimuth_ = true;
+      use_frame_start_azimuth_ = true;
     }
-  //do not use frame_azimuth, split frame near 360 degree
-  if (this->frame_azimuth_ < 1 || this->frame_azimuth_ > 359) {
+  //do not use frame_start_azimuth, split frame near 360 degree
+  if (this->frame_start_azimuth_ < 1 || this->frame_start_azimuth_ > 359) {
     if (this->last_azimuth_ > azimuth && (this->last_azimuth_- azimuth > kSplitFrameMinAngle)) {
         return true;
       }
     return false;
-  } else { //use frame_azimuth
-    if ((azimuth >= uint16_t(this->frame_azimuth_ * kResolutionInt)) && (use_frame_azimuth_ == true)) {
-      use_frame_azimuth_ = false;
+  } else { //use frame_start_azimuth
+    if ((azimuth >= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) && (use_frame_start_azimuth_ == true)) {
+      use_frame_start_azimuth_ = false;
       return true;
     } 
     return false;

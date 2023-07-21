@@ -72,7 +72,7 @@ class UdpParser {
   GeneralParser<T_Point>* GetParser() {return parser_;}
   std::string GetLidarType() {return lidar_type_decoded_;}
   void SetPcapPlay(bool pcap_time_synchronization, int source_type);
-  void SetFrameAzimuth(float frame_azimuth);
+  void SetFrameAzimuth(float frame_start_azimuth);
  private:
   GeneralParser<T_Point> *parser_;
   PcapSaver *pcap_saver_;

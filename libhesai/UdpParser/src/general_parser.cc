@@ -64,8 +64,8 @@ template <typename T_Point>
 GeneralParser<T_Point>::~GeneralParser() { printf("release general Parser\n"); }
 
 template <typename T_Point>
-void GeneralParser<T_Point>::SetFrameAzimuth(float frame_azimuth) {
-  this->frame_azimuth_ = frame_azimuth;
+void GeneralParser<T_Point>::SetFrameAzimuth(float frame_start_azimuth) {
+  this->frame_start_azimuth_ = frame_start_azimuth;
 }
 template <typename T_Point>
 void GeneralParser<T_Point>::EnableUpdateMonitorInfo() {
