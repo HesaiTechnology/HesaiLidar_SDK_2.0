@@ -1,30 +1,30 @@
-/*
-[Hesai Technology Co., Ltd.] ("COMPANY") CONFIDENTIAL
-Copyright (C) 2021 Hesai Technology Co., Ltd. All Rights Reserved.
+/************************************************************************************************
+Copyright (C) 2023 Hesai Technology Co., Ltd.
+Copyright (C) 2023 Original Authors
+All rights reserved.
 
-NOTICE: All information contained herein is, and remains the property of
-COMPANY. The intellectual and technical concepts contained herein are
-proprietary to COMPANY and may be covered by Chinese and/or Foreign Patents,
-patents in process, and are protected by trade secret and applicable
-copyright laws. Dissemination of this information or reproduction of this
-material is strictly forbidden unless prior written permission is obtained
-from COMPANY. Access to the source code contained herein is hereby forbidden
-to anyone except current COMPANY employees, managers or other third parties
-who have executed Confidentiality and Non-disclosure agreements explicitly
-covering such access.
+All code in this repository is released under the terms of the following Modified BSD License. 
+Redistribution and use in source and binary forms, with or without modification, are permitted 
+provided that the following conditions are met:
 
-The copyright notice above does not evidence any actual or intended
-publication or disclosure of this source code, which includes information
-that is confidential and/or proprietary, and is a trade secret, of COMPANY.
+* Redistributions of source code must retain the above copyright notice, this list of conditions and 
+  the following disclaimer.
 
-ANY REPRODUCTION, MODIFICATION, DISTRIBUTION, PUBLIC PERFORMANCE, OR PUBLIC
-DISPLAY OF OR THROUGH USE OF THIS SOURCE CODE WITHOUT THE EXPRESS WRITTEN
-CONSENT OF COMPANY IS STRICTLY PROHIBITED, AND IN VIOLATION OF APPLICABLE
-LAWS AND INTERNATIONAL TREATIES. THE RECEIPT OR POSSESSION OF THIS SOURCE
-CODE AND/OR RELATED INFORMATION DOES NOT CONVEY OR IMPLY ANY RIGHTS TO
-REPRODUCE, DISCLOSE OR DISTRIBUTE ITS CONTENTS, OR TO MANUFACTURE, USE, OR
-SELL ANYTHING THAT IT MAY DESCRIBE, IN WHOLE OR IN PART.
-*/
+* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and 
+  the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of its contributors may be used to endorse or 
+  promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED 
+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR 
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR 
+TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************************************************************/
 
 // DO NOT change this file !!!!!
 #ifndef __RETURE_CODE__
