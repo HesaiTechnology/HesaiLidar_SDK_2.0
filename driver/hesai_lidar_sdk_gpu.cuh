@@ -217,7 +217,7 @@ public:
         }
         packet_index++;
         //update status manually if start a new frame failedly
-        if (packet_index > kMaxPacketNumPerFrame) {
+        if (packet_index >= kMaxPacketNumPerFrame) {
           packet_index = 0;
           udp_packet_frame.clear();
           lidar_ptr_->frame_.Update();
