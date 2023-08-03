@@ -10,10 +10,10 @@ This repository includes the software development kit for Hesai LiDAR sensor man
 - Pandr64
 - Pandar40P
 - AT128E2X
-- AT128E3X
+- AT128P
 - PandarQT
 - QT128C2X
-- FT120C1X
+- FT120
 - PandarXT-16
 - PandarXT-32
 - XT32M2X
