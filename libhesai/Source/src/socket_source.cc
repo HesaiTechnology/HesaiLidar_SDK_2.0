@@ -32,17 +32,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "socket_source.h"
-#include <arpa/inet.h>
-#include <errno.h>
-#include <netinet/ip.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <poll.h>
 #include <stdio.h>
-#include <sys/file.h>
 #include <iostream>
 using namespace hesai::lidar;
 SocketSource::SocketSource(uint16_t port, std::string multicastIp) {
@@ -62,13 +52,27 @@ void SocketSource::Close() {
   udp_port_ = 0;
 
   if (udp_sock_ > 0) {
+#ifdef _MSC_VER
+    closesocket(udp_sock_);
+    //WSACleanup();
+#else
     close(udp_sock_);
+#endif
     udp_sock_ = -1;
   }
 }
 
 
 bool SocketSource::Open() {
+#ifdef _MSC_VER
+    WSADATA wsaData;
+    WORD version = MAKEWORD(2, 2);
+    int res = WSAStartup(version, &wsaData);  // win sock start up
+    if (res) {
+        std::cerr << "Initilize winsock error !" << std::endl;
+        return false;
+    }
+#endif
   int retVal = 0;
   struct sockaddr_in serverAddr;
 
@@ -90,24 +94,34 @@ bool SocketSource::Open() {
              sizeof(int));
   int curRcvBufSize = -1;
   socklen_t optlen = sizeof(curRcvBufSize);
-  if (getsockopt(udp_sock_, SOL_SOCKET, SO_RCVBUF, &curRcvBufSize, &optlen) <
+  if (getsockopt(udp_sock_, SOL_SOCKET, SO_RCVBUF, (char*)&curRcvBufSize, &optlen) <
       0) {
     printf("getsockopt error=%d(%s)!!!\n", errno, strerror(errno));
   }
   printf("OS current udp socket recv buff size is: %d\n", curRcvBufSize);                 
 
   if (retVal == 0) {
+#ifdef _MSC_VER
+    int timeout_ms = 20;
+    retVal = setsockopt(udp_sock_, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout_ms,
+        sizeof(timeout_ms));
+    // SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+#else
     struct timeval timeout;
     timeout.tv_sec = 0;
     timeout.tv_usec = 20000;
 
     retVal = setsockopt(udp_sock_, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout,
                         sizeof(struct timeval));
-
+#endif
     if (retVal == 0) {
       if (bind(udp_sock_, (sockaddr*)&serverAddr, sizeof(sockaddr)) == -1) {
         if (EINPROGRESS != errno && EWOULDBLOCK != errno) {
+#ifdef _MSC_VER
+          closesocket(udp_sock_);
+#else
           close(udp_sock_);
+#endif
           udp_sock_ = -1;
           printf("SocketSource::Open(), bind failed, errno: %d\n", errno);
           return false;
@@ -121,12 +135,19 @@ bool SocketSource::Open() {
   } else {
     printf("setsockopt SO_REUSEADDR failed, errno:%d\n", errno);
   }
+#ifdef _MSC_VER
+  unsigned long nonBlockingMode = 1;
+  if (ioctlsocket(udp_sock_, FIONBIO, &nonBlockingMode) != 0) {
+      perror("non-block");
+  }
+#else
   if (fcntl(udp_sock_, F_SETFL, O_NONBLOCK | FASYNC) < 0) {
     perror("non-block");
   }
+#endif
 
   int32_t rcvBufSize = kUDPBufferSize;
-  setsockopt(udp_sock_, SOL_SOCKET, SO_RCVBUF, &rcvBufSize,
+  setsockopt(udp_sock_, SOL_SOCKET, SO_RCVBUF, (char*)&rcvBufSize,
       sizeof(rcvBufSize));
 
   if(multicast_ip_ != ""){
@@ -165,7 +186,7 @@ int SocketSource::Send(uint8_t* u8Buf, uint16_t u16Len, int flags) {
     sockaddr addr;
     int val = inet_pton(AF_INET, client_ip_.c_str(), &addr);
     if (val == 1) {
-      len = sendto(udp_sock_, u8Buf, u16Len, flags, &addr, sizeof(addr));
+      len = sendto(udp_sock_, (char*)u8Buf, u16Len, flags, &addr, sizeof(addr));
       if (len == -1) printf("SocketSource::Send, errno:%d\n", errno);
     } else {
       printf("SocketSource::Send(), invalid IP %s\n", client_ip_.c_str());
@@ -218,6 +239,6 @@ int SocketSource::Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags,
 }
 
 void SocketSource::SetSocketBufferSize(uint32_t u32BufSize) {
-  setsockopt(udp_sock_, SOL_SOCKET, SO_RCVBUF, &u32BufSize,
+  setsockopt(udp_sock_, SOL_SOCKET, SO_RCVBUF, (char*)&u32BufSize,
       sizeof(u32BufSize));
 }

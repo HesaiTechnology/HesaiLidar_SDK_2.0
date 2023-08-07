@@ -332,7 +332,8 @@ int UdpParser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, const 
           last_sensor_timestamp_ = output.sensor_timestamp;
           packet_count_ = 0;
           if (reset_time > 0) {
-            usleep(reset_time);}
+            std::this_thread::sleep_for(std::chrono::microseconds(int(reset_time)));
+          }
         }
       }
     }

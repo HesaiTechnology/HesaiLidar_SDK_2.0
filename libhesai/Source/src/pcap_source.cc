@@ -175,7 +175,7 @@ std::string PcapSource::pcap_path() const {
 
 int PcapSource::next(UdpPacket& udpPacket, uint16_t u16Len, int flags,
                       int timeout) {    
-    // usleep(packet_interval_);              
+    //std::this_thread::sleep_for(std::chrono::microseconds(packet_interval_));              
     if(_p->eof()) {
         return -1;
     }

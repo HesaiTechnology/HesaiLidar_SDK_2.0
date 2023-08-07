@@ -156,6 +156,11 @@ struct HS_LIDAR_TAIL_FT_V2 {
 			t.tm_min = utc[4];
 			t.tm_sec = utc[5];
 			t.tm_isdst = 0;
+#ifdef _MSC_VER
+  TIME_ZONE_INFORMATION tzi;
+  GetTimeZoneInformation(&tzi);
+  long int timezone =  tzi.Bias * 60;
+#endif
 			return (mktime(&t) - timezone) * 1000000 + GetTimestamp();
 		}
 		else {

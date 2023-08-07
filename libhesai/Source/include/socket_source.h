@@ -39,6 +39,25 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include <string>
 #include "source.h"
+
+#ifdef _MSC_VER
+#include <winsock2.h>
+#include <ws2tcpip.h> 
+#pragma comment(lib, "ws2_32.lib")  // Winsock Library
+#include <BaseTsd.h>
+typedef int ssize_t;
+#else
+#include <arpa/inet.h>
+#include <errno.h>
+#include <netinet/ip.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <sys/file.h>
+#endif
+
 namespace hesai
 {
 namespace lidar
@@ -60,7 +79,7 @@ private:
   std::string multicast_ip_;
   std::string client_ip_;
   uint16_t udp_port_;
-  int udp_sock_;
+  SOCKET udp_sock_;
   bool is_select_;
   static const int32_t kUDPBufferSize = 26214400;  // udp buffer size
   static const uint16_t kUdpPort = 2368;

@@ -32,13 +32,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "source.h"
-#include <arpa/inet.h>
-#include <errno.h>
-#include <netinet/ip.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
 using namespace hesai::lidar;
 Source::Source() {}
 

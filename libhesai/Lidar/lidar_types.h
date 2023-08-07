@@ -78,7 +78,7 @@ static constexpr int kPcapPlaySynchronizationCount = 100;
 //min points of one frame for displaying frame message
 static constexpr int kMinPointsOfOneFrame = 1000;
 //max time interval between two frame
-static constexpr int kMaxTimeInterval = 150;
+static constexpr int kMaxTimeInterval = 150000;
 
 static constexpr int kPacketBufferSize = 36000;
 //default udp data max lenth

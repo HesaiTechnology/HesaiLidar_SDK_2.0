@@ -36,9 +36,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GENERAL_PARSER_H_
 #define CIRCLE (36000)
 #define MAX_LASER_NUM (512)
+#ifndef M_PI
+#define M_PI (3.14159265358979323846)
+#endif
 
 // #include "udp_parser.h"
+#ifndef _MSC_VER
 #include <semaphore.h>
+#endif
 #include <list>
 #include <vector>
 #include <boost/algorithm/string.hpp>

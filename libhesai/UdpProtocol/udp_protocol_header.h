@@ -28,6 +28,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "plat_utils.h"
 #ifndef LIDAR_PROTOCOL_HEADER_H
 #define LIDAR_PROTOCOL_HEADER_H
+#ifdef _MSC_VER
+#include <winsock2.h>
+#include <windows.h>
+#endif
 namespace hesai
 {
 namespace lidar

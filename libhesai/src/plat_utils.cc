@@ -26,19 +26,28 @@ TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF TH
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 #include <plat_utils.h>
+static const int kTimeStrLen = 1000;
+#ifdef _MSC_VER
+#define EPOCHFILETIME (116444736000000000UL)
+#include <windows.h>
+#else
 #include <sys/syscall.h>
 #include <time.h>
 #include <unistd.h>
 #define gettid() syscall(SYS_gettid)
-static const int kTimeStrLen = 1000;
+#endif
 
-void ShowThreadPriorityMaxMin(int policy) {
-  int priority = sched_get_priority_max(policy);
-  printf("policy %d max_priority = %d\n", policy, priority);
-  priority = sched_get_priority_min(policy);
-  printf("policy %d, min_priority = %d\n", policy, priority);
+#ifdef _MSC_VER
+void SetThreadPriorityWin(int priority) {
+  auto handle = GetCurrentThread();
+  printf("set thread %lu, priority %d\n",std::this_thread::get_id(),
+        priority);
+  SetThreadPriority(handle, priority);
+  int prior = GetThreadPriority(handle);
+  printf("get thead %lu, priority %d\n", std::this_thread::get_id(),
+        prior);
 }
-
+#else
 void SetThreadPriority(int policy, int priority) {
   printf("set thread %lu, tid %ld, policy %d and priority %d\n", pthread_self(),
          gettid(), policy, priority);
@@ -51,38 +60,78 @@ void SetThreadPriority(int policy, int priority) {
   printf("get thead %lu, tid %ld, policy %d and priority %d\n", pthread_self(),
          gettid(), ret_policy, param.sched_priority);
 }
+#endif
 
+#ifndef _MSC_VER
 unsigned int GetTickCount() {
   unsigned int ret = 0;
+#ifdef _MSC_VER
+  FILETIME time;
+  LARGE_INTEGER larger_int;
+  GetSystemTimeAsFileTime(&time);
+  larger_int.LowPart = time.dwLowDateTime;
+  larger_int.HighPart = time.dwHighDateTime;
+  ret = (larger_int.QuadPart - EPOCHFILETIME) / 10000;
+#else
   timespec time;
   memset(&time, 0, sizeof(time));
   if (clock_gettime(CLOCK_MONOTONIC, &time) == 0) {
     ret = time.tv_nsec / 1000000 + time.tv_sec * 1000;
   }
+#endif
   return ret;
 }
+#endif
 
 unsigned int GetMicroTickCount() {
   unsigned int ret = 0;
+#ifdef _MSC_VER
+  FILETIME time;
+  LARGE_INTEGER larger_int;
+  GetSystemTimeAsFileTime(&time);
+  larger_int.LowPart = time.dwLowDateTime;
+  larger_int.HighPart = time.dwHighDateTime;
+  ret = (larger_int.QuadPart - EPOCHFILETIME) / 10;
+#else
   timespec time;
   memset(&time, 0, sizeof(time));
   if (clock_gettime(CLOCK_MONOTONIC, &time) == 0) {
     ret = time.tv_nsec / 1000 + time.tv_sec * 1000000;
   }
+#endif
   return ret;
 }
 
 uint64_t GetMicroTickCountU64() {
   uint64_t ret = 0;
+#ifdef _MSC_VER
+  FILETIME time;
+  LARGE_INTEGER larger_int;
+  GetSystemTimeAsFileTime(&time);
+  larger_int.LowPart = time.dwLowDateTime;
+  larger_int.HighPart = time.dwHighDateTime;
+  ret = (larger_int.QuadPart - EPOCHFILETIME) / 10;
+#else
   timespec time;
   memset(&time, 0, sizeof(time));
   if (clock_gettime(CLOCK_MONOTONIC, &time) == 0) {
     ret = time.tv_nsec / 1000 + time.tv_sec * 1000000;
   }
+#endif
   return ret;
 }
 
-int GetAvailableCPUNum() { return sysconf(_SC_NPROCESSORS_ONLN); }
+int GetAvailableCPUNum() {
+#ifdef _MSC_VER
+  SYSTEM_INFO sysInfo;
+  GetSystemInfo(&sysInfo);
+  int numProcessors = sysInfo.dwNumberOfProcessors;
+  return numProcessors;  
+  return 1;
+#else
+  return sysconf(_SC_NPROCESSORS_ONLN); 
+#endif 
+}
 
 int GetAnglesFromFile(
     const std::string& sFile,
@@ -122,7 +171,7 @@ int GetAnglesFromFile(
 }
 
 // 2004-05-03T17:30:08+08:00
-int GetCurrentTime(std::string &sTime, int nFormat) {
+int GetCurrentTimeStamp(std::string &sTime, int nFormat) {
   time_t currentTime = time(NULL);
   struct tm *pLocalTime = localtime(&currentTime);
   char sFormattedTime[kTimeStrLen];

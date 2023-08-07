@@ -39,8 +39,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lidar_types.h"
 #include "ptc_client.h"
 #include <iostream>
-#include <endian.h>
-#include <semaphore.h>
 #include <vector>
 #include <boost/thread/thread.hpp>
 #include "tcp_client.h"
@@ -51,6 +49,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ring.h"
 #include "ptc_client.h"
 #include "driver_param.h"
+#ifndef _MSC_VER
+#include <endian.h>
+#include <semaphore.h>
+#endif
 #define PKT_SIZE_40P (1262)
 #define PKT_SIZE_AC (1256)
 #define PKT_SIZE_64 (1194)

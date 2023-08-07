@@ -144,7 +144,7 @@ public:
     LidarDecodedPacket<T_Point> decoded_packet;
     LidarDecodedFrame<T_Point> frame;
     int packet_index = 0;
-    uint32_t start = GetTickCount();
+    uint32_t start = GetMicroTickCount();
     while (is_thread_runing_)
     {
       UdpPacket packet;

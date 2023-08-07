@@ -30,8 +30,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lidar.h"
 #include <inttypes.h>
 #include <stdio.h>
-#include <unistd.h>
 #include "Version.h"
+#ifndef _MSC_VER
+#include <unistd.h>
+#endif
 using namespace hesai::lidar;
 
 template <typename T_Point>
@@ -363,19 +365,23 @@ void Lidar<T_Point>::RecieveUdpThread() {
   if(!udp_thread_running_) return;
   uint32_t u32StartTime = GetMicroTickCount();
   std::cout << "Lidar::Recieve Udp Thread start to run\n";
-  SetThreadPriority(SCHED_FIFO, SHED_FIFO_PRIORITY_HIGH);
+#ifdef _MSC_VER
+  SetThreadPriorityWin(THREAD_PRIORITY_TIME_CRITICAL);
+#else
+  SetThreadPriority(SCHED_FIFO, SHED_FIFO_PRIORITY_MEDIUM);
+#endif
   while (running_) {
     if (source_ == nullptr) {
-      usleep(1000);
+      std::this_thread::sleep_for(std::chrono::microseconds(1000));
       continue;
     }
     UdpPacket udp_packet;
     int len = source_->Receive(udp_packet, kBufSize);
     if (len == -1) {
-      usleep(1000);
+      std::this_thread::sleep_for(std::chrono::microseconds(1000));
       continue;
     }
-    while(origin_packets_buffer_.full() && running_) usleep(1000);
+    while(origin_packets_buffer_.full() && running_) std::this_thread::sleep_for(std::chrono::microseconds(1000));
     if(running_ == false) break;
 
     switch (len) {
@@ -411,7 +417,11 @@ void Lidar<T_Point>::ParserThread() {
   if(!parser_thread_running_) return;
   int nUDPCount = 0;
   std::cout << "Lidar::ParserThread start to run\n";
-  SetThreadPriority(SCHED_FIFO, SHED_FIFO_PRIORITY_HIGH);
+#ifdef _MSC_VER
+  SetThreadPriorityWin(THREAD_PRIORITY_TIME_CRITICAL);
+#else
+  SetThreadPriority(SCHED_FIFO, SHED_FIFO_PRIORITY_MEDIUM);
+#endif
   while (running_) {
     LidarDecodedPacket<T_Point> decoded_packet;
     decoded_packets_buffer_.try_pop_front(decoded_packet);
@@ -436,7 +446,11 @@ void Lidar<T_Point>::ParserThread() {
 template <typename T_Point>
 void Lidar<T_Point>::HandleThread(int nThreadNum) {
   struct timespec timeout;
+#ifdef _MSC_VER
+  SetThreadPriorityWin(THREAD_PRIORITY_TIME_CRITICAL);
+#else
   SetThreadPriority(SCHED_FIFO, SHED_FIFO_PRIORITY_MEDIUM);
+#endif
   if(!parser_thread_running_) return;
   while (running_) {
     LidarDecodedPacket<T_Point> decoded_packet;

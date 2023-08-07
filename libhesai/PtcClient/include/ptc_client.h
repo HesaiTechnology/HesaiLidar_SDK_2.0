@@ -46,6 +46,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PKT_SIZE_AC (1256)
 #define PKT_SIZE_64 (1194)
 #define PKT_SIZE_20 (1270)
+#ifdef _MSC_VER
+#define PACKED
+#pragma pack(push, 1)
+#else
+#define PACKED __attribute__((packed))
+#endif
 namespace hesai
 {
 namespace lidar
@@ -81,7 +87,7 @@ struct PTCHeader {
   //设置有效载荷长度/获取有效载荷长度
   void SetPayloadLen(uint32_t u32Len) { m_u32Len = htobe32(u32Len); }
   uint32_t GetPayloadLen() const { return be32toh(m_u32Len); }
-} __attribute__((packed));
+} PACKED;
 
 
 class PtcClient : public TcpClient {
