@@ -327,12 +327,12 @@ int UdpParser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, const 
       } else {
         packet_count_ += 1;
         if (packet_count_ >= kPcapPlaySynchronizationCount) {
-          double reset_time = (output.sensor_timestamp - last_sensor_timestamp_) - (output.host_timestamp - last_host_timestamp_);
+          int reset_time = static_cast<int>((output.sensor_timestamp - last_sensor_timestamp_) - (output.host_timestamp - last_host_timestamp_));
           last_host_timestamp_ = output.host_timestamp;
           last_sensor_timestamp_ = output.sensor_timestamp;
           packet_count_ = 0;
           if (reset_time > 0) {
-            std::this_thread::sleep_for(std::chrono::microseconds(int(reset_time)));
+            std::this_thread::sleep_for(std::chrono::microseconds(reset_time));
           }
         }
       }

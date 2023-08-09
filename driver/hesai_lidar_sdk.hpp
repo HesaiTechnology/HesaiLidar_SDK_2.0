@@ -27,6 +27,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 
 #include "lidar.h"
+#include "fault_message.h"
 
 namespace hesai
 {
@@ -96,11 +97,18 @@ public:
     int packet_index = 0;
     uint32_t start = GetMicroTickCount();
     UdpPacket packet;
+    FaultMessageInfo fault_message_info;
     while (is_thread_runing_) {
 
       //get one packte from origin_packets_buffer_, which receive data from upd or pcap thread
       int ret = lidar_ptr_->GetOnePacket(packet);
       if (ret == -1) continue;
+      
+      //get fault message
+      if (packet.packet_len == kFaultMessageLength) {
+        FaultMessageCallback(packet, fault_message_info);
+        continue;
+      }
 
       //get distance azimuth reflection, etc.and put them into decode_packet
       lidar_ptr_->DecodePacket(decoded_packet, packet);
@@ -161,6 +169,14 @@ public:
   // assign callback fuction
   void RegRecvCallback(const std::function<void(const UdpFrame_t&)>& callback) {
     pkt_cb_ = callback;
+  }
+
+  //parsar fault message
+  void FaultMessageCallback(UdpPacket& udp_packet, FaultMessageInfo& fault_message_info) {
+     FaultMessageVersion3 *fault_message_ptr = 
+      reinterpret_cast< FaultMessageVersion3*> (&(udp_packet.buffer[0]));
+    fault_message_ptr->ParserFaultMessage(fault_message_info);
+    return;
   }
 };
 

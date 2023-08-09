@@ -127,5 +127,7 @@ class PtcClient : public TcpClient {
 };
 }
 }
-
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 #endif /* PtcClient_H */

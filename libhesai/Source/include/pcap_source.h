@@ -190,6 +190,7 @@ public:
     int distinationPort();
     void setPacketInterval(int microsecond);
 };
+#pragma pack(pop)
 }  // namespace lidar
 }  // namespace hesai
 #endif // PCPASTREAMER_H_

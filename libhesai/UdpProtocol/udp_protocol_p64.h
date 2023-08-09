@@ -153,6 +153,9 @@ struct HS_LIDAR_TAIL_L64 {
   }
 
 } PACKED;
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 }  // namespace lidar
 }  // namespace hesai
 #endif  // INTENSITYRETEST_HSLIDARP64_H

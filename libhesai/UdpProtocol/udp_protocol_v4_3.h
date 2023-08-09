@@ -302,6 +302,9 @@ struct HS_LIDAR_HEADER_ST_V3 {
         HasCyberSecurity(), HasConfidenceLevel());
   }
 } PACKED;
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 }  // namespace lidar
 }  // namespace hesai
 #endif

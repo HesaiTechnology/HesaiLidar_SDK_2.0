@@ -109,6 +109,7 @@ struct LidarCommunicationHeader {
   }
 
 } PACKED;
-
-
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 #endif

@@ -140,6 +140,10 @@ struct ReservedInfo3 {
   uint8_t GetID() const { return m_u8ID; }
   uint16_t GetData() const { return little_to_native(m_u16Sts); }
 } PACKED;
+
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 }  // namespace lidar
 }  // namespace hesai
 #endif

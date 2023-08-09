@@ -248,6 +248,9 @@ struct HsLidarXTV1Header {
                 GetEchoNum(), HasSeqNum());
     }
 } PACKED;
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 }  // namespace lidar
 }  // namespace hesai
 #endif

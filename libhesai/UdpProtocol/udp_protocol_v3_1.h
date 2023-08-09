@@ -225,6 +225,9 @@ struct HS_LIDAR_HEADER_QT_V1 {
         GetEchoNum(), HasSeqNum());
   }
 } PACKED;
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 }  // namespace lidar
 }  // namespace hesai
 #endif

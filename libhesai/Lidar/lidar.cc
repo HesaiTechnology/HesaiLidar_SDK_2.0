@@ -392,7 +392,9 @@ void Lidar<T_Point>::RecieveUdpThread() {
           is_timeout_ = true;
         } 
         break;
-      case FAULTMESSAGE_PACKET_LEN:
+      case kFaultMessageLength:
+        udp_packet.packet_len = len;
+        origin_packets_buffer_.emplace_back(udp_packet);
         break;
       case GPS_PACKET_LEN:
         break;

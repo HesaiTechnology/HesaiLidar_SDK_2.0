@@ -80,6 +80,9 @@ static constexpr int kMinPointsOfOneFrame = 1000;
 //max time interval between two frame
 static constexpr int kMaxTimeInterval = 150000;
 
+//length of fault message packet
+static constexpr int kFaultMessageLength = 99;
+
 static constexpr int kPacketBufferSize = 36000;
 //default udp data max lenth
 static const uint16_t kBufSize = 1500;
@@ -242,6 +245,101 @@ typedef std::vector<u16Array_t> u16ArrayArray_t;
 typedef std::vector<std::string> stringArray_t;
 typedef std::vector<UdpPacket> UdpFrame_t;
 typedef std::vector<UdpFrame_t> UdpFrameArray_t;
+
+#define PANDAR_AT128_LIDAR_NUM (128)
+#define LENS_AZIMUTH_AREA_NUM (12)
+#define LENS_ELEVATION_AREA_NUM (8)
+
+enum LidarOperateState {
+  kBoot,
+  kInit,
+  kFullPerformance,
+  kHalfPower,
+  kSleepMode,
+  kHighTempertureShutdown,
+  kFaultShutdown,
+  kUndefineOperateState = -1,
+};
+
+enum LidarFaultState {
+  kNormal,
+  kWarning,
+  kPrePerformanceDegradation,
+  kPerformanceDegradation,
+  kPreShutDown,
+  kShutDown,
+  kPreReset,
+  kReset,
+  kUndefineFaultState = -1,
+};
+
+enum FaultCodeType {
+  kUndefineFaultCode = -1,
+  kCurrentFaultCode = 1,
+  kHistoryFaultCode = 2,
+};
+
+enum DTCState {
+  kNoFault,
+  kFault,
+};
+
+enum TDMDataIndicate {
+  kInvaild = 0,
+  kLensDirtyInfo = 1,
+  kUndefineIndicate = -1,
+};
+
+enum LensDirtyState {
+  kUndefineData = -1,
+  kLensNormal = 0,
+  kPassable = 1,
+  kUnPassable = 3,
+};
+
+enum HeatingState {
+  kOff = 0,
+  kHeating = 1,
+  kHeatingProhibit = 2,
+  kUndefineHeatingState = -1,
+};
+
+enum HighTempertureShutdownState {
+  kPreShutdown = 1,
+  kShutdownMode1 = 2,
+  kShutdownMode2 = 6,
+  kShutdownMode2Fail = 10,
+  kUndefineShutdownData = -1,
+};
+
+struct FaultMessageInfo {
+  uint8_t version;
+  uint8_t utc_time[6];
+  uint32_t timestamp;
+  double total_time;
+  LidarOperateState operate_state;
+  LidarFaultState fault_state;
+  FaultCodeType faultcode_type;
+  uint8_t rolling_counter;
+  uint8_t total_faultcode_num;
+  uint8_t faultcode_id;
+  uint32_t faultcode;
+  int dtc_num;
+  DTCState dtc_state;
+  TDMDataIndicate tdm_data_indicate;
+  double temperature;
+  LensDirtyState lens_dirty_state[LENS_AZIMUTH_AREA_NUM]
+                                 [LENS_ELEVATION_AREA_NUM];
+  uint16_t software_id;
+  uint16_t software_version;
+  uint16_t hardware_version;
+  uint16_t bt_version;
+  HeatingState heating_state;
+  HighTempertureShutdownState high_temperture_shutdown_state;
+  uint8_t reversed[3];
+  uint32_t crc;
+  uint8_t cycber_security[32];
+};
 
 }  // namespace lidar
 }  // namespace hesai

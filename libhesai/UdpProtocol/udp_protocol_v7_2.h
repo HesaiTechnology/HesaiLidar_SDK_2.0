@@ -236,6 +236,9 @@ struct HS_LIDAR_HEADER_FT_V2 {
   //       GetEchoNum(), HasSeqNum(), HasIMU());
   // }
 } PACKED;
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 }  // namespace lidar
 }  // namespace hesai
 #endif

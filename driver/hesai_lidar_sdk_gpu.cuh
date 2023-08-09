@@ -27,6 +27,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 #include "lidar.h"
 #include "udp_parser_gpu.h"
+#include "fault_message.h"
 namespace hesai
 {
 namespace lidar
@@ -143,6 +144,7 @@ public:
     UdpFrame_t udp_packet_frame;
     LidarDecodedPacket<T_Point> decoded_packet;
     LidarDecodedFrame<T_Point> frame;
+    FaultMessageInfo fault_message_info;
     int packet_index = 0;
     uint32_t start = GetMicroTickCount();
     while (is_thread_runing_)
@@ -152,6 +154,12 @@ public:
       //get one packte from origin_packets_buffer_, which receive data from upd or pcap thread
       int ret = lidar_ptr_->GetOnePacket(packet);
       if (ret == -1) continue;
+
+      //get fault message
+      if (packet.packet_len == kFaultMessageLength) {
+        FaultMessageCallback(packet, fault_message_info);
+        continue;
+      }
 
       //get distance azimuth reflection, etc.and put them into decode_packet
       int res = lidar_ptr_->DecodePacket(decoded_packet, packet);
@@ -239,6 +247,13 @@ public:
   void RegRecvCallback(const std::function<void(const UdpFrame_t &)>& callback)
   {
     pkt_cb_ = callback;
+  }
+
+  void FaultMessageCallback(UdpPacket& udp_packet, FaultMessageInfo& fault_message_info) {
+     FaultMessageVersion3 *fault_message_ptr = 
+      reinterpret_cast< FaultMessageVersion3*> (&(udp_packet.buffer[0]));
+    fault_message_ptr->ParserFaultMessage(fault_message_info);
+    return;
   }
 };
 
