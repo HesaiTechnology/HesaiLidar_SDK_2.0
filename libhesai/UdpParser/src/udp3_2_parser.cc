@@ -378,9 +378,18 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
             (pHeader->HasFunctionSafety() ? sizeof(HS_LIDAR_FUNCTION_SAFETY)
                                           : 0) +
                                           sizeof(HS_LIDAR_TAIL_QT_V2));
+      if(this->enable_packet_loss_tool_ == true) {
+        this->current_seqnum_ = pTailSeqNum->m_u32SeqNum;
+        if (this->current_seqnum_ > this->last_seqnum_ && this->last_seqnum_ != 0) {
+          this->total_packet_count_ += this->current_seqnum_ - this->last_seqnum_;
+        }
+        pTailSeqNum->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
+      }
     }                                      
-    
-    output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+    output.sensor_timestamp = pTail->GetMicroLidarTimeU64();    
+    output.host_timestamp = GetMicroTickCountU64();   
+    if(this->enable_packet_loss_tool_ == true) return 0;
+
     this->spin_speed_ = pTail->m_u16MotorSpeed;
     for (int i = 0; i < pHeader->GetBlockNum(); i++) {
       // point to channel unit addr

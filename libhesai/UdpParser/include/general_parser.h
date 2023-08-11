@@ -202,6 +202,10 @@ class GeneralParser {
 
   //set frame azimuth
   virtual void SetFrameAzimuth(float frame_start_azimuth);
+
+  //set enable_packet_loss_tool_
+  virtual void EnablePacketLossTool(bool enable);
+
   void TransformPoint(float& x, float& y, float& z);
   void SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
   void EnableUpdateMonitorInfo();
@@ -211,6 +215,10 @@ class GeneralParser {
   uint16_t *GetMonitorInfo3();
   std::vector<double> elevation_correction_;
   std::vector<double> azimuth_collection_;
+  uint32_t total_start_seqnum_;
+  uint32_t total_loss_count_;
+  uint32_t current_seqnum_;
+  uint32_t total_packet_count_;
   
  protected:
   uint16_t monitor_info1_[256];
@@ -235,6 +243,7 @@ class GeneralParser {
   double firetime_correction_[512];
   bool enable_firetime_correction_;
   bool enable_distance_correction_;
+  bool enable_packet_loss_tool_;
   Transform transform_;
   float frame_start_azimuth_;
 };

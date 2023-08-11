@@ -66,6 +66,7 @@ static constexpr int kResolutionInt = 100;
 static constexpr float kResolutionFloat = 100.0f;
 //conversion factor between second and micorsecond
 static constexpr float kMicrosecondToSecond = 1000000.0f;
+static constexpr int kMicrosecondToSecondInt = 1000000;
 //the difference between last azimuth and current azimuth must be greater than this angle in split frame function,
 //to avoid split frame unsuccessfully
 static constexpr uint16_t kSplitFrameMinAngle = 300;

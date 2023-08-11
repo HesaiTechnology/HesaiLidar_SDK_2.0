@@ -70,6 +70,7 @@ class Source {
   virtual int Send(uint8_t* u8Buf, uint16_t u16Len, int flags = 0) = 0;
   virtual int Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags = 0,
                       int timeout = 1000) = 0; 
+  virtual void SetSocketBufferSize(uint32_t u32BufSize) = 0;                   
 };
 }  // namespace lidar
 }  // namespace hesai

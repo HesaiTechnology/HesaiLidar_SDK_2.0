@@ -47,6 +47,19 @@ link_directories(${Boost_LIBRARY_DIRS})
 find_package(PCL COMPONENTS common visualization io QUIET REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
+
+add_executable(packet_loss_tool
+  tool/packet_loss_tool.cc
+)
+
+target_link_libraries(packet_loss_tool
+  ${Boost_LIBRARIES}
+  source_lib
+  container_lib
+  ptcClient_lib
+  log_lib 
+)
+
 add_executable(sample
   test/main.cc
 )

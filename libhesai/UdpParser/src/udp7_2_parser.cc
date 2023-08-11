@@ -245,13 +245,24 @@ int Udp7_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   const HS_LIDAR_TAIL_FT_V2 *pTail =
       reinterpret_cast<const HS_LIDAR_TAIL_FT_V2 *>(
           (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_FT_V2) +
-          (sizeof(HS_LIDAR_BODY_CHN_UNIT_FT_V2) * pHeader->GetChannelNum()));      
+          (sizeof(HS_LIDAR_BODY_CHN_UNIT_FT_V2) * pHeader->GetChannelNum()));  
+  output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
   output.host_timestamp = GetMicroTickCountU64();
+
+  if (this->enable_packet_loss_tool_ == true) {
+    this->current_seqnum_ = pTail->sequence_num;
+    if (this->current_seqnum_ > this->last_seqnum_ && this->last_seqnum_ != 0) {
+      this->total_packet_count_ += this->current_seqnum_ - this->last_seqnum_;
+    }
+    pTail->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, 
+        this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
+    return 0;
+  }    
+
   output.maxPoints = pHeader->GetChannelNum();
   output.points_num = pHeader->GetChannelNum();
   output.scan_complete = false;
   output.distance_unit = pHeader->GetDistUnit();
-  output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
   int index = 0;
   float minAzimuth = 0;
   float maxAzimuth = 0;

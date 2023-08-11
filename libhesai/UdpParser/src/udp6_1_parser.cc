@@ -105,19 +105,30 @@ int Udp6_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
           (sizeof(HsLidarXTV1BodyAzimuth) +
            sizeof(HsLidarXTV1BodyChannelData) * pHeader->GetLaserNum()) *
               pHeader->GetBlockNum());          
+
+  output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+  output.host_timestamp = GetMicroTickCountU64();
+
+  if (this->enable_packet_loss_tool_ == true) {
+    this->current_seqnum_ = pTail->m_u32SeqNum;
+    if (this->current_seqnum_ > this->last_seqnum_ && this->last_seqnum_ != 0) {
+      this->total_packet_count_ += this->current_seqnum_ - this->last_seqnum_;
+    }
+    pTail->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, 
+        this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
+    return 0;
+  }
+
   this->spin_speed_ = pTail->m_u16MotorSpeed;
   this->is_dual_return_= pTail->IsDualReturn();
   output.spin_speed = pTail->m_u16MotorSpeed;
 
-  output.host_timestamp = GetMicroTickCountU64();
   // 如下三条：max min这样的参数一点用都没有
   output.maxPoints = pHeader->GetBlockNum() * pHeader->GetLaserNum();
   // 不填直接崩调，=0界面一个点也没有
   output.points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
   // 不填则仅显示很小一部分点云
   output.scan_complete = false;
-  // 不填可以播放，只是显示的时间戳不对
-  output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
   output.distance_unit = pHeader->GetDistUnit();
   int index = 0;
   float minAzimuth = 0;

@@ -46,6 +46,8 @@ GeneralParser<T_Point>::GeneralParser() {
   this->loss_count_ = 0;
   this->start_time_ = 0;
   this->last_azimuth_ = 0;
+  this->total_packet_count_ = 0;
+  this->enable_packet_loss_tool_ = false;
   for (int i = 0; i < CIRCLE; ++i) {
     this->sin_all_angle_[i] = std::sin(i * 2 * M_PI / CIRCLE);
     this->cos_all_angle_[i] = std::cos(i * 2 * M_PI / CIRCLE);
@@ -188,6 +190,11 @@ void GeneralParser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
     this->get_firetime_file_ = false;
     return;
   }
+}
+
+template <typename T_Point>
+void GeneralParser<T_Point>::EnablePacketLossTool(bool enable) {
+  this->enable_packet_loss_tool_ = enable;
 }
 
 template <typename T_Point>

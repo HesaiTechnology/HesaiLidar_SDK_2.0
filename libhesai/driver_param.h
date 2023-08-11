@@ -74,6 +74,9 @@ typedef struct DecoderParam
   //start a new frame when lidar azimuth greater than frame_start_azimuth
   //range:1-359, set frame_start_azimuth less than 0 if you do want to use it
   float frame_start_azimuth = 359;
+  // enable the udp packet loss detection tool
+  // it forbiddens parser udp packet while trun on this tool
+  bool enable_packet_loss_tool = false;
 } DecoderParam;
 
 ///< The LiDAR input parameter

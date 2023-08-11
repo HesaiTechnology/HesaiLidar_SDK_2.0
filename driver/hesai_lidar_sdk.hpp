@@ -41,12 +41,14 @@ private:
   std::function<void(const UdpFrame_t&)> pkt_cb_;
   std::function<void(const LidarDecodedFrame<T_Point>&)> point_cloud_cb_;
   bool is_thread_runing_;
+  bool packet_loss_tool_;
 public:
   HesaiLidarSdk() {
     std::cout << "-------- Hesai Lidar SDK V" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_TINY << " --------" << std::endl;
     runing_thread_ptr_ = nullptr;
     lidar_ptr_ = nullptr;
     is_thread_runing_ = false;
+    packet_loss_tool_ = false;
   }
 
   ~HesaiLidarSdk() {
@@ -65,6 +67,8 @@ public:
     }
     //init lidar with param
     lidar_ptr_->Init(param);
+    //set packet_loss_tool
+    packet_loss_tool_ = param.decoder_param.enable_packet_loss_tool;
     /***********************************************************************************/ 
     return true;
   }
@@ -112,6 +116,9 @@ public:
 
       //get distance azimuth reflection, etc.and put them into decode_packet
       lidar_ptr_->DecodePacket(decoded_packet, packet);
+
+      //do not compute xyzi of points if enable packet_loss_tool_
+      if(packet_loss_tool_ == true) continue;
 
       //one frame is receive completely, split frame
       if(decoded_packet.scan_complete) {
