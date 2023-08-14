@@ -54,7 +54,7 @@ void SocketSource::Close() {
   if (udp_sock_ > 0) {
 #ifdef _MSC_VER
     closesocket(udp_sock_);
-    //WSACleanup();
+    WSACleanup();
 #else
     close(udp_sock_);
 #endif

@@ -36,6 +36,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef TCPCLIENT_H
 #define TCPCLIENT_H
 
+#ifdef _MSC_VER
+#include <winsock2.h>
+#include <ws2tcpip.h> 
+#else
+typedef unsigned int SOCKET;
+#endif
+
 #include <stdint.h>
 #include <string.h>
 #include <atomic>
@@ -82,20 +89,20 @@ class TcpClient{
    * @brief 设置自动接收模式下Buff的大小
    * @param size
    */
-  void SetReceiveBufferSize(const uint32_t &size);
+  // void SetReceiveBufferSize(const uint32_t &size);
 
  private:
   /**
    * monitor file descriptor and wait for I/O operation
    */
-  int WaitFor(const int &socketfd, uint32_t timeoutSeconds = 1);
+  // int WaitFor(const int &socketfd, uint32_t timeoutSeconds = 1);
 
  protected:
   static const uint32_t kDefaultTimeout = 500;
 
   std::string m_sServerIP;
   uint16_t ptc_port_;
-  int m_tcpSock;
+  SOCKET m_tcpSock;
   bool m_bLidarConnected;
   uint32_t m_u32ReceiveBufferSize;
   // 收发超时/ms

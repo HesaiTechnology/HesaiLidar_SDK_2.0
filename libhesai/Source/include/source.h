@@ -63,7 +63,7 @@ namespace lidar
 class Source {
  public:
   Source();
-  ~Source();
+  virtual ~Source();
   virtual bool Open() = 0;
   virtual void Close();
   virtual bool IsOpened() = 0;

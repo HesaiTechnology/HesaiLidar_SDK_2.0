@@ -35,9 +35,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef PtcClient_H
 #define PtcClient_H
-
+#ifdef _MSC_VER
+#include <boost/endian/conversion.hpp>
+#else
 #include <endian.h>
 #include <semaphore.h>
+#endif
 #include <vector>
 #include <boost/thread/thread.hpp>
 #include "tcp_client.h"
@@ -85,8 +88,13 @@ struct PTCHeader {
     m_u32Len = 0;
   }
   //设置有效载荷长度/获取有效载荷长度
+#ifdef _MSC_VER
+  void SetPayloadLen(uint32_t u32Len) { m_u32Len = boost::endian::native_to_big(u32Len); }
+  uint32_t GetPayloadLen() const { return boost::endian::big_to_native(m_u32Len); }
+#else
   void SetPayloadLen(uint32_t u32Len) { m_u32Len = htobe32(u32Len); }
   uint32_t GetPayloadLen() const { return be32toh(m_u32Len); }
+#endif
 } PACKED;
 
 
@@ -97,7 +105,7 @@ class PtcClient : public TcpClient {
   static const uint8_t kPTCGetLidarChannelConfig = 0xA8;
   PtcClient(std::string IP = kLidarIPAddr,
                        uint16_t u16TcpPort = kTcpPort);
-  ~PtcClient() {}
+  virtual ~PtcClient() {}
 
   PtcClient(const PtcClient &orig) = delete;
 

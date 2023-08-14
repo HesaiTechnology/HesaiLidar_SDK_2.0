@@ -168,7 +168,7 @@ public:
     PcapSource(std::string path, int packet_interval);
     PcapSource(const PcapSource&) = delete;
     PcapSource& operator=(const PcapSource&) = delete;
-    ~PcapSource();
+    virtual ~PcapSource();
     void setPcapPath(std::string path);
 
     Callback callback() const;

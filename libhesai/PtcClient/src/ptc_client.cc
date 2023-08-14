@@ -34,9 +34,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ptc_client.h"
 
 #include <plat_utils.h>
+#ifdef _MSC_VER
+#ifndef MSG_DONTWAIT
+#define MSG_DONTWAIT (0x40)
+#endif
+#else
 #include <sched.h>
 #include <sys/socket.h>
-
+#endif
  
 #include "udp_protocol_v1_4.h"
 #include "udp_protocol_p40.h"

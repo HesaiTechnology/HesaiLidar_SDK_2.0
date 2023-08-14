@@ -66,7 +66,7 @@ namespace lidar
 class SocketSource : public Source{
  public:
   SocketSource(uint16_t port = kUdpPort, std::string multicastIp = "");
-  ~SocketSource();
+  virtual ~SocketSource();
 
   virtual bool Open();
   virtual void Close();
