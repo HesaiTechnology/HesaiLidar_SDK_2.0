@@ -111,6 +111,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
 
     /***************************Init source****************************************/
     int packet_interval = 10;
+    udp_port_ = param.input_param.udp_port;
     if (param.input_param.source_type == 2) {
       source_ = new PcapSource(param.input_param.pcap_path, packet_interval);
       source_->Open();
