@@ -19,6 +19,7 @@ add_compile_options(-Wall)
 
 include_directories("${PROJECT_BINARY_DIR}")
 find_package(Boost REQUIRED COMPONENTS system filesystem thread)
+find_package(OpenSSL REQUIRED)
 add_definitions(-DQT_MESSAGELOGCONTEXT)
 add_subdirectory(libhesai)
 
@@ -38,11 +39,17 @@ include_directories(
   libhesai/UdpParserGpu/include
   libhesai/UdpParserGpu/src
   libhesai/PtcClient/include
+  libhesai/PtcParser
+  libhesai/PtcParser/src
+  libhesai/PtcParser/include
   libhesai/Logger/include
   libhesai/include
   driver
+  third_party
+  ${Boost_INCLUDE_DIRS}
+  ${OPENSSL_INCLUDE_DIR}
 )
-
+link_directories(./libhesai/PtcClient/lib)
 link_directories(${Boost_LIBRARY_DIRS})
 find_package(PCL COMPONENTS common visualization io QUIET REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
@@ -58,6 +65,8 @@ target_link_libraries(packet_loss_tool
   container_lib
   ptcClient_lib
   log_lib 
+  ptcParser_lib
+  ${OPENSSL_LIBRARIES}
 )
 
 add_executable(sample
@@ -69,8 +78,10 @@ target_link_libraries(sample
   source_lib
   container_lib
   ptcClient_lib
+  ptcParser_lib
   log_lib
   ${PCL_LIBRARIES}  
+  ${OPENSSL_LIBRARIES}
 )
 
 # add_library(libhesai
@@ -107,6 +118,8 @@ if(${CUDA_FOUND})
   container_lib
   ptcClient_lib
   log_lib
+  ptcParser_lib
+  ${OPENSSL_LIBRARIES}
   ${PCL_LIBRARIES} 
 )
 else(${CUDA_FOUND})

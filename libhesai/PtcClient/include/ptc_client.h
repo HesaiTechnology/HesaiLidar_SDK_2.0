@@ -1,30 +1,20 @@
-/************************************************************************************************
-Copyright (C) 2023 Hesai Technology Co., Ltd.
-Copyright (C) 2023 Original Authors
-All rights reserved.
-
-All code in this repository is released under the terms of the following Modified BSD License. 
-Redistribution and use in source and binary forms, with or without modification, are permitted 
-provided that the following conditions are met:
-
-* Redistributions of source code must retain the above copyright notice, this list of conditions and 
-  the following disclaimer.
-
-* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and 
-  the following disclaimer in the documentation and/or other materials provided with the distribution.
-
-* Neither the name of the copyright holder nor the names of its contributors may be used to endorse or 
-  promote products derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED 
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR 
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR 
-TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-************************************************************************************************/
+/*
+ * Copyright (C) 2019 Hesai Tech<http://www.hesaitech.com>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
 
 /*
  * File:   ptc_client.h
@@ -35,88 +25,53 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef PtcClient_H
 #define PtcClient_H
-#ifdef _MSC_VER
-#include <boost/endian/conversion.hpp>
-#else
-#include <endian.h>
-#include <semaphore.h>
-#endif
+
+// #include <endian.h>
+// #include <semaphore.h>
 #include <vector>
 #include <boost/thread/thread.hpp>
+// #include "tcp_client_boost.h"
+// #include "tcp_ssl_client_boost.h"
 #include "tcp_client.h"
+#include "tcp_ssl_client.h"
 #include "lidar_types.h"
+#include "driver_param.h"
+#include "ptc_parser.h"
+
 #define PKT_SIZE_40P (1262)
 #define PKT_SIZE_AC (1256)
 #define PKT_SIZE_64 (1194)
 #define PKT_SIZE_20 (1270)
-#ifdef _MSC_VER
-#define PACKED
-#pragma pack(push, 1)
-#else
-#define PACKED __attribute__((packed))
-#endif
 namespace hesai
 {
 namespace lidar
 {
 
-struct PTCHeader {
-  uint8_t m_u8Identifier0;
-  uint8_t m_u8Identifier1;
-  uint8_t m_u8Cmd;
-  uint8_t m_u8RspCode;
-  uint32_t m_u32Len;  //有效载荷长度
+const uint8_t kPTCGetLidarCalibration = 0x05;
+const uint8_t kPTCGetInventoryInfo = 0x07;
+const uint8_t kPTCGetLidarFiretimes = 0xA9;
+const uint8_t kPTCGetLidarChannelConfig = 0xA8;
 
-  static const uint8_t kIdentifier0 = 0x47;
-  static const uint8_t kIdentifier1 = 0x74;
-
-  bool IsValidIdentifier() const {
-    return m_u8Identifier0 == kIdentifier0 && m_u8Identifier1 == kIdentifier1;
-  }
-
-  static uint8_t Identifier0() { return kIdentifier0; }
-  static uint8_t Identifier1() { return kIdentifier1; }
-  //判断返回位是否是有效  默认返回值是false  &&具有短路的功效
-  bool IsValidRsp() const { return IsValidIdentifier() && m_u8RspCode == 0; }
-  uint8_t GetRspCode() const { return m_u8RspCode; }
-
-  void Init(uint8_t u8Cmd) {
-    m_u8Identifier0 = kIdentifier0;
-    m_u8Identifier1 = kIdentifier1;
-    m_u8Cmd = u8Cmd;
-    m_u8RspCode = 0;
-    m_u32Len = 0;
-  }
-  //设置有效载荷长度/获取有效载荷长度
-#ifdef _MSC_VER
-  void SetPayloadLen(uint32_t u32Len) { m_u32Len = boost::endian::native_to_big(u32Len); }
-  uint32_t GetPayloadLen() const { return boost::endian::big_to_native(m_u32Len); }
-#else
-  void SetPayloadLen(uint32_t u32Len) { m_u32Len = htobe32(u32Len); }
-  uint32_t GetPayloadLen() const { return be32toh(m_u32Len); }
-#endif
-} PACKED;
-
-
-class PtcClient : public TcpClient {
+class PtcClient {
  public:
-  static const uint8_t kPTCGetLidarCalibration = 0x05;
-  static const uint8_t kPTCGetLidarFiretimes = 0xA9;
-  static const uint8_t kPTCGetLidarChannelConfig = 0xA8;
-  PtcClient(std::string IP = kLidarIPAddr,
-                       uint16_t u16TcpPort = kTcpPort);
-  virtual ~PtcClient() {}
+  PtcClient(std::string IP = kLidarIPAddr
+            , uint16_t u16TcpPort = kTcpPort
+            , bool bAutoReceive = false
+            , PtcMode client_mode = PtcMode::tcp
+            , uint8_t ptc_version = 1
+            , const char* cert = nullptr
+            , const char* private_key = nullptr
+            , const char* ca = nullptr);
+  ~PtcClient() {}
 
   PtcClient(const PtcClient &orig) = delete;
 
-  bool PTCEncode(u8Array_t &byteStreamIn, u8Array_t &byteStreamOut,
-                 uint8_t u8Cmd);
-  bool PTCDecode(u8Array_t &byteStreamIn, u8Array_t &byteStreamOut);
   bool IsValidRsp(u8Array_t &byteStreamIn);
 
   void TcpFlushIn();
   int QueryCommand(u8Array_t &byteStreamIn, u8Array_t &byteStreamOut, uint8_t u8Cmd );
   int SendCommand(u8Array_t &byteStreamIn, uint8_t u8Cmd);
+  bool GetValFromOutput(uint8_t cmd, uint8_t retcode, const u8Array_t &payload, int start_pos, int length, u8Array_t &res);
 
   u8Array_t GetCorrectionInfo();
   int GetCorrectionInfo(u8Array_t &dataOut);
@@ -125,6 +80,8 @@ class PtcClient : public TcpClient {
   int SetSocketTimeout(uint32_t u32RecMillisecond, uint32_t u32SendMillisecond);
   void CRCInit();
   uint32_t CRCCalc(uint8_t *bytes, int len); 
+
+ public:
   uint32_t m_CRCTable[256];                                              
 
  private:
@@ -132,10 +89,12 @@ class PtcClient : public TcpClient {
   static const uint16_t kTcpPort = 9347;
   uint16_t m_u16PtcPort;
   bool running_;
+  PtcMode client_mode_;
+  uint8_t ptc_version_;
+  std::shared_ptr<ClientBase> client_;
+  std::shared_ptr<PtcParser> ptc_parser_;
 };
 }
 }
-#ifdef _MSC_VER
-#pragma pack(pop)
-#endif
+
 #endif /* PtcClient_H */

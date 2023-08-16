@@ -87,6 +87,10 @@ int main(int argc, char *argv[])
   param.input_param.correction_file_path = "Your correction file path";
   param.input_param.firetimes_path = "Your firetime file path";
 
+  param.input_param.ptc_mode = PtcMode::tcp_ssl;
+  param.input_param.certFile = "Your cert file";
+  param.input_param.privateKeyFile = "Your privateKey file";
+  param.input_param.caFile = "Your ca file";
   param.input_param.device_ip_address = "192.168.1.201";
   param.input_param.ptc_port = 9347;
   param.input_param.udp_port = 2368;

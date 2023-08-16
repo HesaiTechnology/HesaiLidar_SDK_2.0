@@ -34,81 +34,65 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ptc_client.h"
 
 #include <plat_utils.h>
-#ifdef _MSC_VER
-#ifndef MSG_DONTWAIT
-#define MSG_DONTWAIT (0x40)
-#endif
-#else
 #include <sched.h>
 #include <sys/socket.h>
-#endif
+
  
-#include "udp_protocol_v1_4.h"
-#include "udp_protocol_p40.h"
-#include "udp_protocol_p64.h"
-#include "udp_protocol_v4_3.h"
-#include "udp_protocol_v6_1.h"
+// #include "udp_protocol_v1_4.h"
+// #include "udp_protocol_p40.h"
+// #include "udp_protocol_p64.h"
+// #include "udp_protocol_v4_3.h"
+// #include "udp_protocol_v6_1.h"
 using namespace hesai::lidar;
 const std::string PtcClient::kLidarIPAddr("192.168.1.201");
 
-PtcClient::PtcClient(std::string ip, uint16_t u16TcpPort) {
+PtcClient::PtcClient(std::string ip
+                    , uint16_t u16TcpPort
+                    , bool bAutoReceive
+                    , PtcMode client_mode
+                    , uint8_t ptc_version
+                    , const char* cert
+                    , const char* private_key
+                    , const char* ca)
+  : client_mode_(client_mode)
+  , ptc_version_(ptc_version) {
   std::cout << "PtcClient::PtcClient()" << ip.c_str()
            << u16TcpPort << std::endl;
-  TcpClient::Open(ip, u16TcpPort);
-  CRCInit();
-}
-
-bool PtcClient::PTCEncode(u8Array_t &byteStreamIn,
-                                     u8Array_t &byteStreamOut, uint8_t u8Cmd) {
-  //设置byteStreamOut长度
-  byteStreamOut.resize(sizeof(PTCHeader) + byteStreamIn.size());
-  PTCHeader *pHeader = (PTCHeader *)byteStreamOut.data();
-  pHeader->Init(u8Cmd);
-  pHeader->SetPayloadLen(byteStreamIn.size());
-  pHeader++;
-
-  memcpy((void *)pHeader, byteStreamIn.data(), byteStreamIn.size());
-  return true;
-}
-
-bool PtcClient::PTCDecode(u8Array_t &byteStreamIn,
-                                     u8Array_t &byteStreamOut) {
-  bool ret = false;
-
-  if (IsValidRsp(byteStreamIn)) {
-    byteStreamOut.resize(byteStreamIn.size() - sizeof(PTCHeader));
-    PTCHeader *pHeader = (PTCHeader *)byteStreamIn.data();
-    if (byteStreamIn.size() - sizeof(PTCHeader) >= pHeader->GetPayloadLen()) {
-      if (pHeader->GetPayloadLen() > 0)
-        //将收到的数据加上头部都复制给byteStreamOut
-        memcpy(byteStreamOut.data(), byteStreamIn.data() + sizeof(PTCHeader),
-               byteStreamIn.size() - sizeof(PTCHeader));
-      ret = true;
-    } else {
-      printf("PTCDecode(), failed, rspcode %u, len: 0x%x/0x%lx\n",
-             pHeader->m_u8RspCode, pHeader->GetPayloadLen(),
-             byteStreamIn.size() - sizeof(PTCHeader));
-    }
+  // TcpClient::Open(ip, u16TcpPort);
+  if(client_mode == PtcMode::tcp) {
+    client_ = std::make_shared<TcpClient>();
+    client_->Open(ip, u16TcpPort, bAutoReceive);
+  } else if(client_mode == PtcMode::tcp_ssl) {
+    client_ = std::make_shared<TcpSslClient>();
+    client_->Open(ip, u16TcpPort, bAutoReceive, cert, private_key, ca);
   }
-  return ret;
+
+  // init ptc parser
+  ptc_parser_ = std::make_shared<PtcParser>(ptc_version);
+
+  CRCInit();
 }
 
 bool PtcClient::IsValidRsp(u8Array_t &byteStreamIn) {
   bool ret = true;
-  //用于检查输入数据的前两位是否是标记位  0x47和0x74
+  // 根据ptc version来检查输入数据的前两位是否是对应版本的标记位
   while (byteStreamIn.size() >= 2 &&
-         (byteStreamIn.at(0) != PTCHeader::Identifier0() ||
-          byteStreamIn.at(1) != PTCHeader::Identifier1())) {
+         (byteStreamIn.at(0) != ptc_parser_->GetHeaderIdentifier0() ||
+          byteStreamIn.at(1) != ptc_parser_->GetHeaderIdentifier1())) {
     byteStreamIn.erase(byteStreamIn.begin());
   }
   //输入数据长度小于头长度 没有数据
-  if (byteStreamIn.size() < sizeof(PTCHeader)) ret = false;
+  if (byteStreamIn.size() < ptc_parser_->GetPtcParserHeaderSize()) ret = false;
 
   if (ret) {
-    PTCHeader *pHeader = (PTCHeader *)byteStreamIn.data();
-    if (!pHeader->IsValidRsp()) ret = false;
+    if(ptc_version_ == 1) {
+      PTCHeader_1_0 *pHeader = (PTCHeader_1_0 *)byteStreamIn.data();
+      if (!pHeader->IsValidReturnCode()) ret = false;
+    } else {
+      PTCHeader_2_0 *pHeader = (PTCHeader_2_0 *)byteStreamIn.data();
+      if (!pHeader->IsValidReturnCode()) ret = false;
+    }
   }
-
   return ret;
 }
 
@@ -117,8 +101,13 @@ void PtcClient::TcpFlushIn() {
   u8Array_t u8Buf(1500, 0);
   int len = 0;
   do {
-    len = TcpClient::Receive(u8Buf.data(), u8Buf.size(), MSG_DONTWAIT);
-    if (len > 0) std::cout << "TcpFlushIn, len" << len << std::endl;
+    len = client_->Receive(u8Buf.data(), u8Buf.size(), MSG_DONTWAIT);
+    if (len > 0) {
+      std::cout << "TcpFlushIn, len" << len << std::endl;
+      for(int i = 0; i<u8Buf.size(); i++) {
+        printf("%x ", u8Buf[i]);
+      }
+    }
   } while (len > 0);
 }
 
@@ -127,15 +116,11 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
                                        uint8_t u8Cmd) {
   int ret = 0;
   u8Array_t encoded;
-
   uint32_t tick = GetMicroTickCount();
+  ptc_parser_->PtcStreamEncode(byteStreamIn, encoded, u8Cmd);
+  // TcpFlushIn();
 
-  PTCEncode(byteStreamIn, encoded, u8Cmd);
-  // std::cout << "PtcClient::QueryCommand, encoded:" << encoded;
-
-  TcpFlushIn();
-
-  int nLen = TcpClient::Send(encoded.data(), encoded.size());
+  int nLen = client_->Send(encoded.data(), encoded.size());
   if (nLen != encoded.size()) {
     // qDebug("%s: send failure, %d.", __func__, nLen);
     ret = -1;
@@ -143,12 +128,12 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
 
   //开始接收数据
   int nOnceRecvLen = 0;
-  u8Array_t u8RecvHeaderBuf(sizeof(PTCHeader));
+  u8Array_t u8RecvHeaderBuf(ptc_parser_->GetPtcParserHeaderSize());
   u8Array_t::pointer pRecvHeaderBuf = u8RecvHeaderBuf.data();
-  u8Array_t u8HeaderBuf(sizeof(PTCHeader));
+  u8Array_t u8HeaderBuf(ptc_parser_->GetPtcParserHeaderSize());
   u8Array_t::pointer pHeaderBuf = u8HeaderBuf.data();
   //还要接收的数据长度
-  int nLeft = sizeof(PTCHeader);
+  int nLeft = ptc_parser_->GetPtcParserHeaderSize();
   //是否已经找到连续的0x47和0x74
   bool bHeaderFound = false;
   int nValidDataLen = 0;
@@ -156,13 +141,13 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
 
   if (ret == 0) {
     while (nLeft > 0) {
-      nOnceRecvLen = TcpClient::Receive(pRecvHeaderBuf, nLeft);
+      nOnceRecvLen = client_->Receive(pRecvHeaderBuf, nLeft);
       if (nOnceRecvLen <= 0) break;
 
       if (!bHeaderFound) {
         for (int i = 0; i < nOnceRecvLen - 1; i++) {
-          if (pRecvHeaderBuf[i] == PTCHeader::Identifier0() &&
-              pRecvHeaderBuf[i + 1] == PTCHeader::Identifier1()) {
+          if (pRecvHeaderBuf[i] == ptc_parser_->GetHeaderIdentifier0() &&
+              pRecvHeaderBuf[i + 1] == ptc_parser_->GetHeaderIdentifier1()) {
             nValidDataLen = nOnceRecvLen - i;
             bHeaderFound = true;
             std::memcpy(pHeaderBuf, pRecvHeaderBuf + i, nValidDataLen);
@@ -185,36 +170,41 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
       ret = -1;
     } else {
       //开始接收body
-      PTCHeader *pPTCHeader = reinterpret_cast<PTCHeader *>(u8HeaderBuf.data());
-      if (!pPTCHeader->IsValidRsp() || pPTCHeader->m_u8Cmd != u8Cmd) {
-        // std::cout << "PtcClient::QueryCommand,RspCode invalid:"
-        //          << pPTCHeader->GetRspCode() << ", u8HeaderBuf: " << std::hex
-        //          << u8HeaderBuf;
-        ret = -1;
+      if(ptc_version_ == 1) {
+        PTCHeader_1_0 *pPTCHeader = reinterpret_cast<PTCHeader_1_0 *>(u8HeaderBuf.data());
+        if (!pPTCHeader->IsValidReturnCode() || pPTCHeader->cmd_ != u8Cmd) {
+          std::cout << "PtcClient::QueryCommand,RspCode invalid:" << pPTCHeader->return_code_ << ", u8HeaderBuf: " << std::endl;
+          ret = -1;
+        } else {
+          nPayLoadLen = be32toh(pPTCHeader->payload_len_);
+        }
       } else {
-        nPayLoadLen = pPTCHeader->GetPayloadLen();
+        PTCHeader_2_0 *pPTCHeader = reinterpret_cast<PTCHeader_2_0 *>(u8HeaderBuf.data());
+        if (!pPTCHeader->IsValidReturnCode() || pPTCHeader->cmd_ != u8Cmd) {
+          std::cout << "PtcClient::QueryCommand,RspCode invalid:" << pPTCHeader->return_code_ << ", u8HeaderBuf: " << std::endl;
+          ret = -1;
+        } else {
+          nPayLoadLen = be32toh(pPTCHeader->payload_len_);
+        }
       }
     }
   }
-
+  // std::cout << "nPayLoadLen = " << nPayLoadLen << std::endl;
   if (ret == 0 && nPayLoadLen > 0) {
     //对payLoad进行一个判断，避免负载过长申请过大的空间 目前指定为10K
     const int kMaxPayloadBuffSize = 10240;
     if (nPayLoadLen > kMaxPayloadBuffSize)
-      std::cout << "PtcClient::QueryCommand, warning, nPayLoadLen "
-                    "too large:"
-                 << nPayLoadLen << std::endl;
+      std::cout << "PtcClient::QueryCommand, warning, nPayLoadLen too large:" << nPayLoadLen << std::endl;
 
     // tmp code to allow LiDAR bug
-    const int kExtraBufLen = 4;
-    u8Array_t u8BodyBuf(nPayLoadLen + kExtraBufLen);
+    // const int kExtraBufLen = 4;
+    // u8Array_t u8BodyBuf(nPayLoadLen + kExtraBufLen);
+    u8Array_t u8BodyBuf(nPayLoadLen);
     u8Array_t::pointer pBodyBuf = u8BodyBuf.data();
 
     nLeft = nPayLoadLen;
-
     while (nLeft > 0) {
-      nOnceRecvLen = TcpClient::Receive(pBodyBuf, nLeft + kExtraBufLen);
-
+      nOnceRecvLen = client_->Receive(pBodyBuf, nLeft);
       if (nOnceRecvLen <= 0) {
         break;
       }
@@ -253,14 +243,21 @@ int PtcClient::SendCommand(u8Array_t &byteStreamIn, uint8_t u8Cmd) {
   return QueryCommand(byteStreamIn, byteStreamOut, u8Cmd);
 }
 
+bool PtcClient::GetValFromOutput(uint8_t cmd, uint8_t retcode, const u8Array_t &payload, int start_pos, int length, u8Array_t& res) {
+  return ptc_parser_->PtcStreamDecode(cmd, retcode, payload, start_pos, length, res);
+}
 
 u8Array_t PtcClient::GetCorrectionInfo() {
   u8Array_t dataIn;
   u8Array_t dataOut;
 
   int ret = -1;
+
   ret = this->QueryCommand(dataIn, dataOut,
-                           PtcClient::kPTCGetLidarCalibration);
+                           kPTCGetLidarCalibration);
+
+  // ret = this->QueryCommand(dataIn, dataOut,
+  //                          PtcClient::kPTCGetInventoryInfo);
 
   if (ret == 0 && !dataOut.empty()) {
     std::cout << "Read correction file from lidar success" << std::endl;
@@ -273,10 +270,10 @@ u8Array_t PtcClient::GetCorrectionInfo() {
 
 int PtcClient::GetCorrectionInfo(u8Array_t &dataOut) {
   u8Array_t dataIn;
-
   int ret = -1;
   ret = this->QueryCommand(dataIn, dataOut,
-                           PtcClient::kPTCGetLidarCalibration);
+                           kPTCGetLidarCalibration);
+
   if (ret == 0 && !dataOut.empty()) {
     return 0;
   } else {
@@ -289,7 +286,7 @@ int PtcClient::GetFiretimesInfo(u8Array_t &dataOut) {
 
   int ret = -1;
   ret = this->QueryCommand(dataIn, dataOut,
-                           PtcClient::kPTCGetLidarFiretimes);
+                           kPTCGetLidarFiretimes);
   if (ret == 0 && !dataOut.empty()) {
     return 0;
   } else {
@@ -302,7 +299,7 @@ int PtcClient::GetChannelConfigInfo(u8Array_t &dataOut) {
 
   int ret = -1;
   ret = this->QueryCommand(dataIn, dataOut,
-                           PtcClient::kPTCGetLidarChannelConfig);
+                           kPTCGetLidarChannelConfig);
   if (ret == 0 && !dataOut.empty()) {
     return 0;
   } else {
@@ -312,7 +309,7 @@ int PtcClient::GetChannelConfigInfo(u8Array_t &dataOut) {
 
 int PtcClient::SetSocketTimeout(uint32_t u32RecMillisecond,
                                            uint32_t u32SendMillisecond) {
-  return TcpClient::SetTimeout(u32RecMillisecond, u32SendMillisecond);
+  return client_->SetTimeout(u32RecMillisecond, u32SendMillisecond);
 }
 
 

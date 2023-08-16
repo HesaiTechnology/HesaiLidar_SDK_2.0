@@ -93,6 +93,11 @@ int main(int argc, char *argv[])
   param.input_param.host_ip_address = "192.168.1.100";
   param.input_param.multicast_ip_address = "";
 
+  param.input_param.ptc_mode = PtcMode::tcp_ssl;
+  param.input_param.certFile = "Your cert file";
+  param.input_param.privateKeyFile = "Your privateKey file";
+  param.input_param.caFile = "Your ca file";
+
   //init lidar with param
   sample.Init(param);
 

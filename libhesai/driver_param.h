@@ -40,6 +40,12 @@ enum SourceType
   DATA_FROM_ROS_PACKET = 3,
 };
 
+enum PtcMode
+{
+  tcp = 0, 
+  tcp_ssl
+};
+
 ///< The Point transform parameter
 typedef struct TransformParam  
 {
@@ -82,6 +88,8 @@ typedef struct DecoderParam
 ///< The LiDAR input parameter
 typedef struct InputParam  
 {
+  // PTC mode
+  PtcMode ptc_mode = PtcMode::tcp;
   SourceType source_type = DATA_FROM_PCAP;
    ///< Ip of LiDAR
   std::string device_ip_address = "Your lidar ip";   
@@ -98,6 +106,12 @@ typedef struct InputParam
   std::string pcap_path = "Your pcap file path";  ///< Absolute path of pcap file
   std::string correction_file_path = "Your correction file path";   ///< Path of angle calibration files(angle.csv).Only used for internal debugging.
   std::string firetimes_path = "Your firetime file path";  ///< Path of firetime files(angle.csv).
+  /// certFile          Represents the path of the user's certificate
+  char* certFile = nullptr;
+  /// privateKeyFile    Represents the path of the user's private key
+  char* privateKeyFile = nullptr;
+  /// caFile            Represents the path of the root certificate
+  char* caFile = nullptr;
 } InputParam;
 
 ///< The LiDAR driver parameter

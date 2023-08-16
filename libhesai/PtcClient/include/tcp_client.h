@@ -42,7 +42,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 typedef unsigned int SOCKET;
 #endif
-
+#include "client_base.h"
 #include <stdint.h>
 #include <string.h>
 #include <atomic>
@@ -55,17 +55,18 @@ namespace hesai
 {
 namespace lidar
 {
-class TcpClient{
+class TcpClient : public ClientBase{
  public:
   explicit TcpClient();
   virtual ~TcpClient();
 
   TcpClient(const TcpClient &orig) = delete;
 
-  bool Open(std::string IPAddr, uint16_t port, bool bAutoReceive = false);
+  virtual bool Open(std::string IPAddr, uint16_t port, bool bAutoReceive = false, 
+                    const char* cert = nullptr, const char* private_key = nullptr, const char* ca = nullptr);
   bool Open();
-  void Close();
-  bool IsOpened();
+  virtual void Close();
+  virtual bool IsOpened();
   bool IsOpened(bool bExpectation);
   virtual int Send(uint8_t *u8Buf, uint16_t u16Len, int flags = 0);
   virtual int Receive(uint8_t *u8Buf, uint32_t u16Len, int flags = 0);
@@ -75,7 +76,7 @@ class TcpClient{
    * @param u32Timeout 超时时间/ms
    * @return
    */
-  bool SetReceiveTimeout(uint32_t u32Timeout);
+  virtual bool SetReceiveTimeout(uint32_t u32Timeout);
 
   /**
    * @brief 设置收发超时
@@ -83,19 +84,19 @@ class TcpClient{
    * @param u32SendMillisecond 发送超时/ms
    * @return
    */
-  int SetTimeout(uint32_t u32RecMillisecond, uint32_t u32SendMillisecond);
+  virtual int SetTimeout(uint32_t u32RecMillisecond, uint32_t u32SendMillisecond);
 
   /**
    * @brief 设置自动接收模式下Buff的大小
    * @param size
    */
-  // void SetReceiveBufferSize(const uint32_t &size);
+  virtual void SetReceiveBufferSize(const uint32_t &size);
 
  private:
   /**
    * monitor file descriptor and wait for I/O operation
    */
-  // int WaitFor(const int &socketfd, uint32_t timeoutSeconds = 1);
+  int WaitFor(const int &socketfd, uint32_t timeoutSeconds = 1);
 
  protected:
   static const uint32_t kDefaultTimeout = 500;

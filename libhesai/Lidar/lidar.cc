@@ -117,7 +117,16 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
       source_->Open();
     }
     else if(param.input_param.source_type == 1){
-      ptc_client_ = new (std::nothrow) PtcClient(param.input_param.device_ip_address, param.input_param.ptc_port); 
+      ptc_client_ = new (std::nothrow) PtcClient(param.input_param.device_ip_address
+                                                  , param.input_param.ptc_port
+                                                  , false
+                                                  , param.input_param.ptc_mode
+                                                  , 1
+                                                  , param.input_param.certFile
+                                                  , param.input_param.privateKeyFile
+                                                  , param.input_param.caFile); 
+
+      // ptc_client_ = new (std::nothrow) PtcClient(param.input_param.device_ip_address, param.input_param.ptc_port); 
       source_ = new SocketSource(param.input_param.udp_port, param.input_param.multicast_ip_address);
       source_->Open();
     }

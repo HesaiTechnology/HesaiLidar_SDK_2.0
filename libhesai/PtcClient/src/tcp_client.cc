@@ -84,7 +84,8 @@ void TcpClient::Close() {
   }
 }
 
-bool TcpClient::Open(std::string IPAddr, uint16_t u16Port, bool bAutoReceive) {
+bool TcpClient::Open(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
+          const char* cert, const char* private_key, const char* ca) {
   if (IsOpened(true) && m_sServerIP == IPAddr && u16Port == ptc_port_) {
     return true;
   }
@@ -306,32 +307,32 @@ int TcpClient::SetTimeout(uint32_t u32RecMillisecond,
   return retVal;
 }
 
-// void TcpClient::SetReceiveBufferSize(const uint32_t &size) {
-//   // if (m_tcpSock < 0) {
-//   //   printf("TcpClient not open\n");
-//   //   return;
-//   // }
+void TcpClient::SetReceiveBufferSize(const uint32_t &size) {
+  if (m_tcpSock < 0) {
+    printf("TcpClient not open\n");
+    return;
+  }
 
-//   // m_u32ReceiveBufferSize = size;
-//   // int recbuffSize;
-//   // socklen_t optlen = sizeof(recbuffSize);
-//   // int ret = getsockopt(m_tcpSock, SOL_SOCKET, SO_RCVBUF, &recbuffSize, &optlen);
-//   // if (ret == 0 && recbuffSize < size) {
-//   //   setsockopt(m_tcpSock, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
-//   // }
-// }
+  m_u32ReceiveBufferSize = size;
+  int recbuffSize;
+  socklen_t optlen = sizeof(recbuffSize);
+  int ret = getsockopt(m_tcpSock, SOL_SOCKET, SO_RCVBUF, &recbuffSize, &optlen);
+  if (ret == 0 && recbuffSize < size) {
+    setsockopt(m_tcpSock, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
+  }
+}
 
 
-// int TcpClient::WaitFor(const int &socketfd, uint32_t timeoutSeconds) {
-//   // struct timeval tv;
-//   // tv.tv_sec = timeoutSeconds;
-//   // tv.tv_usec = 0;
-//   // fd_set fds;
+int TcpClient::WaitFor(const int &socketfd, uint32_t timeoutSeconds) {
+  struct timeval tv;
+  tv.tv_sec = timeoutSeconds;
+  tv.tv_usec = 0;
+  fd_set fds;
 
-//   // FD_ZERO(&fds);
-//   // FD_SET(socketfd, &fds);
-//   // const int selectRet = select(socketfd + 1, &fds, nullptr, nullptr, &tv);
+  FD_ZERO(&fds);
+  FD_SET(socketfd, &fds);
+  const int selectRet = select(socketfd + 1, &fds, nullptr, nullptr, &tv);
 
-//   // return selectRet;
-// }
+  return selectRet;
+}
 
