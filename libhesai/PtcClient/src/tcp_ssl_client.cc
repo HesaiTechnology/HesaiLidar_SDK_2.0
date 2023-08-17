@@ -33,7 +33,13 @@ typedef int ssize_t;
 typedef int socklen_t;
 #define MSG_DONTWAIT (0x40)
 #else
+#include <arpa/inet.h>
 #include <errno.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 #endif
 using namespace hesai::lidar;
 using std::placeholders::_1;

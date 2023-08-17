@@ -41,10 +41,10 @@ bool GeneralPtcParser::SplitFileFrames(const u8Array_t &file, uint8_t u8Cmd, std
   // split file -> frames
   int pos = 0;
   while(file_length > 0) {
-    u8Array_t tmp = u8Array_t(pos, pos + min(FRAME_LENGTH, file_length));
-    frames.push_back(tmp);
-    pos += FRAME_LENGTH;
-    file_length -= FRAME_LENGTH;
+    // u8Array_t tmp = u8Array_t(pos, pos + min(FRAME_LENGTH, file_length));
+    // frames.push_back(tmp);
+    // pos += FRAME_LENGTH;
+    // file_length -= FRAME_LENGTH;
   }
   // 对frame进行封装成包
   for(auto &frame : frames) {
