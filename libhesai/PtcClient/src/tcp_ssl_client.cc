@@ -23,12 +23,31 @@
 #include "tcp_ssl_client.h"
 
 #include <plat_utils.h>
+
+#ifdef _MSC_VER
+#include <winsock2.h>
+#include <ws2tcpip.h> 
+#pragma comment(lib, "ws2_32.lib")  // Winsock Library
+#include <BaseTsd.h>
+typedef int ssize_t;
+typedef int socklen_t;
+#define MSG_DONTWAIT (0x40)
+#else
 #include <errno.h>
+#endif
 using namespace hesai::lidar;
 using std::placeholders::_1;
 using std::placeholders::_2;
-
 int tcp_open(const char* ipaddr, int port) {
+#ifdef _MSC_VER
+  WSADATA wsaData;
+  WORD version = MAKEWORD(2, 2);
+  int res = WSAStartup(version, &wsaData);  // win sock start up
+  if (res) {
+      std::cerr << "Initilize winsock error !" << std::endl;
+      return false;
+  }
+#endif  
   int sockfd;
   struct sockaddr_in servaddr;
   printf("ip:%s port:%d\n",ipaddr,port);
@@ -53,8 +72,13 @@ int tcp_open(const char* ipaddr, int port) {
 
   if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) == -1) {
     printf("connect errno:%d, %s\n",errno,strerror(errno));
-    close(sockfd);
-    return -1;
+#ifdef _MSC_VER
+          closesocket(sockfd);
+#else
+          close(sockfd);
+#endif
+    sockfd = -1;
+    return sockfd;
   }
 
   return sockfd;
@@ -109,11 +133,18 @@ void TcpSslClient::Close() {
   m_sServerIP.clear();
   ptc_port_ = 0;
   m_bLidarConnected = false;
-  if(tcpsock_ > 0) close(tcpsock_);
-  // if (ctx_ != nullptr) {
-  //   SSL_CTX_free(ctx_);
-  // }
-  // if (ssl_ != NULL) SSL_shutdown(ssl_);
+  if(tcpsock_ > 0) {
+#ifdef _MSC_VER
+    closesocket(tcpsock_);
+    WSACleanup();
+#else
+    close(tcpsock_);
+#endif
+  }
+  if (ctx_ != nullptr) {
+    SSL_CTX_free(ctx_);
+  }
+  if (ssl_ != nullptr) SSL_shutdown(ssl_);
 }
 
 bool TcpSslClient::IsOpened() {
@@ -135,9 +166,13 @@ bool TcpSslClient::Open(std::string IPAddr,
   if (IsOpened(true) && m_sServerIP == IPAddr && u16Port == ptc_port_) {
     return true;
   }
-
+#ifdef _MSC_VER
+  std::cout << __FUNCTION__ << "IP" << IPAddr.c_str() << "port"
+           << u16Port << std::endl;
+#else
   std::cout << __PRETTY_FUNCTION__ << "IP" << IPAddr.c_str() << "port"
            << u16Port << std::endl;
+#endif
   Close();
   m_sServerIP = IPAddr;
   ptc_port_ = u16Port;
@@ -190,7 +225,6 @@ SSL_CTX* TcpSslClient::InitSslClient(const char* cert, const char* private_key, 
 	SSL_CTX *ctx = SSL_CTX_new(SSLv23_client_method());
 
 	if(ctx == NULL) {
-		ERR_print_errors_fp(stderr);
 		printf("%s:%d, create SSL_CTX failed\n", __func__, __LINE__);
 		return NULL;
 	}
@@ -233,6 +267,7 @@ int TcpSslClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
     if (len != u16Len && errno != EAGAIN && errno != EWOULDBLOCK &&
       errno != EINTR) {
       std::cout << __FUNCTION__ << "errno" << errno << std::endl;
+      ERR_print_errors_fp(stderr);
       Close();
       return -1;
     }
@@ -272,7 +307,11 @@ bool TcpSslClient::SetReceiveTimeout(uint32_t u32Timeout) {
     printf("TcpClient not open\n");
     return false;
   }
-
+#ifdef _MSC_VER
+  int timeout_ms = u32Timeout;
+  int retVal = setsockopt(tcpsock_, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout_ms,
+      sizeof(timeout_ms));
+#else
   uint32_t sec = u32Timeout / 1000;
   uint32_t msec = u32Timeout % 1000;
 
@@ -281,6 +320,7 @@ bool TcpSslClient::SetReceiveTimeout(uint32_t u32Timeout) {
   timeout.tv_usec = msec * 1000;
   int retVal = setsockopt(tcpsock_, SOL_SOCKET, SO_RCVTIMEO,
                           (const void *)&timeout, sizeof(timeval));
+#endif
   return retVal == 0;
 }
 
@@ -293,6 +333,11 @@ int TcpSslClient::SetTimeout(uint32_t u32RecMillisecond,
   }
   m_u32RecTimeout = u32RecMillisecond;
   m_u32SendTimeout = u32SendMillisecond;
+#ifdef _MSC_VER
+  int timeout_ms = u32RecMillisecond;
+  int retVal = setsockopt(tcpsock_, SOL_SOCKET, SO_RCVTIMEO,
+                        (char*)&timeout_ms, sizeof(timeout_ms));
+#else
   uint32_t sec = u32RecMillisecond / 1000;
   uint32_t msec = u32RecMillisecond % 1000;
 
@@ -301,7 +346,13 @@ int TcpSslClient::SetTimeout(uint32_t u32RecMillisecond,
   timeout.tv_usec = msec * 1000;
   int retVal = setsockopt(tcpsock_, SOL_SOCKET, SO_RCVTIMEO,
                           (const void *)&timeout, sizeof(timeval));
+#endif
   if (retVal == 0) {
+#ifdef _MSC_VER
+    int timeout_ms = u32SendMillisecond;
+    retVal = setsockopt(tcpsock_, SOL_SOCKET, SO_SNDTIMEO,
+                        (char*)&timeout_ms, sizeof(timeout_ms));  
+#else
     uint32_t sec = u32SendMillisecond / 1000;
     uint32_t msec = u32SendMillisecond % 1000;
 
@@ -310,8 +361,8 @@ int TcpSslClient::SetTimeout(uint32_t u32RecMillisecond,
     timeout.tv_usec = msec * 1000;
     retVal = setsockopt(tcpsock_, SOL_SOCKET, SO_SNDTIMEO,
                         (const void *)&timeout, sizeof(timeval));
+#endif
   }
-
   return retVal;
 }
 
@@ -324,8 +375,8 @@ void TcpSslClient::SetReceiveBufferSize(const uint32_t &size) {
   m_u32ReceiveBufferSize = size;
   int recbuffSize;
   socklen_t optlen = sizeof(recbuffSize);
-  int ret = getsockopt(tcpsock_, SOL_SOCKET, SO_RCVBUF, &recbuffSize, &optlen);
+  int ret = getsockopt(tcpsock_, SOL_SOCKET, SO_RCVBUF, (char*)&recbuffSize, &optlen);
   if (ret == 0 && recbuffSize < size) {
-    setsockopt(tcpsock_, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
+    setsockopt(tcpsock_, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(size));
   }
 }

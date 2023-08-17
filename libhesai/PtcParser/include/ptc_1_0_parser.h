@@ -29,10 +29,18 @@
 
 #ifndef PTC_1_0_PARSER_H_
 #define PTC_1_0_PARSER_H_
+#ifdef _MSC_VER
+#include <boost/endian/conversion.hpp>
+#endif
 #include <iostream>
 #include <fstream>
 #include "general_ptc_parser.h"
-
+#ifdef _MSC_VER
+#define PACKED
+#pragma pack(push, 1)
+#else
+#define PACKED __attribute__((packed))
+#endif
 namespace hesai
 {
 namespace lidar
@@ -64,10 +72,18 @@ struct PTCHeader_1_0 {
   uint8_t GetIdentifier1() { return identifier1_; }
   uint8_t GetReturnCode() const { return return_code_; }
   uint8_t GetCmd() const {return cmd_; }
+#ifdef _MSC_VER
+  uint32_t GetPayloadLen() const { return boost::endian::big_to_native(payload_len_); }
+  void SetPayloadLen(uint32_t u32Len) { payload_len_ = boost::endian::native_to_big(u32Len); }
+#else
   uint32_t GetPayloadLen() const { return be32toh(payload_len_); }
   void SetPayloadLen(uint32_t u32Len) { payload_len_ = htobe32(u32Len); }
+#endif
 
-} __attribute__((packed));
+} PACKED;
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 
 class Ptc_1_0_parser : public GeneralPtcParser {
 public:
@@ -84,7 +100,7 @@ public:
   int GetHeaderSize() { return sizeof(PTCHeader_1_0); }
   uint8_t GetHeaderReturnCode() const { return header_.return_code_; }
   uint8_t GetHeaderCmd() const {return header_.cmd_; }
-  uint32_t GetHeaderPayloadLen() const { return be32toh(header_.payload_len_); }
+  uint32_t GetHeaderPayloadLen() const { return header_.GetPayloadLen();}
 
 private:
   PTCHeader_1_0 header_;

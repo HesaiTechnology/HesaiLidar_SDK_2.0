@@ -316,9 +316,9 @@ void TcpClient::SetReceiveBufferSize(const uint32_t &size) {
   m_u32ReceiveBufferSize = size;
   int recbuffSize;
   socklen_t optlen = sizeof(recbuffSize);
-  int ret = getsockopt(m_tcpSock, SOL_SOCKET, SO_RCVBUF, &recbuffSize, &optlen);
+  int ret = getsockopt(m_tcpSock, SOL_SOCKET, SO_RCVBUF, (char*)&recbuffSize, &optlen);
   if (ret == 0 && recbuffSize < size) {
-    setsockopt(m_tcpSock, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
+    setsockopt(m_tcpSock, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(size));
   }
 }
 

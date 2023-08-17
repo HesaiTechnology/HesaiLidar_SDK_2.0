@@ -29,8 +29,7 @@
 #include "client_base.h"
 // #include "util.h"
 #include "openssl/ssl.h"
-#include <boost/asio.hpp>
-#include <boost/timer.hpp>
+#include <openssl/err.h>
 #include <string.h>
 #include <stdint.h>
 #include <memory>
@@ -38,10 +37,12 @@
 #include <thread>
 #include <chrono>
 #include <iostream>
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-
-using boost::asio::ip::tcp;
+#ifdef _MSC_VER
+#include <winsock2.h>
+#include <ws2tcpip.h> 
+#else
+typedef unsigned int SOCKET;
+#endif
 
 const int MAX_LENGTH = 1024;
 
@@ -90,7 +91,7 @@ class TcpSslClient : public ClientBase {
   virtual void SetReceiveBufferSize(const uint32_t &size);
 
  private:
-  void connect(const tcp::resolver::results_type& endpoints);
+  // void connect(const tcp::resolver::results_type& endpoints);
   void handshake();
 
  protected:
@@ -104,7 +105,7 @@ class TcpSslClient : public ClientBase {
   uint32_t m_u32RecTimeout = kDefaultTimeout;
   uint32_t m_u32SendTimeout = kDefaultTimeout;
   SSL_CTX* ctx_;
-  int tcpsock_;
+  SOCKET tcpsock_;
   SSL* ssl_;
 };
 }

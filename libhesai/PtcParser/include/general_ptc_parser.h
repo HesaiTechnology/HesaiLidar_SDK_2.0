@@ -53,12 +53,12 @@ public:
   // 对文件数据划分成包，并且对每一个包进行数据帧的封装
   virtual bool SplitFileFrames(const u8Array_t &file, uint8_t u8Cmd, std::vector<u8Array_t>& packages);
 
-  virtual uint8_t GetHeaderIdentifier0() {};
-  virtual uint8_t GetHeaderIdentifier1() {};
-  virtual int GetHeaderSize() {};
-  virtual uint8_t GetHeaderReturnCode() const {};
-  virtual uint8_t GetHeaderCmd() const {};
-  virtual uint32_t GetHeaderPayloadLen() {};
+  virtual uint8_t GetHeaderIdentifier0() = 0;
+  virtual uint8_t GetHeaderIdentifier1() = 0;
+  virtual int GetHeaderSize() = 0;
+  virtual uint8_t GetHeaderReturnCode() const = 0;
+  virtual uint8_t GetHeaderCmd() const = 0;
+  virtual uint32_t GetHeaderPayloadLen() const = 0;
 };
 }
 }

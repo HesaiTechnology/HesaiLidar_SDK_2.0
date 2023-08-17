@@ -34,8 +34,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ptc_client.h"
 
 #include <plat_utils.h>
+#ifdef _MSC_VER
+#ifndef MSG_DONTWAIT
+#define MSG_DONTWAIT (0x40)
+#endif
+#else
 #include <sched.h>
 #include <sys/socket.h>
+#endif
 
  
 // #include "udp_protocol_v1_4.h"
@@ -176,7 +182,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
           std::cout << "PtcClient::QueryCommand,RspCode invalid:" << pPTCHeader->return_code_ << ", u8HeaderBuf: " << std::endl;
           ret = -1;
         } else {
-          nPayLoadLen = be32toh(pPTCHeader->payload_len_);
+          nPayLoadLen = pPTCHeader->GetPayloadLen();
         }
       } else {
         PTCHeader_2_0 *pPTCHeader = reinterpret_cast<PTCHeader_2_0 *>(u8HeaderBuf.data());
@@ -184,7 +190,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
           std::cout << "PtcClient::QueryCommand,RspCode invalid:" << pPTCHeader->return_code_ << ", u8HeaderBuf: " << std::endl;
           ret = -1;
         } else {
-          nPayLoadLen = be32toh(pPTCHeader->payload_len_);
+          nPayLoadLen = pPTCHeader->GetPayloadLen();
         }
       }
     }

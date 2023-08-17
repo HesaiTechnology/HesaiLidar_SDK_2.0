@@ -51,6 +51,7 @@ include_directories(
     Container/src
     PtcClient/include
     Logger/include
+    ${OPENSSL_INCLUDE_DIR}
     ${Boost_INCLUDE_DIRS}
 )
 
@@ -61,6 +62,9 @@ if(WITH_PTCCLIENT)
     PtcClient/src/tcp_client.cc
     PtcClient/src/tcp_ssl_client.cc
     )
+    target_link_libraries(ptcClient_lib
+                        ${OPENSSL_LIBRARIES}
+                        )
     set_target_properties(ptcClient_lib 
         PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
 endif(WITH_PTCCLIENT)
@@ -71,10 +75,6 @@ if(WITH_PTCPARSER)
     PtcParser/src/ptc_1_0_parser.cc
     PtcParser/src/ptc_2_0_parser.cc
     PtcParser/ptc_parser.cc)
-    # target_link_libraries(ptcParser_lib 
-    #                     libssl.so 
-    #                     libssl.a
-    #                     libcrypto.so.1.1)
     set_target_properties(ptcParser_lib 
         PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
 endif(WITH_PTCPARSER)
