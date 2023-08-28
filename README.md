@@ -3,20 +3,11 @@
 This repository includes the software development kit for Hesai LiDAR sensor manufactured by Hesai Technology
 
 ## Support Lidar type
-- Pandar128E3X
-- Pandar90E3X
-- Pandar64E3X
-- Pandar40E3X
-- Pandr64
-- Pandar40P
-- AT128E2X
-- AT128P
-- PandarQT
-- QT128C2X
+- Pandar
+- AT128
+- QT
 - FT120
-- PandarXT-16
-- PandarXT-32
-- XT32M2X
+- XT16/XT32
 
 ## Environment and Dependencies
 
@@ -41,7 +32,7 @@ $ sudo apt install libpcl-dev libpcap-dev libyaml-cpp-dev libboost-dev
 
 ## Clone
 ```
-$ git clone https://github.com/HesaiTechnology/Hesai_Lidar_Driver.git
+$ git clone https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0.git
 ```
 
 ## Build
