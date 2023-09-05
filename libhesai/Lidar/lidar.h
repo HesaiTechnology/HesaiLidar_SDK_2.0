@@ -121,9 +121,9 @@ public:
   void SetThreadNum(int thread_num);
   void SetSource(Source **source);
   std::string GetLidarType();
-  UdpParser<T_Point> *udp_parser_;
-  Source *source_;
-  PtcClient *ptc_client_;
+  UdpParser<T_Point> *udp_parser_ = nullptr;
+  Source *source_ = nullptr;
+  PtcClient *ptc_client_ = nullptr;
   LidarDecodedFrame<T_Point> frame_;
   BlockingRing<UdpPacket, kPacketBufferSize> origin_packets_buffer_;
 
@@ -147,9 +147,9 @@ private:
   bool udp_thread_running_;
   // this variable decide whether parser_thread will run
   bool parser_thread_running_;
-  boost::thread *recieve_packet_thread_ptr_;
-  boost::thread *parser_thread_ptr_;
-  boost::mutex *mutex_list_;
+  boost::thread *recieve_packet_thread_ptr_  = nullptr;
+  boost::thread *parser_thread_ptr_  = nullptr;
+  boost::mutex *mutex_list_  = nullptr;
   std::vector<std::list<LidarDecodedPacket<T_Point>>> handle_thread_packet_buffer_;
   std::vector<boost::thread *> handle_thread_vec_;
   uint32_t handle_buffer_size_;
