@@ -13,6 +13,7 @@ cmake_policy(SET CMP0065 NEW)
 endif()
 
 set(CMAKE_BUILD_TYPE ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Add each module's entry
 set(WITH_LIDARBOARD ON CACHE BOOL "Build lidarboard code")
