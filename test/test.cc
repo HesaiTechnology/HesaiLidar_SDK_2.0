@@ -25,9 +25,11 @@ int main(int argc, char *argv[])
   // assign param
   param.input_param.source_type = DATA_FROM_PCAP;
   // param.decoder_param.enable_packet_loss_tool = true;
-  param.input_param.pcap_path = "/home/zhangyu/Downloads/test.pcap";
-  param.input_param.correction_file_path = "/home/zhangyu/Downloads/et25_angle_correction.bin";
+  param.input_param.source_type = DATA_FROM_LIDAR;
+  param.input_param.pcap_path = "Your pcap file path";
+  param.input_param.correction_file_path = "Your correction file path";
   param.input_param.firetimes_path = "Your firetime file path";
+
 
   param.input_param.device_ip_address = "192.168.1.201";
   param.input_param.ptc_port = 9347;
