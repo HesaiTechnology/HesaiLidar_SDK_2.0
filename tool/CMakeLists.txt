@@ -93,7 +93,7 @@ target_link_libraries(pcl_tool
 )
 
 
-# find_package(CUDA )
+find_package(CUDA )
 if(${CUDA_FOUND})
 	set(CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 	set(CUDA_SEPARABLE_COMPILATION ON)
@@ -101,13 +101,13 @@ if(${CUDA_FOUND})
 	set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 	set(CUDA_NVCC_FLAGS -arch=sm_61;-O3;-G;-g;-std=c++14)#根据具体GPU性能更改算力参数
 	link_directories($ENV{CUDA_PATH}/lib/x64)
-  file(GLOB_RECURSE CURRENT_HEADERS  *.h *.hpp *.cuh)
-  file(GLOB CURRENT_SOURCES  *.cpp *.cu)
-  file(GLOB CURRENT_SOURCES  *.cpp *.cu)
+  file(GLOB_RECURSE CURRENT_HEADERS  ../*.h ../*.hpp ../*.cuh)
+  file(GLOB CURRENT_SOURCES  ../*.cpp ../*.cu)
   source_group("Include" FILES ${CURRENT_HEADERS}) 
   source_group("Source" FILES ${CURRENT_SOURCES}) 
   CUDA_ADD_EXECUTABLE(pcl_tool_gpu ${CURRENT_HEADERS} ${CURRENT_SOURCES} 
   ./pcl_tool.cu
+  ../libhesai/UdpParserGpu/src/buffer.cu
   )
   target_link_libraries(pcl_tool_gpu 
   ${Boost_LIBRARIES}

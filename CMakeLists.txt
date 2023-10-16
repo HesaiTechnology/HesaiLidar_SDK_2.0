@@ -69,7 +69,7 @@ target_link_libraries(sample
   ptcClient_lib
   ptcParser_lib
   log_lib
-  ${PCL_LIBRARIES}  
+  # ${PCL_LIBRARIES}  
   ${OPENSSL_LIBRARIES}
 )
 
@@ -109,7 +109,7 @@ if(${CUDA_FOUND})
   log_lib
   ptcParser_lib
   ${OPENSSL_LIBRARIES}
-  ${PCL_LIBRARIES} 
+  # ${PCL_LIBRARIES} 
 )
 else(${CUDA_FOUND})
 	MESSAGE(STATUS "cuda not found!")
