@@ -34,6 +34,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "udp3_2_parser_gpu.h"
 #include "udp6_1_parser_gpu.h"
 #include "udp7_2_parser_gpu.h"
+#include "udp2_5_parser_gpu.h"
 
 using namespace hesai::lidar;
 template <typename T_Point>
@@ -108,6 +109,18 @@ void UdpParserGpu<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
         case 1:
         case 4:
           m_generalParserGpu = new Udp1_4ParserGpu<T_Point>();
+          break;
+        default:
+          break;
+      }
+
+    } break;
+    // ET
+    case 2:  
+    {
+      switch (minor) {
+        case 5:
+          m_generalParserGpu = new Udp2_5ParserGpu<T_Point>();
           break;
         default:
           break;
@@ -210,7 +223,10 @@ void UdpParserGpu<T_Point>::SetLidarType(std::string lidar_type) {
   }
   if (lidar_type == "PandarFT120" || lidar_type == "FT120C1X") {
     m_generalParserGpu = new Udp7_2ParserGpu<T_Point>();
-  }         
+  }
+  if (lidar_type == "ET") {
+    m_generalParserGpu = new Udp2_5ParserGpu<T_Point>();
+  }           
 
 }
 

@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.8.11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 14)
-PROJECT(Template)
+PROJECT(SDKTool)
 set(VERSION_MAJOR 2)
 set(VERSION_MINOR 0)
-set(VERSION_TINY  2)
+set(VERSION_TINY  3)
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/Version.h.in"
   "${CMAKE_CURRENT_BINARY_DIR}/Version.h"
@@ -27,42 +27,61 @@ include_directories("${PROJECT_BINARY_DIR}")
 find_package(Boost REQUIRED COMPONENTS system filesystem thread)
 find_package(OpenSSL REQUIRED)
 add_definitions(-DQT_MESSAGELOGCONTEXT)
-add_subdirectory(libhesai)
+add_subdirectory(../libhesai lbhesai.out)
 
 # set (Boost_INCLUDE_DIRS "/usr/lib/x86_64-linux-gnu/")
 
 include_directories(
-  libhesai
-  libhesai/Lidar
-  libhesai/UdpParser
-  libhesai/UdpParser/include
-  libhesai/UdpParser/src
-  libhesai/UdpProtocol
-  libhesai/Source/include
-  libhesai/Container/include
-  libhesai/Container/src
-  libhesai/UdpParserGpu
-  libhesai/UdpParserGpu/include
-  libhesai/UdpParserGpu/src
-  libhesai/PtcClient/include
-  libhesai/PtcParser
-  libhesai/PtcParser/src
-  libhesai/PtcParser/include
-  libhesai/Logger/include
-  libhesai/include
-  driver
-  third_party
+  ../libhesai
+  ../libhesai/Lidar
+  ../libhesai/UdpParser
+  ../libhesai/UdpParser/include
+  ../libhesai/UdpParser/src
+  ../libhesai/UdpProtocol
+  ../libhesai/Source/include
+  ../libhesai/Container/include
+  ../libhesai/Container/src
+  ../libhesai/UdpParserGpu
+  ../libhesai/UdpParserGpu/include
+  ../libhesai/UdpParserGpu/src
+  ../libhesai/PtcClient/include
+  ../libhesai/PtcParser
+  ../libhesai/PtcParser/src
+  ../libhesai/PtcParser/include
+  ../libhesai/Logger/include
+  ../libhesai/include
+  ../driver
+  ../third_party
   ${Boost_INCLUDE_DIRS}
   ${OPENSSL_INCLUDE_DIR}
 )
-link_directories(./libhesai/PtcClient/lib)
+link_directories(../libhesai/PtcClient/lib)
 link_directories(${Boost_LIBRARY_DIRS})
 
-add_executable(sample
-  test/test.cc
+
+add_executable(packet_loss_tool
+  ./packet_loss_tool.cc
 )
 
-target_link_libraries(sample
+target_link_libraries(packet_loss_tool
+  ${Boost_LIBRARIES}
+  source_lib
+  container_lib
+  ptcClient_lib
+  log_lib 
+  ptcParser_lib
+  ${OPENSSL_LIBRARIES}
+)
+
+find_package(PCL COMPONENTS common visualization io QUIET REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+
+add_executable(pcl_tool
+  ./pcl_tool.cc
+)
+
+target_link_libraries(pcl_tool
   ${Boost_LIBRARIES}
   source_lib
   container_lib
@@ -73,17 +92,6 @@ target_link_libraries(sample
   ${OPENSSL_LIBRARIES}
 )
 
-# add_library(libhesai
-#     driver/hesai_lidar_sdk.hpp
-# )
-# target_link_libraries(libhesai
-#   ${Boost_LIBRARIES}
-#   source_lib
-#   container_lib
-#   ptcClient_lib
-#   log_lib
-  
-# )
 
 find_package(CUDA )
 if(${CUDA_FOUND})
@@ -98,10 +106,10 @@ if(${CUDA_FOUND})
   file(GLOB CURRENT_SOURCES  *.cpp *.cu)
   source_group("Include" FILES ${CURRENT_HEADERS}) 
   source_group("Source" FILES ${CURRENT_SOURCES}) 
-  CUDA_ADD_EXECUTABLE(sample_gpu ${CURRENT_HEADERS} ${CURRENT_SOURCES} 
-  ./test/test.cu
-  ./libhesai/UdpParserGpu/src/buffer.cu)
-  target_link_libraries(sample_gpu
+  CUDA_ADD_EXECUTABLE(pcl_tool_gpu ${CURRENT_HEADERS} ${CURRENT_SOURCES} 
+  ./pcl_tool.cu
+  ../libhesai/UdpParserGpu/src/buffer.cu)
+  target_link_libraries(pcl_tool_gpu 
   ${Boost_LIBRARIES}
   source_lib
   container_lib
