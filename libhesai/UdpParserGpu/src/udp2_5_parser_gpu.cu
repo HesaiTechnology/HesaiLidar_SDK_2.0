@@ -62,7 +62,7 @@ __global__ void compute_xyzs_2_5_impl(T_Point *xyzs, const float* channel_azimut
     const uint64_t *raw_sensor_timestamp, const double raw_distance_unit, Transform transform, const uint16_t blocknum, uint16_t lasernum) {
   auto iscan = blockIdx.x;
   auto ichannel = threadIdx.x;
-
+  if (blocknum == 0 || lasernum == 0) return;
   float apha =  channel_elevations[0];
   float beta =  channel_elevations[1];
   float gamma =  channel_elevations[2];
@@ -80,10 +80,10 @@ __global__ void compute_xyzs_2_5_impl(T_Point *xyzs, const float* channel_azimut
   float azi_h = 90 +  raw_azimuth + delt_azi_h * 180 / M_PI + delt_azi_v * 180 / M_PI + phi;
 
   auto rho = raw_distances[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] * raw_distance_unit;
-  float z = rho * sin(phi);
-  auto r = rho * cosf(phi);
-  float x = r * sin(theta);
-  float y = r * cos(theta);
+  float z = rho * std::sin(elv_h * M_PI / 180);
+  auto r = rho * std::cos(elv_h * M_PI / 180) ;
+  float x = r * std::sin(azi_h * M_PI / 180);
+  float y = r * std::cos(azi_h * M_PI / 180);
 
   float cosa = std::cos(transform.roll);
   float sina = std::sin(transform.roll);

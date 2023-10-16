@@ -51,7 +51,7 @@ namespace lidar
 //max point num of one packet, laser_num * block_num <= kMaxPointsNumPerPacket
 static constexpr uint16_t kMaxPointsNumPerPacket = 512;
 //max packet num of one frame, it means the capacity of frame buffer
-static constexpr uint16_t kMaxPacketNumPerFrame = 2000;
+static constexpr uint16_t kMaxPacketNumPerFrame = 4000;
 //max points num of one frame
 static constexpr uint32_t kMaxPointsNumPerFrame = kMaxPointsNumPerPacket * kMaxPacketNumPerFrame;
 //half of the max value in degrees, 1 LSB represents 0.01 degree, float type
