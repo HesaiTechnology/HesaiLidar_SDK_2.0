@@ -48,7 +48,7 @@ namespace hesai
 namespace lidar
 {
 // class Udp2_5ParserGpu
-// computes points for Pandar128
+// computes points for ET25
 // you can compute xyzi of points using the ComputeXYZI fuction, which uses gpu to compute
 template <typename T_Point>
 class Udp2_5ParserGpu: public GeneralParserGpu<T_Point>{

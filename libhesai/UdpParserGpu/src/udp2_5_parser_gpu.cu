@@ -141,17 +141,10 @@ int Udp2_5ParserGpu<T_Point>::LoadCorrectionString(char *data) {
   return LoadCorrectionCsvData(data);
 }
 
-template<typename T_Point>
-int Udp2_5Parser<T_Point>::LoadCorrectionString(char *data) {
-  if (LoadCorrectionDatData(data) == 0) {
-    return 0;
-  }
-  return LoadCorrectionCsvData(data);
-}
 
 // csv ----> correction
 template<typename T_Point>
-int  Udp2_5Parser<T_Point>::LoadCorrectionCsvData(char *correction_string)
+int  Udp2_5ParserGpu<T_Point>::LoadCorrectionCsvData(char *correction_string)
 {
   std::string correction_content_str = correction_string;
   std::istringstream ifs(correction_content_str);
@@ -214,7 +207,7 @@ int  Udp2_5Parser<T_Point>::LoadCorrectionCsvData(char *correction_string)
 
 // buffer(.bin) ---> correction
 template<typename T_Point>
-int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
+int Udp2_5ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
   try {
     char *p = data;
     struct ETCorrectionsHeader ETheader = *((struct ETCorrectionsHeader* )p);

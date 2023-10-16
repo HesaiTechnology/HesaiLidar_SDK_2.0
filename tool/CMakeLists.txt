@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 14)
 PROJECT(SDKTool)
 set(VERSION_MAJOR 2)
 set(VERSION_MINOR 0)
-set(VERSION_TINY  3)
+set(VERSION_TINY  4)
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/Version.h.in"
   "${CMAKE_CURRENT_BINARY_DIR}/Version.h"
@@ -93,7 +93,7 @@ target_link_libraries(pcl_tool
 )
 
 
-find_package(CUDA )
+# find_package(CUDA )
 if(${CUDA_FOUND})
 	set(CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 	set(CUDA_SEPARABLE_COMPILATION ON)
@@ -108,7 +108,7 @@ if(${CUDA_FOUND})
   source_group("Source" FILES ${CURRENT_SOURCES}) 
   CUDA_ADD_EXECUTABLE(pcl_tool_gpu ${CURRENT_HEADERS} ${CURRENT_SOURCES} 
   ./pcl_tool.cu
-  ../libhesai/UdpParserGpu/src/buffer.cu)
+  )
   target_link_libraries(pcl_tool_gpu 
   ${Boost_LIBRARIES}
   source_lib
