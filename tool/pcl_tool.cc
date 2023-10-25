@@ -69,7 +69,7 @@ mex_viewer.unlock();
 }
 
 //display point cloud with pcl if define ENABLE_VIEWER
-void PclViewerInit(std::shared_ptr<PCLVisualizer> pcl_viewer) {
+void PclViewerInit(std::shared_ptr<PCLVisualizer>& pcl_viewer) {
   pcl_viewer = std::make_shared<PCLVisualizer>("HesaiPointCloudViewer");
   pcl_viewer->setBackgroundColor(0.0, 0.0, 0.0);
   pcl_viewer->addCoordinateSystem(1.0);
