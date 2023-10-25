@@ -261,7 +261,7 @@ void UdpParser<T_Point>::CreatGeneralParser(std::string lidar_type) {
     parser_ = new Udp7_2Parser<T_Point>();
   } else if ( lidar_type == "ET25-E1X" ) {
     parser_ = new Udp2_4Parser<T_Point>();
-  } else if (lidar_type == "ET25-E2X") {
+  } else if (lidar_type == "ET25-E2X" || lidar_type == "ET25" || lidar_type == "ET") {
     parser_ = new Udp2_5Parser<T_Point>();
   }
 }

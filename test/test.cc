@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
   DriverParam param;
 
   // assign param
-  param.input_param.source_type = DATA_FROM_PCAP;
+  // param.input_param.source_type = DATA_FROM_PCAP;
   // param.decoder_param.enable_packet_loss_tool = true;
   param.input_param.source_type = DATA_FROM_LIDAR;
   param.input_param.pcap_path = "Your pcap file path";

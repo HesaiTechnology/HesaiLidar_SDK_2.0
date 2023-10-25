@@ -224,7 +224,7 @@ void UdpParserGpu<T_Point>::SetLidarType(std::string lidar_type) {
   if (lidar_type == "PandarFT120" || lidar_type == "FT120C1X") {
     m_generalParserGpu = new Udp7_2ParserGpu<T_Point>();
   }
-  if (lidar_type == "ET") {
+  if (lidar_type == "ET" || lidar_type == "ET25" || lidar_type == "ET25-E2X") {
     m_generalParserGpu = new Udp2_5ParserGpu<T_Point>();
   }           
 

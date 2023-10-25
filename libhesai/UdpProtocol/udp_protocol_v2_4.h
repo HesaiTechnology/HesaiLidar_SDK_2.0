@@ -115,7 +115,12 @@ namespace hesai
           t.tm_min = m_u8UTC[4];
           t.tm_sec = m_u8UTC[5];
           t.tm_isdst = 0;
-          return (mktime(&t)) * 1000000 + GetTimestamp();
+#ifdef _MSC_VER
+  TIME_ZONE_INFORMATION tzi;
+  GetTimeZoneInformation(&tzi);
+  long int timezone =  tzi.Bias * 60;
+#endif
+          return (mktime(&t) - timezone) * 1000000 + GetTimestamp();
         }
         else {
           uint32_t utc_time_big = *(uint32_t*)(&m_u8UTC[0] + 2);

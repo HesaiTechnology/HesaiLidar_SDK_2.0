@@ -144,12 +144,17 @@ struct HS_LIDAR_TAIL_ST_V3 {
 				t.tm_year -= 100;
 			}
 			t.tm_mon = m_u8UTC[1] - 1;
-			t.tm_mday = m_u8UTC[2];
+			t.tm_mday = m_u8UTC[2] + 1;
 			t.tm_hour = m_u8UTC[3];
 			t.tm_min = m_u8UTC[4];
 			t.tm_sec = m_u8UTC[5];
 			t.tm_isdst = 0;
-			return (mktime(&t)) * 1000000 + GetTimestamp();
+#ifdef _MSC_VER
+  TIME_ZONE_INFORMATION tzi;
+  GetTimeZoneInformation(&tzi);
+  long int timezone =  tzi.Bias * 60;
+#endif
+      return (mktime(&t) - timezone - 86400) * 1000000 + GetTimestamp() ;
 		}
 		else {
       uint32_t utc_time_big = *(uint32_t*)(&m_u8UTC[0] + 2);
