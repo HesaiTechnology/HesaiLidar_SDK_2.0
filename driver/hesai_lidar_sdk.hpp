@@ -38,7 +38,7 @@ class HesaiLidarSdk
 {
 private:
   boost::thread *runing_thread_ptr_;
-  std::function<void(const UdpFrame_t&)> pkt_cb_;
+  std::function<void(const UdpFrame_t&, double)> pkt_cb_;
   std::function<void(const LidarDecodedFrame<T_Point>&)> point_cloud_cb_;
   bool is_thread_runing_;
   bool packet_loss_tool_;
@@ -133,7 +133,7 @@ public:
           if(point_cloud_cb_) point_cloud_cb_(lidar_ptr_->frame_);
 
           //publish upd packet topic
-          if(pkt_cb_) pkt_cb_(udp_packet_frame);
+          if(pkt_cb_) pkt_cb_(udp_packet_frame, lidar_ptr_->frame_.points[0].timestamp);
         }
 
         //reset frame variable
@@ -174,7 +174,7 @@ public:
   }
 
   // assign callback fuction
-  void RegRecvCallback(const std::function<void(const UdpFrame_t&)>& callback) {
+  void RegRecvCallback(const std::function<void(const UdpFrame_t&, double)>& callback) {
     pkt_cb_ = callback;
   }
 
