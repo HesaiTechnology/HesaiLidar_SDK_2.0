@@ -45,7 +45,7 @@ Lidar<T_Point>::Lidar() {
   parser_thread_running_ = true;
   handle_thread_count_ = 0;
   recieve_packet_thread_ptr_ = nullptr;
-  mutex_list_ = new boost::mutex[GetAvailableCPUNum()];
+  mutex_list_ = new std::mutex[GetAvailableCPUNum()];
   handle_buffer_size_ = kPacketBufferSize;
 }
 
@@ -511,17 +511,16 @@ void Lidar<T_Point>::SetThreadNum(int nThreadNum) {
     handle_thread_packet_buffer_.resize(nThreadNum);
 
     for (int i = 0; i < nThreadNum; i++) {
-      boost::arg<1> _1;
-      handle_thread_vec_[i] = new boost::thread(
-          boost::bind(&Lidar::HandleThread, this, _1), i);
+      handle_thread_vec_[i] = new std::thread(
+          std::bind(&Lidar::HandleThread, this, std::placeholders::_1), i);
     }
   }
 
   handle_thread_count_ = nThreadNum;
   recieve_packet_thread_ptr_ =
-      new boost::thread(boost::bind(&Lidar::RecieveUdpThread, this));
+      new std::thread(std::bind(&Lidar::RecieveUdpThread, this));
   parser_thread_ptr_ =
-      new boost::thread(boost::bind(&Lidar::ParserThread, this));    
+      new std::thread(std::bind(&Lidar::ParserThread, this));    
 }
 template <typename T_Point>
 void Lidar<T_Point>::SetSource(Source **source) {

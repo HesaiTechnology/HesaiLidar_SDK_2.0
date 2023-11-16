@@ -45,9 +45,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <semaphore.h>
 #endif
 #include <list>
+#include <cmath>
 #include <vector>
-#include <boost/algorithm/string.hpp>
-#include <boost/thread/thread.hpp>
+#include <sstream>
 #include <iostream>
 #include <fstream>
 #include "lidar_types.h"
@@ -153,6 +153,16 @@ inline float deg2Rad(float deg)
 inline float rad2Deg(float rad)
 {
     return rad * 57.29577951308232087721;
+}
+
+template <typename T_Point>
+void split(T_Point& v, const std::string& s, char delimiter){
+    std::istringstream tokenStream(s);
+    std::string token;
+
+    while (std::getline(tokenStream, token, delimiter)) {
+        v.push_back(token);
+    }
 }
 
 struct Transform {

@@ -70,7 +70,11 @@ int  Udp2_5Parser<T_Point>::LoadCorrectionCsvData(char *correction_string)
   std::getline(ifs, line);  
   float elevation_list[MAX_LASER_NUM], azimuth_list[MAX_LASER_NUM];
   std::vector<std::string> vfirstLine;
-  boost::split(vfirstLine, line, boost::is_any_of(","));
+  std::istringstream tokenStream(line);
+  std::string token;
+  while (std::getline(tokenStream, token, ',')) {       
+    vfirstLine.push_back(token);
+  }
   if (vfirstLine[0] == "EEFF" || vfirstLine[0] == "eeff") {
     // skip second line
     std::getline(ifs, line);  
@@ -79,7 +83,11 @@ int  Udp2_5Parser<T_Point>::LoadCorrectionCsvData(char *correction_string)
   int lineCount = 0;
   while (std::getline(ifs, line)) {
     std::vector<std::string> vLineSplit;
-    boost::split(vLineSplit, line, boost::is_any_of(","));
+    std::istringstream tokenStream(line);
+    std::string token;
+    while (std::getline(tokenStream, token, ',')) {       
+      vLineSplit.push_back(token);
+    }
     // skip error line or hash value line
     if (vLineSplit.size() < 3) {  
       continue;

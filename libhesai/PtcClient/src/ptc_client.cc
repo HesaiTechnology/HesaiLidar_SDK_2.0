@@ -156,7 +156,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
               pRecvHeaderBuf[i + 1] == ptc_parser_->GetHeaderIdentifier1()) {
             nValidDataLen = nOnceRecvLen - i;
             bHeaderFound = true;
-            std::memcpy(pHeaderBuf, pRecvHeaderBuf + i, nValidDataLen);
+            memcpy(pHeaderBuf, pRecvHeaderBuf + i, nValidDataLen);
             //剩下还需接收的长度
             nLeft -= nValidDataLen;
             break;
@@ -164,7 +164,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
         }
       } else {
         //已经收到PTC正确的头部 只是还没有达到8位
-        std::memcpy(pHeaderBuf + nValidDataLen, pRecvHeaderBuf, nOnceRecvLen);
+        memcpy(pHeaderBuf + nValidDataLen, pRecvHeaderBuf, nOnceRecvLen);
         nValidDataLen += nOnceRecvLen;
         nLeft -= nOnceRecvLen;
       }
@@ -228,7 +228,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
       //将收到的bodyBuf拷贝到最终要传出的buf
       byteStreamOut.resize(nPayLoadLen);
       pBodyBuf = u8BodyBuf.data();
-      std::memcpy(byteStreamOut.data(), pBodyBuf, nPayLoadLen);
+      memcpy(byteStreamOut.data(), pBodyBuf, nPayLoadLen);
     }
   }
 

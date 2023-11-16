@@ -34,13 +34,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <boost/atomic.hpp>
-#include <boost/lockfree/queue.hpp>
 #include <semaphore.h>
 #include <list>
 #include <vector>
-#include <boost/algorithm/string.hpp>
-#include <boost/thread/thread.hpp>
 #include "lidar_types.h"
 #ifndef M_PI
 #define M_PI 3.1415926535898
@@ -122,6 +118,16 @@ namespace gpu
   }
 
 } // namespace gpu
+
+template <typename T_Point>
+void split(T_Point& v, const std::string& s, char delimiter){
+    std::istringstream tokenStream(s);
+    std::string token;
+
+    while (std::getline(tokenStream, token, delimiter)) {
+        v.push_back(token);
+    }
+}
 
 template <typename PointT>
 struct PointCloudStruct  {

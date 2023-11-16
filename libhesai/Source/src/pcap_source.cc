@@ -69,40 +69,58 @@ PcapTCPv6Header::PcapTCPv6Header(uint16_t pkt_len, uint16_t port)
 {}
 
 class PcapSource::Private {
-    boost::iostreams::mapped_file_source _fpcap;
+    std::ifstream _fpcap;
     size_t _fpos;
+    std::vector<char> _fileData;
+
 public:
     Private() : _fpos(0) {}
     ~Private() { close(); }
-    void open(std::string pcap_path) {
+
+    void open(const std::string& pcap_path) {
         close();
-        _fpcap.open(pcap_path.data());
-    };
+        _fpcap.open(pcap_path, std::ios::binary);
+        if (_fpcap.is_open()) {
+            _fpcap.seekg(0, std::ios::end);
+            _fileData.resize(_fpcap.tellg());
+            _fpcap.seekg(0, std::ios::beg);
+            _fpcap.read(&_fileData[0], _fileData.size());
+        }
+    }
+
     bool is_open() const { return _fpcap.is_open(); }
+
     void close() {
         if (is_open()) {
             _fpcap.close();
+            _fileData.clear();
         }
         _fpos = 0;
     }
-    inline bool eof() const { return _fpos == _fpcap.size(); }
+
+    inline bool eof() const { return _fpos == _fileData.size(); }
+
     inline size_t fpos() const { return _fpos; }
+
     inline void fpos(size_t new_fpos) { _fpos = new_fpos; }
+
     template<typename T>
     bool read(T& value) {
-        if (_fpos + sizeof(T) > _fpcap.size()) return false;
-        value = *(T*)(_fpcap.data() + _fpos);
+        if (_fpos + sizeof(T) > _fileData.size()) return false;
+        std::memcpy(&value, &_fileData[_fpos], sizeof(T));
         _fpos += sizeof(T);
         return true;
     }
+
     bool read(void* dst, size_t length) {
-        if (_fpos + length > _fpcap.size()) return false;
-        std::memcpy(dst, _fpcap.data() + _fpos, length);
+        if (_fpos + length > _fileData.size()) return false;
+        std::memcpy(dst, &_fileData[_fpos], length);
         _fpos += length;
         return true;
     }
+
     bool move(size_t length) {
-        if (_fpos + length > _fpcap.size()) return false;
+        if (_fpos + length > _fileData.size()) return false;
         _fpos += length;
         return true;
     }

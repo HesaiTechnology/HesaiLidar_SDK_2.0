@@ -24,7 +24,6 @@ endif()
 
 
 include_directories("${PROJECT_BINARY_DIR}")
-find_package(Boost REQUIRED COMPONENTS system filesystem thread)
 find_package(OpenSSL REQUIRED)
 add_definitions(-DQT_MESSAGELOGCONTEXT)
 add_subdirectory(../libhesai lbhesai.out)
@@ -52,11 +51,9 @@ include_directories(
   ../libhesai/include
   ../driver
   ../third_party
-  ${Boost_INCLUDE_DIRS}
   ${OPENSSL_INCLUDE_DIR}
 )
 link_directories(../libhesai/PtcClient/lib)
-link_directories(${Boost_LIBRARY_DIRS})
 
 
 add_executable(packet_loss_tool
@@ -64,7 +61,6 @@ add_executable(packet_loss_tool
 )
 
 target_link_libraries(packet_loss_tool
-  ${Boost_LIBRARIES}
   source_lib
   container_lib
   ptcClient_lib
@@ -82,7 +78,6 @@ add_executable(pcl_tool
 )
 
 target_link_libraries(pcl_tool
-  ${Boost_LIBRARIES}
   source_lib
   container_lib
   ptcClient_lib
@@ -110,7 +105,7 @@ if(${CUDA_FOUND})
   ../libhesai/UdpParserGpu/src/buffer.cu
   )
   target_link_libraries(pcl_tool_gpu 
-  ${Boost_LIBRARIES}
+  #${Boost_LIBRARIES}
   source_lib
   container_lib
   ptcClient_lib

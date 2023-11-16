@@ -7,7 +7,7 @@
 
 // #define SAVE_PCD_FILE
 // #define SAVE_PLY_FILE
-// #define ENABLE_VIEWER
+#define ENABLE_VIEWER
 
 
 struct PointXYZIT {
@@ -90,9 +90,9 @@ int main(int argc, char *argv[])
 
   // assign param
   param.input_param.source_type = DATA_FROM_LIDAR;
-  param.input_param.pcap_path = "Your pcap file path";
-  param.input_param.correction_file_path = "Your correction file path";
-  param.input_param.firetimes_path = "Your firetime file path";
+  param.input_param.pcap_path = "/home/hesai/Downloads/P12839CC549139CF57";
+  param.input_param.correction_file_path = "/home/hesai/Documents/HesaiLidar_SDK_2.0/correction/angle_correction/Pandar128E3X_Angle Correction File.csv";
+  param.input_param.firetimes_path = "/home/hesai/Documents/HesaiLidar_SDK_2.0/correction/firetime_correction/Pandar128E3X_Firetime Correction File.csv";
 
   // param.input_param.ptc_mode = PtcMode::tcp_ssl;
   param.input_param.certFile = "Your cert file";
