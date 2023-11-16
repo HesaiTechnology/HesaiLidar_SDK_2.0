@@ -90,15 +90,15 @@ int main(int argc, char *argv[])
 
   // assign param
   param.input_param.source_type = DATA_FROM_LIDAR;
-  param.input_param.pcap_path = "/home/hesai/Downloads/P12839CC549139CF57";
-  param.input_param.correction_file_path = "/home/hesai/Documents/HesaiLidar_SDK_2.0/correction/angle_correction/Pandar128E3X_Angle Correction File.csv";
-  param.input_param.firetimes_path = "/home/hesai/Documents/HesaiLidar_SDK_2.0/correction/firetime_correction/Pandar128E3X_Firetime Correction File.csv";
+  param.input_param.pcap_path = "";
+  param.input_param.correction_file_path = "";
+  param.input_param.firetimes_path = "";
 
-  // param.input_param.ptc_mode = PtcMode::tcp_ssl;
+  //param.input_param.ptc_mode = PtcMode::tcp_ssl;
   param.input_param.certFile = "Your cert file";
   param.input_param.privateKeyFile = "Your privateKey file";
   param.input_param.caFile = "Your ca file";
-  param.input_param.device_ip_address = "192.168.1.201";
+  param.input_param.device_ip_address = "192.168.1.205";
   param.input_param.ptc_port = 9347;
   param.input_param.udp_port = 2368;
   param.input_param.host_ip_address = "192.168.1.100";

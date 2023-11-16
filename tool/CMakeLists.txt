@@ -28,7 +28,6 @@ find_package(OpenSSL REQUIRED)
 add_definitions(-DQT_MESSAGELOGCONTEXT)
 add_subdirectory(../libhesai lbhesai.out)
 
-# set (Boost_INCLUDE_DIRS "/usr/lib/x86_64-linux-gnu/")
 
 include_directories(
   ../libhesai
@@ -105,7 +104,6 @@ if(${CUDA_FOUND})
   ../libhesai/UdpParserGpu/src/buffer.cu
   )
   target_link_libraries(pcl_tool_gpu 
-  #${Boost_LIBRARIES}
   source_lib
   container_lib
   ptcClient_lib
