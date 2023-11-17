@@ -169,10 +169,60 @@ int Udp3_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
 
 template<typename T_Point>
 bool Udp3_1Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
-  if (this->last_azimuth_ > azimuth && (this->last_azimuth_- azimuth > kSplitFrameMinAngle)) {
-      return true;
+  // Determine the correctness of the frame angle
+  if (this->frame_start_azimuth_ < 0.0f || this->frame_start_azimuth_ >= 360.0f) {
+    this->frame_start_azimuth_ = 0.0f;
+    printf("the set of frame_start_azimuth is wrong, please make it [0, 360) (no 360), we set it 0\n");
+  }
+  static int32_t i = 0;
+  int8_t fb_flag = 1;
+  if (i)
+  {
+    if ((this->last_azimuth_ > azimuth && azimuth - this->last_azimuth_ <= kSplitFrameMinAngle) || (azimuth - this->last_azimuth_ > kSplitFrameMinAngle*100)) {
+      fb_flag = 0;
     }
-  return false;
+  } else {
+    i++;
+    return false;
+  }
+  if (fb_flag) {
+    // Special 0 is handled separately
+    if (this->frame_start_azimuth_ == 0.0f)
+    {
+      if (this->last_azimuth_ > azimuth && (this->last_azimuth_- azimuth > kSplitFrameMinAngle)) {
+        return true;
+      } 
+      return false;
+    } else {
+      if (this->last_azimuth_ < azimuth && this->last_azimuth_ < uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
+          && azimuth >= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
+        return true;
+      }
+      return false;
+    }
+  } else {
+    // Special the last degree is handled separately
+    static int j = 0;
+    static float divison = 0.0f;
+    if (j == 0 && this->last_azimuth_ != 0 && abs(this->last_azimuth_ - azimuth) < kSplitFrameMinAngle)
+    {
+      j++;
+      divison = (this->last_azimuth_ - azimuth) / 100.0;
+    }
+    if (360.0f - this->frame_start_azimuth_ <= divison)
+    {
+      if (this->last_azimuth_ < azimuth && (azimuth - this->last_azimuth_ > kSplitFrameMinAngle)) {
+        return true;
+      } 
+      return false;
+    } else {
+      if (this->last_azimuth_ > azimuth && this->last_azimuth_ > uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
+          && azimuth <= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
+        return true;
+      }
+      return false;
+    }
+  }
 }
 
 template<typename T_Point>

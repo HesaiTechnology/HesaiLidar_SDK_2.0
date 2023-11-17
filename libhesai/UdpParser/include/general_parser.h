@@ -223,8 +223,8 @@ class GeneralParser {
   uint16_t *GetMonitorInfo1();
   uint16_t *GetMonitorInfo2();
   uint16_t *GetMonitorInfo3();
-  std::vector<double> elevation_correction_;
-  std::vector<double> azimuth_collection_;
+  std::vector<double> elevation_correction_{0};
+  std::vector<double> azimuth_collection_{0};
   uint32_t total_start_seqnum_;
   uint32_t total_loss_count_;
   uint32_t current_seqnum_;

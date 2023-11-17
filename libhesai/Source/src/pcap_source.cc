@@ -192,9 +192,9 @@ std::string PcapSource::pcap_path() const {
 }
 
 int PcapSource::next(UdpPacket& udpPacket, uint16_t u16Len, int flags,
-                      int timeout) {    
-    //std::this_thread::sleep_for(std::chrono::microseconds(packet_interval_));              
+                      int timeout) {                 
     if(_p->eof()) {
+        is_pcap_end = true;
         return -1;
     }
     bool ret = _p->read(pcap_record_);

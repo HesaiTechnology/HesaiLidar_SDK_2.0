@@ -5,13 +5,13 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
 
-// #define SAVE_PCD_FILE
+// #define SAVE_PCD_FILE_ASCII
+// #define SAVE_PCD_FILE_BIN
 // #define SAVE_PLY_FILE
 #define ENABLE_VIEWER
 
 
 struct PointXYZIT {
-  //添加pcl里xyz
   PCL_ADD_POINT4D   
   float intensity;
   double timestamp;
@@ -21,9 +21,8 @@ struct PointXYZIT {
 
 POINT_CLOUD_REGISTER_POINT_STRUCT(
     PointXYZIT,
-    (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(
-        double, timestamp, timestamp)(uint16_t, ring, ring))
-
+    (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
+    (double, timestamp, timestamp)(uint16_t, ring, ring))
 
 using namespace pcl::visualization;
 std::shared_ptr<PCLVisualizer> pcl_viewer;
@@ -47,17 +46,26 @@ void lidarCallback(const LidarDecodedFrame<PointXYZIT>  &frame) {
   pcl_pointcloud->height = 1;
   pcl_pointcloud->width = frame.points_num;
   pcl_pointcloud->is_dense = false;
-  
-  std::string file_name = "./PointCloudFrame" + std::to_string(frame.frame_index) + "_" + std::to_string(frame.points[0].timestamp)+ ".ply";
 
-//save point cloud with pcd file if define SAVE_PCD_FILE
-#ifdef SAVE_PCD_FILE
+  std::string file_name1 = "./PointCloudFrame" + std::to_string(frame.frame_index) + "_" + std::to_string(frame.points[0].timestamp)+ ".pcd";
+  std::string file_name2 = "./PointCloudFrame" + std::to_string(frame.frame_index) + "_" + std::to_string(frame.points[0].timestamp)+ ".bin";
+  std::string file_name3 = "./PointCloudFrame" + std::to_string(frame.frame_index) + "_" + std::to_string(frame.points[0].timestamp)+ ".ply";
+
+//save point cloud with pcd file(ASCII) if define SAVE_PCD_FILE_ASCII.
+#ifdef SAVE_PCD_FILE_ASCII
   pcl::PCDWriter writer;
-  writer.writeASCII(file_name, *pcl_pointcloud);
-#endif  
+  // you can change the value of precision to adjust the precison
+  int precision = 16;
+  writer.writeASCII(file_name1, *pcl_pointcloud, precision);
+#endif
+//save point cloud with pcd file(BIN) if define SAVE_PCD_FILE_BIN.
+#ifdef SAVE_PCD_FILE_BIN
+  pcl::io::savePCDFileBinary(file_name2, *pcl_pointcloud);
+#endif
+//save point cloud with ply file if define SAVE_PLY_FILE
 #ifdef SAVE_PLY_FILE
   pcl::PLYWriter writer1;
-  writer1.write(file_name, *pcl_pointcloud, true);
+  writer1.write(file_name3, *pcl_pointcloud, true);
 #endif    
 
 //display point cloud with pcl if define ENABLE_VIEWER
@@ -84,25 +92,22 @@ int main(int argc, char *argv[])
 #ifdef ENABLE_VIEWER   
   PclViewerInit(pcl_viewer);
 #endif 
-
   HesaiLidarSdk<PointXYZIT> sample;
   DriverParam param;
-
   // assign param
-  param.input_param.source_type = DATA_FROM_LIDAR;
-  param.input_param.pcap_path = "";
-  param.input_param.correction_file_path = "";
+  param.input_param.source_type = DATA_FROM_PCAP;
+  param.input_param.pcap_path = "/home/hesai/Downloads/PCAP/p128_2.pcap";
+  param.input_param.correction_file_path = "/home/hesai/GIT/sdk_finaly_ws/HesaiLidar_SDK_2.0/correction/angle_correction/Pandar128E3X_Angle Correction File.csv";
   param.input_param.firetimes_path = "";
-
-  //param.input_param.ptc_mode = PtcMode::tcp_ssl;
-  param.input_param.certFile = "Your cert file";
-  param.input_param.privateKeyFile = "Your privateKey file";
-  param.input_param.caFile = "Your ca file";
-  param.input_param.device_ip_address = "192.168.1.205";
-  param.input_param.ptc_port = 9347;
-  param.input_param.udp_port = 2368;
-  param.input_param.host_ip_address = "192.168.1.100";
-  param.input_param.multicast_ip_address = "";
+  // param.input_param.ptc_mode = PtcMode::tcp_ssl;
+  // param.input_param.certFile = "Your cert file";
+  // param.input_param.privateKeyFile = "Your privateKey file";
+  // param.input_param.caFile = "Your ca file";
+  // param.input_param.device_ip_address = "192.168.1.205";
+  // param.input_param.ptc_port = 9347;
+  // param.input_param.udp_port = 2368;
+  // param.input_param.host_ip_address = "192.168.1.100";
+  // param.input_param.multicast_ip_address = "";
 
   //init lidar with param
   sample.Init(param);
@@ -114,10 +119,8 @@ int main(int argc, char *argv[])
   last_frame_time = GetMicroTickCount();
   sample.Start();
 
-
   while (1)
   {
-
 #ifdef ENABLE_VIEWER   
     mex_viewer.lock();
     if(pcl_viewer->wasStopped()) break;
@@ -125,6 +128,5 @@ int main(int argc, char *argv[])
     mex_viewer.unlock();
 #endif     
     std::this_thread::sleep_for(std::chrono::milliseconds(40));
-
   }
 }

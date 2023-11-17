@@ -125,6 +125,8 @@ public:
   void SetThreadNum(int thread_num);
   void SetSource(Source **source);
   std::string GetLidarType();
+  // get pcap status
+  bool IsPlayEnded();
   UdpParser<T_Point> *udp_parser_;
   Source *source_;
   PtcClient *ptc_client_;

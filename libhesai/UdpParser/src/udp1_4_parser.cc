@@ -244,11 +244,8 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   this->is_dual_return_= pTail->IsDualReturn();
   output.spin_speed = pTail->m_u16MotorSpeed;
   output.work_mode = pTail->getOperationMode();
-  // 如下三条：max min这样的参数一点用都没有
   output.maxPoints = pHeader->GetBlockNum() * pHeader->GetLaserNum();
-  // 不填直接崩调，=0界面一个点也没有
   output.points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
-  // 不填则仅显示很小一部分点云
   output.scan_complete = false;
   output.distance_unit = pHeader->GetDistUnit();
   int index = 0;
@@ -333,21 +330,56 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
 
 template<typename T_Point>
 bool Udp1_4Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
-  if (this->last_azimuth_ > azimuth && (this->last_azimuth_- azimuth > kSplitFrameMinAngle)) {
-      use_frame_start_azimuth_ = true;
+ // Determine the correctness of the frame angle
+  if (this->frame_start_azimuth_ < 0.0f || this->frame_start_azimuth_ >= 360.0f) {
+    this->frame_start_azimuth_ = 0.0f;
+    printf("the set of frame_start_azimuth is wrong, please make it [0, 360) (no 360), we set it 0\n");
+  }
+  static int32_t i = 0;
+  int8_t fb_flag = 1;
+  if (i)
+  {
+    if ((this->last_azimuth_ > azimuth && azimuth - this->last_azimuth_ <= kSplitFrameMinAngle) || (azimuth - this->last_azimuth_ > kSplitFrameMinAngle*100)) {
+      fb_flag = 0;
     }
-  //do not use frame_start_azimuth, split frame near 360 degree
-  if (this->frame_start_azimuth_ < 1 || this->frame_start_azimuth_ > 359) {
-    if (this->last_azimuth_ > azimuth && (this->last_azimuth_- azimuth > kSplitFrameMinAngle)) {
+  } else {
+    i++;
+    return false;
+  }
+  if (fb_flag) {
+    // Special 0 is handled separately
+    if (this->frame_start_azimuth_ == 0.0f)
+    {
+      if (this->last_azimuth_ > azimuth && (this->last_azimuth_- azimuth > kSplitFrameMinAngle)) {
+        return true;
+      } 
+      return false;
+    } else {
+      if (this->last_azimuth_ < azimuth && this->last_azimuth_ < uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
+          && azimuth >= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
         return true;
       }
-    return false;
-  } else { //use frame_start_azimuth
-    if ((azimuth >= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) && (use_frame_start_azimuth_ == true)) {
-      use_frame_start_azimuth_ = false;
-      return true;
-    } 
-    return false;
+      return false;
+    }
+  } else {
+    // Special the last degree is handled separately
+    if (this->last_azimuth_ != 0 && abs(this->last_azimuth_ - azimuth) < kSplitFrameMinAngle)
+    {
+      divison = (this->last_azimuth_ - azimuth) / 100.0;
+    }
+    if (360.0f - this->frame_start_azimuth_ <= divison)
+    {
+      if (this->last_azimuth_ < azimuth && (azimuth - this->last_azimuth_ > kSplitFrameMinAngle)) {
+        return true;
+      } 
+      return false;
+    } else {
+      if (this->last_azimuth_ > azimuth && this->last_azimuth_ > uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
+          && azimuth <= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
+        return true;
+      }
+      return false;
+    }
   }
 }
 

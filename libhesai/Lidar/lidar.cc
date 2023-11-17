@@ -47,6 +47,7 @@ Lidar<T_Point>::Lidar() {
   recieve_packet_thread_ptr_ = nullptr;
   mutex_list_ = new std::mutex[GetAvailableCPUNum()];
   handle_buffer_size_ = kPacketBufferSize;
+  source_ = nullptr;
 }
 
 template <typename T_Point>
@@ -525,6 +526,17 @@ void Lidar<T_Point>::SetThreadNum(int nThreadNum) {
 template <typename T_Point>
 void Lidar<T_Point>::SetSource(Source **source) {
   source_ = *source;
+}
+
+
+template <typename T_Point>
+bool Lidar<T_Point>::IsPlayEnded()
+{
+  if (source_ == nullptr)
+  {
+    return false;
+  }
+  return source_->is_pcap_end;
 }
 
 template <typename T_Point>
