@@ -93,11 +93,7 @@ int Udp7_2Parser<T_Point>::LoadCorrectionCsvData(char *correction_string) {
 	}
 	int lineCounter = 0;
 	std::vector<std::string>  firstLine;
-  std::istringstream tokenStream(line);
-  std::string token;
-  while (std::getline(tokenStream, token, ',')) {       
-    firstLine.push_back(token);
-  }
+  split_string(firstLine, line, ',');
   while (std::getline(ifs, line)) {
     if(line.length() < strlen("1,1,1,1")) {
       return -1;

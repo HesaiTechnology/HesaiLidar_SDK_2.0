@@ -14,7 +14,7 @@
 #include <string>
 #include <utility>
 #include <thread>
-
+#include <sstream>
 #define SHED_FIFO_PRIORITY_HIGH 99
 #define SHED_FIFO_PRIORITY_MEDIUM 70
 #define SHED_FIFO_PRIORITY_LOW 1
@@ -34,6 +34,9 @@ extern unsigned int GetMicroTickCount();
 extern uint64_t GetMicroTickCountU64();
 
 extern int GetAvailableCPUNum();
+
+template <typename T_Point>
+void split_string(T_Point&, const std::string&, char);
 
 // extern int GetAnglesFromFile(
 //     const std::string& sFile,

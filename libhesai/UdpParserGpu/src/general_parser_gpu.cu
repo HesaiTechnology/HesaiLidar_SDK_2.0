@@ -71,7 +71,7 @@ int GeneralParserGpu<T_Point>::LoadCorrectionString(char *correction_content) {
   float elevation_list[MAX_LASER_NUM], azimuth_list[MAX_LASER_NUM];
 
   std::vector<std::string> vfirstLine;
-  split(vfirstLine, line, ',');
+  split_string(vfirstLine, line, ',');
   if (vfirstLine[0] == "EEFF" || vfirstLine[0] == "eeff") {
     std::getline(ifs, line);  // skip second line
   }
@@ -79,7 +79,7 @@ int GeneralParserGpu<T_Point>::LoadCorrectionString(char *correction_content) {
   int lineCount = 0;
   while (std::getline(ifs, line)) {
     std::vector<std::string> vLineSplit;
-    split(vLineSplit, line, ',');
+    split_string(vLineSplit, line, ',');
     if (vLineSplit.size() < 3) {  // skip error line or hash value line
       continue;
     } else {

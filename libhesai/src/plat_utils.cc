@@ -170,6 +170,15 @@ int GetAnglesFromFile(
   return 0;
 }
 
+template <typename T_Point>
+void split_string(T_Point& v, const std::string& s, char delimiter){
+    std::istringstream tokenStream(s);
+    std::string token;
+    while (std::getline(tokenStream, token, delimiter)) {
+        v.push_back(token);
+    }
+}
+
 // 2004-05-03T17:30:08+08:00
 int GetCurrentTimeStamp(std::string &sTime, int nFormat) {
   time_t currentTime = time(NULL);

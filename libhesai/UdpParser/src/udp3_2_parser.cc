@@ -54,7 +54,7 @@ int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
     printf("Parse Lidar firetime now...\n");
   }
   std::vector<std::string> firstLine;
-  split(firstLine, line, ',');
+  split_string(firstLine, line, ',');
   if (firstLine[0] == "EEFF" || firstLine[0] == "eeff") {
     std::array<std::array<float, HS_LIDAR_QT128_LASER_NUM>,
                HS_LIDAR_QT128_LOOP_NUM>
@@ -65,21 +65,13 @@ int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
     firetimes[3].fill(0);
     std::getline(fin, line);
     std::vector<std::string> loopNumLine;
-    std::istringstream tokenStream(line);
-    std::string token;
-    while (std::getline(tokenStream, token, ',')) {       
-      loopNumLine.push_back(token);
-    }
+    split_string(loopNumLine, line, ',');
     int loopNum = atoi(loopNumLine[3].c_str());
     std::getline(fin, line);
     for (int i = 0; i < HS_LIDAR_QT128_LASER_NUM; i++) {
       std::getline(fin, line);
       std::vector<std::string> ChannelLine;
-      std::istringstream tokenStream(line);
-      std::string token;
-      while (std::getline(tokenStream, token, ',')) {       
-        ChannelLine.push_back(token);
-      }
+      split_string(ChannelLine, line, ',');
       for (int j = 0; j < loopNum; j++) {
         if (ChannelLine.size() == loopNum * 2) {
           int laserId = atoi(ChannelLine[j * 2].c_str()) - 1;
@@ -128,11 +120,7 @@ int Udp3_2Parser<T_Point>::LoadChannelConfigString(char *channel_config_content)
 
   std::getline(ifs, line);
   std::vector<std::string> versionLine;
-  std::istringstream tokenStream(line);
-  std::string token;
-  while (std::getline(tokenStream, token, ',')) {       
-    versionLine.push_back(token);
-  }
+  split_string(versionLine, line, ',');
   if (versionLine[0] == "EEFF" || versionLine[0] == "eeff") {
     pandarQT_channel_config_.major_version =
         std::stoi(versionLine[1].c_str());
@@ -143,7 +131,7 @@ int Udp3_2Parser<T_Point>::LoadChannelConfigString(char *channel_config_content)
   }
   std::getline(ifs, line);
   std::vector<std::string> channelNumLine;
-  split(channelNumLine, line, ',');
+  split_string(channelNumLine, line, ',');
   pandarQT_channel_config_.laser_num = std::stoi(channelNumLine[1].c_str());
   pandarQT_channel_config_.m_u8BlockNum = std::stoi(channelNumLine[3].c_str());
   if (pandarQT_channel_config_.laser_num <= 0 ||
@@ -154,7 +142,7 @@ int Udp3_2Parser<T_Point>::LoadChannelConfigString(char *channel_config_content)
   }
   std::getline(ifs, line);
   std::vector<std::string> firstChannelLine;
-  split(firstChannelLine, line, ',');
+  split_string(firstChannelLine, line, ',');
   int loop_num = firstChannelLine.size();
   pandarQT_channel_config_.m_vChannelConfigTable.resize(loop_num);
 
@@ -165,7 +153,7 @@ int Udp3_2Parser<T_Point>::LoadChannelConfigString(char *channel_config_content)
   for (int i = 0; i < pandarQT_channel_config_.laser_num; i++) {
     std::getline(ifs, line);
     std::vector<std::string> ChannelLine;
-    split(ChannelLine, line, ',');
+    split_string(ChannelLine, line, ',');
     for (int j = 0; j < loop_num; j++) {
       if (ChannelLine.size() == loop_num) {
         pandarQT_channel_config_.m_vChannelConfigTable[j][i] =

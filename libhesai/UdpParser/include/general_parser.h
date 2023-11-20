@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <fstream>
 #include "lidar_types.h"
+#include "plat_utils.h"
 namespace hesai
 {
 namespace lidar
@@ -153,16 +154,6 @@ inline float deg2Rad(float deg)
 inline float rad2Deg(float rad)
 {
     return rad * 57.29577951308232087721;
-}
-
-template <typename T_Point>
-void split(T_Point& v, const std::string& s, char delimiter){
-    std::istringstream tokenStream(s);
-    std::string token;
-
-    while (std::getline(tokenStream, token, delimiter)) {
-        v.push_back(token);
-    }
 }
 
 struct Transform {
