@@ -96,20 +96,18 @@ int main(int argc, char *argv[])
   DriverParam param;
   // assign param
   param.input_param.source_type = DATA_FROM_PCAP;
-  param.input_param.pcap_path = "/home/hesai/Downloads/PCAP/p128_2.pcap";
-  param.input_param.correction_file_path = "/home/hesai/GIT/sdk_finaly_ws/HesaiLidar_SDK_2.0/correction/angle_correction/Pandar128E3X_Angle Correction File.csv";
-  // param.input_param.pcap_path = "/home/hesai/Downloads/PCAP/QT.pcap";
-  // param.input_param.correction_file_path = "/home/hesai/GIT/sdk_fin_ws/HesaiLidar_SDK_2.0/correction/angle_correction/QT128C2X_Angle Correction File.csv";
-  param.input_param.firetimes_path = "";
-  // param.input_param.ptc_mode = PtcMode::tcp_ssl;
-  // param.input_param.certFile = "Your cert file";
-  // param.input_param.privateKeyFile = "Your privateKey file";
-  // param.input_param.caFile = "Your ca file";
-  // param.input_param.device_ip_address = "192.168.1.205";
-  // param.input_param.ptc_port = 9347;
-  // param.input_param.udp_port = 2368;
-  // param.input_param.host_ip_address = "192.168.1.100";
-  // param.input_param.multicast_ip_address = "";
+  param.input_param.pcap_path = "Your pcap file path";
+  param.input_param.correction_file_path = "Your correction file path";
+  param.input_param.firetimes_path = "Your firetime file path";
+  param.input_param.ptc_mode = PtcMode::tcp_ssl;
+  param.input_param.certFile = "Your cert file";
+  param.input_param.privateKeyFile = "Your privateKey file";
+  param.input_param.caFile = "Your ca file";
+  param.input_param.device_ip_address = "192.168.1.201";
+  param.input_param.ptc_port = 9347;
+  param.input_param.udp_port = 2368;
+  param.input_param.host_ip_address = "192.168.1.100";
+  param.input_param.multicast_ip_address = "";
 
   //init lidar with param
   sample.Init(param);
