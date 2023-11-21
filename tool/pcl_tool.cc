@@ -98,6 +98,8 @@ int main(int argc, char *argv[])
   param.input_param.source_type = DATA_FROM_PCAP;
   param.input_param.pcap_path = "/home/hesai/Downloads/PCAP/p128_2.pcap";
   param.input_param.correction_file_path = "/home/hesai/GIT/sdk_finaly_ws/HesaiLidar_SDK_2.0/correction/angle_correction/Pandar128E3X_Angle Correction File.csv";
+  // param.input_param.pcap_path = "/home/hesai/Downloads/PCAP/QT.pcap";
+  // param.input_param.correction_file_path = "/home/hesai/GIT/sdk_fin_ws/HesaiLidar_SDK_2.0/correction/angle_correction/QT128C2X_Angle Correction File.csv";
   param.input_param.firetimes_path = "";
   // param.input_param.ptc_mode = PtcMode::tcp_ssl;
   // param.input_param.certFile = "Your cert file";

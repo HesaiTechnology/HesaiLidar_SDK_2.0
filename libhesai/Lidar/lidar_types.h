@@ -146,13 +146,6 @@ class LidarDecodedFrame
         points_num = 0;
         packet_index = 0;
         distance_unit = 0.0;
-        // points = new PointT[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
-        // sensor_timestamp = new uint64_t[kMaxPacketNumPerFrame];
-        // azimuths = new uint16_t[kMaxPacketNumPerFrame];
-        // azimuth = new float[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
-        // elevation = new float[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
-        // distances = new uint16_t[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
-        // reflectivities = new uint8_t[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
         total_memory = new uint8_t[sizeof(PointT) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + 
                                    sizeof(uint64_t) * kMaxPacketNumPerFrame + sizeof(uint16_t) * kMaxPacketNumPerFrame +
                                    sizeof(float) * 2 * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket +

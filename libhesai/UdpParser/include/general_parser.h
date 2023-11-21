@@ -236,7 +236,8 @@ class GeneralParser {
   uint16_t spin_speed_;
   static const uint16_t kAzimuthTolerance = 1000;
   bool use_angle_ = true;
-  uint16_t last_azimuth_;
+  int32_t last_azimuth_;
+  int32_t last_last_azimuth_;
   uint32_t start_seqnum_;
   uint32_t last_seqnum_;
   uint32_t loss_count_;

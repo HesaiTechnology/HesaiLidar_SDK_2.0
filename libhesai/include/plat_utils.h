@@ -36,11 +36,15 @@ extern uint64_t GetMicroTickCountU64();
 extern int GetAvailableCPUNum();
 
 template <typename T_Point>
-void split_string(T_Point&, const std::string&, char);
-
-// extern int GetAnglesFromFile(
-//     const std::string& sFile,
-//     std::map<int, std::pair<float, float>>& mapAngleMetaData);
+extern void split_string(T_Point&, const std::string&, char);
+template <typename T_Point>
+void split_string(T_Point& v, const std::string& s, char delimiter){
+    std::istringstream tokenStream(s);
+    std::string token;
+    while (std::getline(tokenStream, token, delimiter)) {
+        v.push_back(token);
+    }
+}
 
 extern int GetCurrentTimeStamp(std::string &sTime, int nFormat = ISO_8601_FORMAT);
 #endif  //_PLAT_UTILS_H_

@@ -107,7 +107,8 @@ public:
     template<typename T>
     bool read(T& value) {
         if (_fpos + sizeof(T) > _fileData.size()) return false;
-        std::memcpy(&value, &_fileData[_fpos], sizeof(T));
+        //std::memcpy(&value, &_fileData[_fpos], sizeof(T));
+        value = *(T*)(&_fileData[_fpos]);
         _fpos += sizeof(T);
         return true;
     }

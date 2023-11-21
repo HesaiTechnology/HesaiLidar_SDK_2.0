@@ -141,6 +141,7 @@ int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     if (IsNeedFrameSplit(u16Azimuth)) {
       output.scan_complete = true;
     }
+    this->last_last_azimuth_ = this->last_azimuth_;
     this->last_azimuth_ = u16Azimuth;
   }
   return 0;
@@ -148,59 +149,60 @@ int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
 
 template<typename T_Point>
 bool UdpP64Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
-  // Determine the correctness of the frame angle
+  // Determine frame_start_azimuth_ [0,360)
   if (this->frame_start_azimuth_ < 0.0f || this->frame_start_azimuth_ >= 360.0f) {
     this->frame_start_azimuth_ = 0.0f;
-    printf("the set of frame_start_azimuth is wrong, please make it [0, 360) (no 360), we set it 0\n");
   }
-  static int32_t i = 0;
-  int8_t fb_flag = 1;
-  if (i)
+  // The first two packet dont have the information of last_azimuth_  and last_last_azimuth, so do not need split frame
+  // The initial value of last_azimuth_ is -1
+  // Determine the rotation direction and division
+  int8_t rotation_flag = 1;
+  uint16_t division = 0;
+  // If last_last_azimuth_ != -1，the packet is the third, so we can determine whether the current packet requires framing
+  if (this->last_last_azimuth_ != -1) 
   {
-    if ((this->last_azimuth_ > azimuth && azimuth - this->last_azimuth_ <= kSplitFrameMinAngle) || (azimuth - this->last_azimuth_ > kSplitFrameMinAngle*100)) {
-      fb_flag = 0;
+    // Get the division
+    uint16_t division1 = abs(this->last_azimuth_ - this->last_last_azimuth_);
+    uint16_t division2 = abs(this->last_azimuth_ - azimuth);
+    division = std::min(division1, division2);
+    // In the three consecutive angle values, if the angle values appear by the division of the decreasing situation,it must be reversed
+    // The same is true for FOV
+    if( this->last_last_azimuth_ - this->last_azimuth_ == division || this->last_azimuth_ -azimuth == division)
+    {
+      rotation_flag = 0;
     }
   } else {
-    i++;
+    // The first  and second packet do not need split frame
     return false;
   }
-  if (fb_flag) {
-    // Special 0 is handled separately
-    if (this->frame_start_azimuth_ == 0.0f)
+  //printf("rolation:%d, division:%d, l_l:%d, l:%d, az:%d\n", rotation_flag, division, this->last_last_azimuth_, this->last_azimuth_, azimuth);
+  if (rotation_flag) {
+    // When an angle jump occurs
+    if (this->last_azimuth_- azimuth > division)
     {
-      if (this->last_azimuth_ > azimuth && (this->last_azimuth_- azimuth > kSplitFrameMinAngle)) {
+      if (uint16_t(this->frame_start_azimuth_ * kResolutionInt) > this->last_azimuth_ || uint16_t(this->frame_start_azimuth_ * kResolutionInt <= azimuth)) {
         return true;
       } 
       return false;
-    } else {
-      if (this->last_azimuth_ < azimuth && this->last_azimuth_ < uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
-          && azimuth >= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
-        return true;
-      }
-      return false;
+    }  
+    if (this->last_azimuth_ < azimuth && this->last_azimuth_ < uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
+        && azimuth >= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
+      return true;
     }
+    return false;
   } else {
-    // Special the last degree is handled separately
-    static int j = 0;
-    static float divison = 0.8f;
-    if (j == 0 && this->last_azimuth_ != 0 && abs(this->last_azimuth_ - azimuth) < kSplitFrameMinAngle)
+    if (azimuth - this->last_azimuth_ > division)
     {
-      j++;
-      divison = (this->last_azimuth_ - azimuth) / 100.0;
-    }
-    if (360.0f - this->frame_start_azimuth_ <= divison)
-    {
-      if (this->last_azimuth_ < azimuth && (azimuth - this->last_azimuth_ > kSplitFrameMinAngle)) {
+      if (uint16_t(this->frame_start_azimuth_ * kResolutionInt) <= this->last_azimuth_ || uint16_t(this->frame_start_azimuth_ * kResolutionInt) > azimuth) {
         return true;
       } 
       return false;
-    } else {
-      if (this->last_azimuth_ > azimuth && this->last_azimuth_ > uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
-          && azimuth <= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
-        return true;
-      }
-      return false;
+    }  
+    if (this->last_azimuth_ > azimuth && this->last_azimuth_ > uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
+        && azimuth <= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
+      return true;
     }
+    return false;
   }
 }
 
