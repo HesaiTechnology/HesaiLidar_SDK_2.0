@@ -115,9 +115,9 @@ int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   int index = 0;
   float minAzimuth = 0;
   float maxAzimuth = 0;
-
+  uint16_t u16Azimuth = 0;
   for (int blockid = 0; blockid < pHeader->GetBlockNum(); blockid++) {
-    uint16_t u16Azimuth = pAzimuth->GetAzimuth();
+    u16Azimuth = pAzimuth->GetAzimuth();
     pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_L64 *>(
           (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_L64));
 
@@ -138,12 +138,12 @@ int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       pChnUnit = pChnUnit + 1;
       index++; 
     }
-    if (IsNeedFrameSplit(u16Azimuth)) {
-      output.scan_complete = true;
-    }
-    this->last_last_azimuth_ = this->last_azimuth_;
-    this->last_azimuth_ = u16Azimuth;
   }
+  if (IsNeedFrameSplit(u16Azimuth)) {
+    output.scan_complete = true;
+  }
+  this->last_last_azimuth_ = this->last_azimuth_;
+  this->last_azimuth_ = u16Azimuth;
   return 0;
 }  
 
@@ -175,7 +175,6 @@ bool UdpP64Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
     // The first  and second packet do not need split frame
     return false;
   }
-  //printf("rolation:%d, division:%d, l_l:%d, l:%d, az:%d\n", rotation_flag, division, this->last_last_azimuth_, this->last_azimuth_, azimuth);
   if (rotation_flag) {
     // When an angle jump occurs
     if (this->last_azimuth_- azimuth > division)

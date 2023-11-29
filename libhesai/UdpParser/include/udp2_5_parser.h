@@ -5,8 +5,6 @@
 #ifndef UDP2_5_PARSER_H
 #define UDP2_5_PARSER_H
 
-#include <boost/atomic.hpp>
-#include <boost/lockfree/queue.hpp>
 #include "general_parser.h"
 #include "lidar_types.h"
 #include <vector>

@@ -8,7 +8,7 @@
 // #define SAVE_PCD_FILE_ASCII
 // #define SAVE_PCD_FILE_BIN
 // #define SAVE_PLY_FILE
-#define ENABLE_VIEWER
+// #define ENABLE_VIEWER
 
 
 struct PointXYZIT {
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
   HesaiLidarSdk<PointXYZIT> sample;
   DriverParam param;
   // assign param
-  param.input_param.source_type = DATA_FROM_PCAP;
+  param.input_param.source_type = DATA_FROM_LIDAR;
   param.input_param.pcap_path = "Your pcap file path";
   param.input_param.correction_file_path = "Your correction file path";
   param.input_param.firetimes_path = "Your firetime file path";

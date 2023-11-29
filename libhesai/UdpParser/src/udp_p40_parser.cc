@@ -112,9 +112,9 @@ int UdpP40Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   int index = 0;
   float minAzimuth = 0;
   float maxAzimuth = 0;
-
+  uint16_t u16Azimuth = 0;
   for (int j = 0; j < BLOCKNUM; j++) {
-    uint16_t u16Azimuth = pAzimuth->GetAzimuth();
+    u16Azimuth = pAzimuth->GetAzimuth();
     pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_L40 *>((const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_L40));
 
     pAzimuth = reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_L40 *>(
@@ -134,13 +134,12 @@ int UdpP40Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       pChnUnit = pChnUnit + 1;
       index = index + 1;   
     }
-
-    if (IsNeedFrameSplit(u16Azimuth)) {
-      output.scan_complete = true;
-    }
-    this->last_last_azimuth_ - this->last_azimuth_;
-    this->last_azimuth_ = u16Azimuth;  
   }
+  if (IsNeedFrameSplit(u16Azimuth)) {
+    output.scan_complete = true;
+  }
+  this->last_last_azimuth_ - this->last_azimuth_;
+  this->last_azimuth_ = u16Azimuth;  
   return 0;
 }  
 

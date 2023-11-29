@@ -128,8 +128,9 @@ int Udp3_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       reinterpret_cast<const HS_LIDAR_BODY_CHN_NNIT_QT_V1 *>(
           (const unsigned char *)pAzimuth +
           sizeof(HS_LIDAR_BODY_AZIMUTH_QT_V1));
+  uint16_t u16Azimuth = 0;
   for (int blockid = 0; blockid < pHeader->GetBlockNum(); blockid++) {
-    uint16_t u16Azimuth = pAzimuth->GetAzimuth();
+    u16Azimuth = pAzimuth->GetAzimuth();
     output.azimuths = u16Azimuth;
     pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_NNIT_QT_V1 *>(
         (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_QT_V1));
@@ -156,12 +157,12 @@ int Udp3_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       pChnUnit = pChnUnit + 1;
       index++;
     }
-    if (IsNeedFrameSplit(u16Azimuth)) {
-      output.scan_complete = true;
-    }
-    this->last_last_azimuth_ = this->last_azimuth_;
-    this->last_azimuth_ = u16Azimuth;
   }
+  if (IsNeedFrameSplit(u16Azimuth)) {
+    output.scan_complete = true;
+  }
+  this->last_last_azimuth_ = this->last_azimuth_;
+  this->last_azimuth_ = u16Azimuth;
   return 0;
 }  
 

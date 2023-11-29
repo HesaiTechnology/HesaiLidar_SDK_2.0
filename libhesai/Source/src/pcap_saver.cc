@@ -30,7 +30,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 #include <cassert>
 #include <cstring>
-#include <boost/iostreams/device/mapped_file.hpp>
 #include <iostream>
 using namespace hesai::lidar;
 static constexpr uint32_t pcap_magic_number = 0xa1b2c3d4;

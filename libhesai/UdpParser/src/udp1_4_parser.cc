@@ -261,10 +261,11 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
         pTail->m_reservedInfo2.m_u16Sts;
     this->monitor_info3_[pTail->m_reservedInfo3.m_u8ID] = pTail->m_reservedInfo3.m_u16Sts;
   }
+  uint16_t u16Azimuth = 0;
   uint8_t optMode = pTail->getOperationMode();
   for (int i = 0; i < pHeader->GetBlockNum(); i++) {
     uint8_t angleState = pTail->getAngleState(i);
-    uint16_t u16Azimuth = pAzimuth->GetAzimuth();
+    u16Azimuth = pAzimuth->GetAzimuth();
     output.azimuths = u16Azimuth;
     // point to channel unit addr
     if (pHeader->HasConfidenceLevel()) {
@@ -309,7 +310,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
         if (this->get_firetime_file_) {
           float fireTimeCollection = GetFiretimesCorrection(i, this->spin_speed_, optMode, angleState, pChnUnitNoConf->GetDistance());
           output.azimuth[index] = u16Azimuth + fireTimeCollection * kResolutionInt;
-        }else {
+        } else {
           output.azimuth[index] = u16Azimuth;
         }
         output.reflectivities[index] = pChnUnitNoConf->GetReflectivity();  
@@ -319,13 +320,12 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
         pChnUnitNoConf += 1;
       }
     }
-    if (IsNeedFrameSplit(u16Azimuth)) {
-      output.scan_complete = true;
-    }
-    this->last_last_azimuth_ = this->last_azimuth_;
-    this->last_azimuth_ = u16Azimuth;
   }
-
+  if (IsNeedFrameSplit(u16Azimuth)) {
+    output.scan_complete = true;
+  }
+  this->last_last_azimuth_ = this->last_azimuth_;
+  this->last_azimuth_ = u16Azimuth;
   return 0;
 } 
 
@@ -357,7 +357,6 @@ bool Udp1_4Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
     // The first  and second packet do not need split frame
     return false;
   }
-  //printf("rolation:%d, division:%d, l_l:%d, l:%d, az:%d\n", rotation_flag, division, this->last_last_azimuth_, this->last_azimuth_, azimuth);
   if (rotation_flag) {
     // When an angle jump occurs
     if (this->last_azimuth_- azimuth > division)

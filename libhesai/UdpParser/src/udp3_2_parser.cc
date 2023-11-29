@@ -333,13 +333,9 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
           &(udpPacket.buffer[0]) + sizeof(HS_LIDAR_PRE_HEADER));
 
   output.host_timestamp = GetMicroTickCountU64();
-  // 如下三条：max min这样的参数一点用都没有
   output.maxPoints = pHeader->GetBlockNum() * pHeader->GetLaserNum();
-  // 不填直接崩调，=0界面一个点也没有
   output.points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
-  // 不填则仅显示很小一部分点云
   output.scan_complete = false;
-  // 不填可以播放，只是显示的时间戳不对
   int index = 0;
   float minAzimuth = 0;
   float maxAzimuth = 0;
@@ -391,9 +387,10 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     if(this->enable_packet_loss_tool_ == true) return 0;
 
     this->spin_speed_ = pTail->m_u16MotorSpeed;
+    uint16_t u16Azimuth = 0;
     for (int i = 0; i < pHeader->GetBlockNum(); i++) {
       // point to channel unit addr
-      uint16_t u16Azimuth = pAzimuth->GetAzimuth();
+      u16Azimuth = pAzimuth->GetAzimuth();
       auto elevation = 0;
       pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_QT_V2 *>(
           (const unsigned char *)pAzimuth +
@@ -437,13 +434,12 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
         pChnUnit = pChnUnit + 1;  
         index++;  
       }
-      if (IsNeedFrameSplit(u16Azimuth)) {
-        output.scan_complete = true;
-      }
-      this->last_last_azimuth_ = this->last_azimuth_;
-      this->last_azimuth_ = u16Azimuth;
     }
-    
+    if (IsNeedFrameSplit(u16Azimuth)) {
+      output.scan_complete = true;
+    }
+    this->last_last_azimuth_ = this->last_azimuth_;
+    this->last_azimuth_ = u16Azimuth;  
   } else {
     const HS_LIDAR_BODY_AZIMUTH_QT_V2 *pAzimuth =
         reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_QT_V2 *>(
@@ -467,12 +463,13 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
                 : 0);
     output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
     this->spin_speed_ = pTail->m_u16MotorSpeed;
+    uint16_t u16Azimuth = 0;
     for (int i = 0; i < pHeader->GetBlockNum(); i++) {
       // point to channel unit addr
       pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_NO_CONF_QT_V2 *>(
           (const unsigned char *)pAzimuth +
           sizeof(HS_LIDAR_BODY_AZIMUTH_QT_V2));
-      uint16_t u16Azimuth = pAzimuth->GetAzimuth(); 
+      u16Azimuth = pAzimuth->GetAzimuth(); 
       // point to next block azimuth addr
       pAzimuth = reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_QT_V2 *>(
           (const unsigned char *)pAzimuth +
@@ -509,12 +506,12 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
         pChnUnit = pChnUnit + 1;  
         index++;
       }
-      if (IsNeedFrameSplit(u16Azimuth)) {
-        output.scan_complete = true;
-      }
-      this->last_last_azimuth_ = this->last_azimuth_;
-      this->last_azimuth_ = u16Azimuth;
-    }  
+    }
+    if (IsNeedFrameSplit(u16Azimuth)) {
+      output.scan_complete = true;
+    }
+    this->last_last_azimuth_ = this->last_azimuth_;
+    this->last_azimuth_ = u16Azimuth;  
   }
   return 0;
 }  
