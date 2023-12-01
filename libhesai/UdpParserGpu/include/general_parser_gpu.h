@@ -34,14 +34,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <boost/atomic.hpp>
-#include <boost/lockfree/queue.hpp>
 #include <semaphore.h>
 #include <list>
 #include <vector>
-#include <boost/algorithm/string.hpp>
-#include <boost/thread/thread.hpp>
 #include "lidar_types.h"
+#include "plat_utils.h"
 #ifndef M_PI
 #define M_PI 3.1415926535898
 #endif

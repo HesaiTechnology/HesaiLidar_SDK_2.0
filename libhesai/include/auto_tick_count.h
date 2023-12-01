@@ -54,7 +54,6 @@ class TickCount {
     return m_timeSlice;
   }
   uint64_t GetTimeSlice(std::string sKey, int nTime = -1);
-  // 多次使用相同关键字调用，只有第一次的生效
   int Begin(std::string sKey);
   int End(std::string sKey, bool bShow = true);
   int SetName(std::string sName) {

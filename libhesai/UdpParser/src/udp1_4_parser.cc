@@ -137,6 +137,7 @@ template<typename T_Point>
 int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
   frame.lidar_state = packet.lidar_state;
   frame.work_mode = packet.work_mode;
+  frame.spin_speed = packet.spin_speed;
   for (int blockid = 0; blockid < packet.block_num; blockid++) {
     T_Point point;
     int Azimuth = packet.azimuth[blockid * packet.laser_num];
@@ -225,7 +226,6 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
             (pHeader->HasFuncSafety() ? sizeof(HS_LIDAR_FUNC_SAFETY_ME_V4)
                                       : 0) +
             sizeof(HS_LIDAR_TAIL_ME_V4));
-    // printf("%u\n",pTailSeqNum->GetSeqNum());  
     
     //skip decode packet if enable packet_loss_tool
     if (this->enable_packet_loss_tool_ == true) {
@@ -242,13 +242,10 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   if(this->enable_packet_loss_tool_ == true) return 0 ;
   this->spin_speed_ = pTail->m_u16MotorSpeed;
   this->is_dual_return_= pTail->IsDualReturn();
-  output.spin_speed = pTail->m_u16MotorSpeed;
+  output.spin_speed = pTail->GetMotorSpeed();
   output.work_mode = pTail->getOperationMode();
-  // 如下三条：max min这样的参数一点用都没有
   output.maxPoints = pHeader->GetBlockNum() * pHeader->GetLaserNum();
-  // 不填直接崩调，=0界面一个点也没有
   output.points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
-  // 不填则仅显示很小一部分点云
   output.scan_complete = false;
   output.distance_unit = pHeader->GetDistUnit();
   int index = 0;
@@ -264,10 +261,11 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
         pTail->m_reservedInfo2.m_u16Sts;
     this->monitor_info3_[pTail->m_reservedInfo3.m_u8ID] = pTail->m_reservedInfo3.m_u16Sts;
   }
+  uint16_t u16Azimuth = 0;
   uint8_t optMode = pTail->getOperationMode();
   for (int i = 0; i < pHeader->GetBlockNum(); i++) {
     uint8_t angleState = pTail->getAngleState(i);
-    uint16_t u16Azimuth = pAzimuth->GetAzimuth();
+    u16Azimuth = pAzimuth->GetAzimuth();
     output.azimuths = u16Azimuth;
     // point to channel unit addr
     if (pHeader->HasConfidenceLevel()) {
@@ -312,7 +310,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
         if (this->get_firetime_file_) {
           float fireTimeCollection = GetFiretimesCorrection(i, this->spin_speed_, optMode, angleState, pChnUnitNoConf->GetDistance());
           output.azimuth[index] = u16Azimuth + fireTimeCollection * kResolutionInt;
-        }else {
+        } else {
           output.azimuth[index] = u16Azimuth;
         }
         output.reflectivities[index] = pChnUnitNoConf->GetReflectivity();  
@@ -322,31 +320,69 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
         pChnUnitNoConf += 1;
       }
     }
-    if (IsNeedFrameSplit(u16Azimuth)) {
-      output.scan_complete = true;
-    }
-    this->last_azimuth_ = u16Azimuth;
   }
-  
+  if (IsNeedFrameSplit(u16Azimuth)) {
+    output.scan_complete = true;
+  }
+  this->last_last_azimuth_ = this->last_azimuth_;
+  this->last_azimuth_ = u16Azimuth;
   return 0;
 } 
 
 template<typename T_Point>
 bool Udp1_4Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
-  if (this->last_azimuth_ > azimuth && (this->last_azimuth_- azimuth > kSplitFrameMinAngle)) {
-      use_frame_start_azimuth_ = true;
+  // Determine frame_start_azimuth_ [0,360)
+  if (this->frame_start_azimuth_ < 0.0f || this->frame_start_azimuth_ >= 360.0f) {
+    this->frame_start_azimuth_ = 0.0f;
+  }
+  // The first two packet dont have the information of last_azimuth_  and last_last_azimuth, so do not need split frame
+  // The initial value of last_azimuth_ is -1
+  // Determine the rotation direction and division
+  int8_t rotation_flag = 1;
+  uint16_t division = 0;
+  // If last_last_azimuth_ != -1，the packet is the third, so we can determine whether the current packet requires framing
+  if (this->last_last_azimuth_ != -1) 
+  {
+    // Get the division
+    uint16_t division1 = abs(this->last_azimuth_ - this->last_last_azimuth_);
+    uint16_t division2 = abs(this->last_azimuth_ - azimuth);
+    division = std::min(division1, division2);
+    // In the three consecutive angle values, if the angle values appear by the division of the decreasing situation,it must be reversed
+    // The same is true for FOV
+    if( this->last_last_azimuth_ - this->last_azimuth_ == division || this->last_azimuth_ -azimuth == division)
+    {
+      rotation_flag = 0;
     }
-  //do not use frame_start_azimuth, split frame near 360 degree
-  if (this->frame_start_azimuth_ < 1 || this->frame_start_azimuth_ > 359) {
-    if (this->last_azimuth_ > azimuth && (this->last_azimuth_- azimuth > kSplitFrameMinAngle)) {
-        return true;
-      }
+  } else {
+    // The first  and second packet do not need split frame
     return false;
-  } else { //use frame_start_azimuth
-    if ((azimuth >= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) && (use_frame_start_azimuth_ == true)) {
-      use_frame_start_azimuth_ = false;
+  }
+  if (rotation_flag) {
+    // When an angle jump occurs
+    if (this->last_azimuth_- azimuth > division)
+    {
+      if (uint16_t(this->frame_start_azimuth_ * kResolutionInt) > this->last_azimuth_ || uint16_t(this->frame_start_azimuth_ * kResolutionInt <= azimuth)) {
+        return true;
+      } 
+      return false;
+    }  
+    if (this->last_azimuth_ < azimuth && this->last_azimuth_ < uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
+        && azimuth >= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
       return true;
-    } 
+    }
+    return false;
+  } else {
+    if (azimuth - this->last_azimuth_ > division)
+    {
+      if (uint16_t(this->frame_start_azimuth_ * kResolutionInt) <= this->last_azimuth_ || uint16_t(this->frame_start_azimuth_ * kResolutionInt) > azimuth) {
+        return true;
+      } 
+      return false;
+    }  
+    if (this->last_azimuth_ > azimuth && this->last_azimuth_ > uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
+        && azimuth <= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
+      return true;
+    }
     return false;
   }
 }

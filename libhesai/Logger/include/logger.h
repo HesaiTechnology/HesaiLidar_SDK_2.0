@@ -89,7 +89,7 @@ private:
     FILE*                           fp_{};  
     std::shared_ptr<std::thread>    spthread_;  
     std::mutex                      mutex_;  
-    std::condition_variable         cv_;            //有新的日志到来的标识  
+    std::condition_variable         cv_; 
     bool                            exit_{false};  
     std::list<std::string>          queue_;  
 	uint8_t                         log_level_rule_;

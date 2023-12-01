@@ -39,8 +39,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HS_LIDAR_QT128_LOOP_NUM (4)
 #define HS_LIDAR_QT128_COORDINATE_CORRECTION_ODOG (0.0354)
 #define HS_LIDAR_QT128_COORDINATE_CORRECTION_OGOT (-0.0072)
-
-#include <boost/algorithm/string.hpp>
 #include <fstream>
 #include "general_parser.h"
 #include "udp_protocol_v3_2.h"

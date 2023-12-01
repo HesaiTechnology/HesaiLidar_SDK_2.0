@@ -13,6 +13,11 @@ void lidarCallback(const LidarDecodedFrame<LidarPointXYZIRT>  &frame) {
   printf("frame:%d points:%u packet:%d start time:%lf end time:%lf\n",frame.frame_index, frame.points_num, frame.packet_num, frame.points[0].timestamp, frame.points[frame.points_num - 1].timestamp) ;
 }
 
+// Determines whether the PCAP is finished playing
+bool IsPlayEnded(HesaiLidarSdk<LidarPointXYZIRT>& sdk)
+{
+  return sdk.lidar_ptr_->IsPlayEnded();
+}
 
 int main(int argc, char *argv[])
 {
@@ -42,10 +47,11 @@ int main(int argc, char *argv[])
 
   //star process thread
   sample.Start();
-  while (1)
+  while (!IsPlayEnded(sample))
   {
-  
-    std::this_thread::sleep_for(std::chrono::milliseconds(40));
-
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  printf("The PCAP file has been parsed and we will exit the program.\n");
+  return 0;
 }

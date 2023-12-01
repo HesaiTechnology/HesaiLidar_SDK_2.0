@@ -26,12 +26,7 @@
 #ifndef PtcClient_H
 #define PtcClient_H
 
-// #include <endian.h>
-// #include <semaphore.h>
 #include <vector>
-#include <boost/thread/thread.hpp>
-// #include "tcp_client_boost.h"
-// #include "tcp_ssl_client_boost.h"
 #include "tcp_client.h"
 #include "tcp_ssl_client.h"
 #include "lidar_types.h"

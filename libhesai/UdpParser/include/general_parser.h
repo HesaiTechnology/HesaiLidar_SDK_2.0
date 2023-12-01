@@ -45,12 +45,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <semaphore.h>
 #endif
 #include <list>
+#include <cmath>
 #include <vector>
-#include <boost/algorithm/string.hpp>
-#include <boost/thread/thread.hpp>
+#include <sstream>
 #include <iostream>
 #include <fstream>
 #include "lidar_types.h"
+#include "plat_utils.h"
 namespace hesai
 {
 namespace lidar
@@ -213,8 +214,8 @@ class GeneralParser {
   uint16_t *GetMonitorInfo1();
   uint16_t *GetMonitorInfo2();
   uint16_t *GetMonitorInfo3();
-  std::vector<double> elevation_correction_;
-  std::vector<double> azimuth_collection_;
+  std::vector<double> elevation_correction_{0};
+  std::vector<double> azimuth_collection_{0};
   uint32_t total_start_seqnum_;
   uint32_t total_loss_count_;
   uint32_t current_seqnum_;
@@ -235,7 +236,8 @@ class GeneralParser {
   uint16_t spin_speed_;
   static const uint16_t kAzimuthTolerance = 1000;
   bool use_angle_ = true;
-  uint16_t last_azimuth_;
+  int32_t last_azimuth_;
+  int32_t last_last_azimuth_;
   uint32_t start_seqnum_;
   uint32_t last_seqnum_;
   uint32_t loss_count_;

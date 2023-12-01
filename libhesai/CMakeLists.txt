@@ -23,13 +23,6 @@ set(WITH_PTCPARSER ON CACHE BOOL "Build ptc parser code")
 set(WITH_CONTAINER ON CACHE BOOL "Build container code")
 set(WITH_LOG ON CACHE BOOL "Build log code")
 
-find_package(Boost REQUIRED COMPONENTS
-    system
-    filesystem
-    thread
-    iostreams)
-
-set(Boost_INCLUDE_DIRS "/usr/lib/x86_64-linux-gnu/")
 
 add_definitions(-DQT_MESSAGELOGCONTEXT)
 
@@ -52,7 +45,6 @@ include_directories(
     PtcClient/include
     Logger/include
     ${OPENSSL_INCLUDE_DIR}
-    ${Boost_INCLUDE_DIRS}
 )
 
 # Make each module an 'OBJECT' library, can be refered to by get_link_libraries
@@ -98,9 +90,7 @@ if(WITH_LIDARBOARD)
     target_link_libraries(source_lib
         platutils_lib
         container_lib
-        ptcClient_lib
-        Boost::iostreams
-        ${Boost_LIBRARIES})
+        ptcClient_lib)
     set_target_properties(source_lib
         PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
 endif(WITH_LIDARBOARD)
@@ -125,8 +115,4 @@ if(WITH_LOG)
         PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
 endif(WITH_LOG)
 
-
-
-
-# Property
 include_directories(${PROJECT_SOURCE_DIR})

@@ -49,9 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ACCEPTANCE_ANGLE (200)
 #define RESOLUTION (256 * 100)
 
-
-#include <boost/atomic.hpp>
-#include <boost/lockfree/queue.hpp>
+#include <cmath>
 #include "general_parser.h"
 #include "lidar_types.h"
 namespace hesai

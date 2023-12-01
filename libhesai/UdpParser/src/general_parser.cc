@@ -45,7 +45,8 @@ GeneralParser<T_Point>::GeneralParser() {
   this->last_seqnum_ = 0;
   this->loss_count_ = 0;
   this->start_time_ = 0;
-  this->last_azimuth_ = 0;
+  this->last_azimuth_ = -1;
+  this->last_last_azimuth_ = -1;
   this->total_packet_count_ = 0;
   this->enable_packet_loss_tool_ = false;
   for (int i = 0; i < CIRCLE; ++i) {
@@ -53,6 +54,7 @@ GeneralParser<T_Point>::GeneralParser() {
     this->cos_all_angle_[i] = std::cos(i * 2 * M_PI / CIRCLE);
   }
 }
+
 
 template <typename T_Point>
 int GeneralParser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
@@ -121,7 +123,7 @@ int GeneralParser<T_Point>::LoadCorrectionString(char *correction_content) {
   std::getline(ifs, line);  
   float elevation_list[MAX_LASER_NUM], azimuth_list[MAX_LASER_NUM];
   std::vector<std::string> vfirstLine;
-  boost::split(vfirstLine, line, boost::is_any_of(","));
+  split_string(vfirstLine, line, ',');
   if (vfirstLine[0] == "EEFF" || vfirstLine[0] == "eeff") {
     // skip second line
     std::getline(ifs, line);  
@@ -130,7 +132,7 @@ int GeneralParser<T_Point>::LoadCorrectionString(char *correction_content) {
   int lineCount = 0;
   while (std::getline(ifs, line)) {
     std::vector<std::string> vLineSplit;
-    boost::split(vLineSplit, line, boost::is_any_of(","));
+    split_string(vLineSplit, line, ',');
     // skip error line or hash value line
     if (vLineSplit.size() < 3) {  
       continue;

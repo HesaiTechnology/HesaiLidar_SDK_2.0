@@ -133,7 +133,7 @@ int Udp3_2ParserGpu<T_Point>::LoadCorrectionString(char *correction_content) {
   float elevation_list[MAX_LASER_NUM], azimuth_list[MAX_LASER_NUM];
 
   std::vector<std::string> vfirstLine;
-  boost::split(vfirstLine, line, boost::is_any_of(","));
+  split_string(vfirstLine, line, ',');
   if (vfirstLine[0] == "EEFF" || vfirstLine[0] == "eeff") {
     // skip second line
     std::getline(ifs, line);  
@@ -142,7 +142,7 @@ int Udp3_2ParserGpu<T_Point>::LoadCorrectionString(char *correction_content) {
   int lineCount = 0;
   while (std::getline(ifs, line)) {
     std::vector<std::string> vLineSplit;
-    boost::split(vLineSplit, line, boost::is_any_of(","));
+    split_string(vLineSplit, line, ',');
     // skip error line or hash value line
     if (vLineSplit.size() < 3) {  
       continue;

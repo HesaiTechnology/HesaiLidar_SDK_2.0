@@ -115,9 +115,9 @@ int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   int index = 0;
   float minAzimuth = 0;
   float maxAzimuth = 0;
-
+  uint16_t u16Azimuth = 0;
   for (int blockid = 0; blockid < pHeader->GetBlockNum(); blockid++) {
-    uint16_t u16Azimuth = pAzimuth->GetAzimuth();
+    u16Azimuth = pAzimuth->GetAzimuth();
     pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_L64 *>(
           (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_L64));
 
@@ -138,19 +138,70 @@ int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       pChnUnit = pChnUnit + 1;
       index++; 
     }
-    if (IsNeedFrameSplit(u16Azimuth)) {
-      output.scan_complete = true;
-    }
-    this->last_azimuth_ = u16Azimuth;
   }
+  if (IsNeedFrameSplit(u16Azimuth)) {
+    output.scan_complete = true;
+  }
+  this->last_last_azimuth_ = this->last_azimuth_;
+  this->last_azimuth_ = u16Azimuth;
   return 0;
 }  
 
 template<typename T_Point>
 bool UdpP64Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
-  if (this->last_azimuth_ > azimuth && (this->last_azimuth_- azimuth > kSplitFrameMinAngle)) {
+  // Determine frame_start_azimuth_ [0,360)
+  if (this->frame_start_azimuth_ < 0.0f || this->frame_start_azimuth_ >= 360.0f) {
+    this->frame_start_azimuth_ = 0.0f;
+  }
+  // The first two packet dont have the information of last_azimuth_  and last_last_azimuth, so do not need split frame
+  // The initial value of last_azimuth_ is -1
+  // Determine the rotation direction and division
+  int8_t rotation_flag = 1;
+  uint16_t division = 0;
+  // If last_last_azimuth_ != -1，the packet is the third, so we can determine whether the current packet requires framing
+  if (this->last_last_azimuth_ != -1) 
+  {
+    // Get the division
+    uint16_t division1 = abs(this->last_azimuth_ - this->last_last_azimuth_);
+    uint16_t division2 = abs(this->last_azimuth_ - azimuth);
+    division = std::min(division1, division2);
+    // In the three consecutive angle values, if the angle values appear by the division of the decreasing situation,it must be reversed
+    // The same is true for FOV
+    if( this->last_last_azimuth_ - this->last_azimuth_ == division || this->last_azimuth_ -azimuth == division)
+    {
+      rotation_flag = 0;
+    }
+  } else {
+    // The first  and second packet do not need split frame
+    return false;
+  }
+  if (rotation_flag) {
+    // When an angle jump occurs
+    if (this->last_azimuth_- azimuth > division)
+    {
+      if (uint16_t(this->frame_start_azimuth_ * kResolutionInt) > this->last_azimuth_ || uint16_t(this->frame_start_azimuth_ * kResolutionInt <= azimuth)) {
+        return true;
+      } 
+      return false;
+    }  
+    if (this->last_azimuth_ < azimuth && this->last_azimuth_ < uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
+        && azimuth >= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
       return true;
     }
-  return false;
+    return false;
+  } else {
+    if (azimuth - this->last_azimuth_ > division)
+    {
+      if (uint16_t(this->frame_start_azimuth_ * kResolutionInt) <= this->last_azimuth_ || uint16_t(this->frame_start_azimuth_ * kResolutionInt) > azimuth) {
+        return true;
+      } 
+      return false;
+    }  
+    if (this->last_azimuth_ > azimuth && this->last_azimuth_ > uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
+        && azimuth <= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
+      return true;
+    }
+    return false;
+  }
 }
 

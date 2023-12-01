@@ -24,12 +24,9 @@ endif()
 
 
 include_directories("${PROJECT_BINARY_DIR}")
-find_package(Boost REQUIRED COMPONENTS system filesystem thread)
 find_package(OpenSSL REQUIRED)
 add_definitions(-DQT_MESSAGELOGCONTEXT)
 add_subdirectory(libhesai)
-
-# set (Boost_INCLUDE_DIRS "/usr/lib/x86_64-linux-gnu/")
 
 include_directories(
   libhesai
@@ -52,38 +49,22 @@ include_directories(
   libhesai/include
   driver
   third_party
-  ${Boost_INCLUDE_DIRS}
   ${OPENSSL_INCLUDE_DIR}
 )
 link_directories(./libhesai/PtcClient/lib)
-link_directories(${Boost_LIBRARY_DIRS})
 
 add_executable(sample
   test/test.cc
 )
 
 target_link_libraries(sample
-  ${Boost_LIBRARIES}
   source_lib
   container_lib
   ptcClient_lib
   ptcParser_lib
   log_lib
-  # ${PCL_LIBRARIES}  
   ${OPENSSL_LIBRARIES}
 )
-
-# add_library(libhesai
-#     driver/hesai_lidar_sdk.hpp
-# )
-# target_link_libraries(libhesai
-#   ${Boost_LIBRARIES}
-#   source_lib
-#   container_lib
-#   ptcClient_lib
-#   log_lib
-  
-# )
 
 find_package(CUDA )
 if(${CUDA_FOUND})
@@ -102,14 +83,12 @@ if(${CUDA_FOUND})
   ./test/test.cu
   ./libhesai/UdpParserGpu/src/buffer.cu)
   target_link_libraries(sample_gpu
-  ${Boost_LIBRARIES}
   source_lib
   container_lib
   ptcClient_lib
   log_lib
   ptcParser_lib
   ${OPENSSL_LIBRARIES}
-  # ${PCL_LIBRARIES} 
 )
 else(${CUDA_FOUND})
 	MESSAGE(STATUS "cuda not found!")

@@ -62,6 +62,8 @@ namespace lidar
 {
 class Source {
  public:
+  // the flag of pcap end
+  bool is_pcap_end = false;
   Source();
   virtual ~Source();
   virtual bool Open() = 0;

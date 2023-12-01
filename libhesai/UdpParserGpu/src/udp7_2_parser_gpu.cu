@@ -138,7 +138,7 @@ int Udp7_2ParserGpu<T_Point>::LoadCorrectionCsvData(char *correction_string) {
 	}
 	int lineCounter = 0;
 	std::vector<std::string>  firstLine;
-	boost::split(firstLine, line, boost::is_any_of(","));
+	split_string(firstLine, line, ',');
   float elevations[CHANNEL_MAX][COLUMN_MAX];
   float azimuths[CHANNEL_MAX][COLUMN_MAX];
   while (std::getline(ifs, line)) {

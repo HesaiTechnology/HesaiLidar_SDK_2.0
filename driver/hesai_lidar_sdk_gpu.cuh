@@ -36,7 +36,7 @@ template <typename T_Point>
 class HesaiLidarSdkGpu
 {
 private:
-  boost::thread *runing_thread_ptr_;
+  std::thread *runing_thread_ptr_;
   std::function<void(const UdpFrame_t &, double)> pkt_cb_;
   std::function<void(const LidarDecodedFrame<T_Point> &)> point_cloud_cb_;
   bool is_thread_runing_;
@@ -140,7 +140,7 @@ public:
   // start process thread
   void Start()
   {
-    runing_thread_ptr_ = new boost::thread(boost::bind(&HesaiLidarSdkGpu::Run, this));
+    runing_thread_ptr_ = new std::thread(std::bind(&HesaiLidarSdkGpu::Run, this));
   }
   // process thread
   void Run()
