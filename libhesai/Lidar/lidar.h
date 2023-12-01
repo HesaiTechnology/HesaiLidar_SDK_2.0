@@ -60,7 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AT128E2X_PACKET_LEN (1180)
 #define FAULTMESSAGE_PACKET_LEN (99)
 #define GPS_PACKET_LEN (512)
-
+#define CMD_SET_STANDBY_MODE (0x1c)
+#define CMD_SET_SPIN_SPEED (0x17)
 
 namespace hesai
 {
@@ -127,6 +128,10 @@ public:
   std::string GetLidarType();
   // get pcap status
   bool IsPlayEnded();
+  // set standby mode
+  int SetStandbyMode(PtcClient *Ptc_client, int standby_mode);
+  // set spin speed
+  int SetSpinSpeed(PtcClient *Ptc_client, int speed);
   UdpParser<T_Point> *udp_parser_;
   Source *source_;
   PtcClient *ptc_client_;

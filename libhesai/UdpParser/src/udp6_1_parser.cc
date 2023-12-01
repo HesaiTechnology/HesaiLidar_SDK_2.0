@@ -43,15 +43,16 @@ Udp6_1Parser<T_Point>::Udp6_1Parser() {
   block_num_ = 6; 
 }
 template<typename T_Point>
-Udp6_1Parser<T_Point>::~Udp6_1Parser() { printf("release general parser\n"); }
+Udp6_1Parser<T_Point>::~Udp6_1Parser() { printf("release Udp6_1parser\n"); }
 
 template<typename T_Point>
 int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
+  frame.work_mode = packet.work_mode;
+  frame.spin_speed = packet.spin_speed;
   for (int blockid = 0; blockid < packet.block_num; blockid++) {
     T_Point point;
     int elevation = 0;
     int azimuth = 0;
-
     for (int i = 0; i < packet.laser_num; i++) {
       int point_index = packet.packet_index * packet.points_num + blockid * packet.laser_num + i;
       float distance = packet.distances[blockid * packet.laser_num + i] * packet.distance_unit;   
@@ -65,17 +66,14 @@ int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       float x = 0;
       float y = 0;
       float z = 0;
-
       if (this->enable_distance_correction_) {
         GetDistanceCorrection(Azimuth, this->azimuth_collection_[i] * kResolutionInt, elevation , distance, x, y, z);
-      } 
-      else {
+      } else {
         float xyDistance = distance * this->cos_all_angle_[(elevation)];
         x = xyDistance * this->sin_all_angle_[(azimuth)];
         y = xyDistance * this->cos_all_angle_[(azimuth)];
         z = distance * this->sin_all_angle_[(elevation)];
       }    
-      
       this->TransformPoint(x, y, z);
       setX(frame.points[point_index], x);
       setY(frame.points[point_index], y);
@@ -121,8 +119,8 @@ int Udp6_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
 
   this->spin_speed_ = pTail->m_u16MotorSpeed;
   this->is_dual_return_= pTail->IsDualReturn();
-  output.spin_speed = pTail->m_u16MotorSpeed;
-
+  output.spin_speed = pTail->GetMotorSpeed();
+  output.work_mode = pTail->HasShutdown();
   output.maxPoints = pHeader->GetBlockNum() * pHeader->GetLaserNum();
   output.points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
   output.scan_complete = false;

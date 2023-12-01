@@ -125,9 +125,21 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
                                                   , 1
                                                   , param.input_param.certFile
                                                   , param.input_param.privateKeyFile
-                                                  , param.input_param.caFile); 
-
-      // ptc_client_ = new (std::nothrow) PtcClient(param.input_param.device_ip_address, param.input_param.ptc_port); 
+                                                  , param.input_param.caFile);
+      if (param.input_param.standby_mode != -1) {
+        if(!SetStandbyMode(ptc_client_, param.input_param.standby_mode)) {
+          std::cout << "set standby mode successed!" << std::endl;
+        } else {
+          std::cout << "set standby mode failed!" << std::endl;
+        }
+      }
+      if (param.input_param.speed != -1) {
+        if(!SetSpinSpeed(ptc_client_, param.input_param.speed)) {
+          std::cout << "set speed successed!" << std::endl;
+        } else {
+          std::cout << "set speed failed!" << std::endl;
+        }
+      }
       source_ = new SocketSource(param.input_param.udp_port, param.input_param.multicast_ip_address);
       source_->Open();
     }
@@ -537,6 +549,23 @@ bool Lidar<T_Point>::IsPlayEnded()
     return false;
   }
   return source_->is_pcap_end;
+}
+
+template <typename T_Point>
+int Lidar<T_Point>::SetStandbyMode(PtcClient *Ptc_client, int standby_mode)
+{
+  u8Array_t input1, output1;
+  input1.push_back(static_cast<uint8_t>(standby_mode));
+  return Ptc_client->QueryCommand(input1, output1, CMD_SET_STANDBY_MODE);
+}
+
+template <typename T_Point>
+int Lidar<T_Point>::SetSpinSpeed(PtcClient *Ptc_client, int speed)
+{
+  u8Array_t input2, output2;
+  input2.push_back(static_cast<uint8_t>(speed >> 8));
+  input2.push_back(static_cast<uint8_t>(speed));
+  return Ptc_client->QueryCommand(input2, output2, CMD_SET_SPIN_SPEED);
 }
 
 template <typename T_Point>

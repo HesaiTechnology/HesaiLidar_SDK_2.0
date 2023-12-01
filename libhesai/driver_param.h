@@ -112,6 +112,10 @@ typedef struct InputParam
   char* privateKeyFile = nullptr;
   /// caFile            Represents the path of the root certificate
   char* caFile = nullptr;
+  /// standby_mode    set the standby_mode of lidar
+  int standby_mode = -1;
+  /// speed             set the rotational speed of lidar
+  int speed = -1;
 } InputParam;
 
 ///< The LiDAR driver parameter

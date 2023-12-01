@@ -137,6 +137,7 @@ template<typename T_Point>
 int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
   frame.lidar_state = packet.lidar_state;
   frame.work_mode = packet.work_mode;
+  frame.spin_speed = packet.spin_speed;
   for (int blockid = 0; blockid < packet.block_num; blockid++) {
     T_Point point;
     int Azimuth = packet.azimuth[blockid * packet.laser_num];
@@ -225,7 +226,6 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
             (pHeader->HasFuncSafety() ? sizeof(HS_LIDAR_FUNC_SAFETY_ME_V4)
                                       : 0) +
             sizeof(HS_LIDAR_TAIL_ME_V4));
-    // printf("%u\n",pTailSeqNum->GetSeqNum());  
     
     //skip decode packet if enable packet_loss_tool
     if (this->enable_packet_loss_tool_ == true) {
@@ -242,7 +242,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   if(this->enable_packet_loss_tool_ == true) return 0 ;
   this->spin_speed_ = pTail->m_u16MotorSpeed;
   this->is_dual_return_= pTail->IsDualReturn();
-  output.spin_speed = pTail->m_u16MotorSpeed;
+  output.spin_speed = pTail->GetMotorSpeed();
   output.work_mode = pTail->getOperationMode();
   output.maxPoints = pHeader->GetBlockNum() * pHeader->GetLaserNum();
   output.points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
