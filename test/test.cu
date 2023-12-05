@@ -14,7 +14,7 @@ void lidarCallback(const LidarDecodedFrame<LidarPointXYZIRT>  &frame) {
 }
 
 // Determines whether the PCAP is finished playing
-bool IsPlayEnded(HesaiLidarSdk<LidarPointXYZIRT>& sdk)
+bool IsPlayEnded(HesaiLidarSdkGpu<LidarPointXYZIRT>& sdk)
 {
   return sdk.lidar_ptr_->IsPlayEnded();
 }
