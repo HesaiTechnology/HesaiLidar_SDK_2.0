@@ -162,6 +162,8 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     start_time = clock();
     while (udp_parser_->GetParser() == nullptr) {
       int ret = this->GetOnePacket(udp_packet);
+      // Avoid configuring the actual lidar to have problems with the lidar connection causing the program card here.
+      if (param.input_param.source_type == 1 && ret == -1) return ret;
       if (ret == -1) continue;
       this->DecodePacket(decoded_packet, udp_packet);
       end_time = clock();

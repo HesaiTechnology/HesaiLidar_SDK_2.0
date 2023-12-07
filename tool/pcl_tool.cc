@@ -7,6 +7,7 @@
 
 // #define SAVE_PCD_FILE_ASCII
 // #define SAVE_PCD_FILE_BIN
+// #define SAVE_PCD_FILE_BIN_COMPRESSED
 // #define SAVE_PLY_FILE
 // #define ENABLE_VIEWER
 
@@ -50,7 +51,7 @@ void lidarCallback(const LidarDecodedFrame<PointXYZIT>  &frame) {
   std::string file_name1 = "./PointCloudFrame" + std::to_string(frame.frame_index) + "_" + std::to_string(frame.points[0].timestamp)+ ".pcd";
   std::string file_name2 = "./PointCloudFrame" + std::to_string(frame.frame_index) + "_" + std::to_string(frame.points[0].timestamp)+ ".bin";
   std::string file_name3 = "./PointCloudFrame" + std::to_string(frame.frame_index) + "_" + std::to_string(frame.points[0].timestamp)+ ".ply";
-
+  std::string file_name4 = "./PointCloudFrame" + std::to_string(frame.frame_index) + "_" + std::to_string(frame.points[0].timestamp)+ "_compress" + ".bin";
 //save point cloud with pcd file(ASCII) if define SAVE_PCD_FILE_ASCII.
 #ifdef SAVE_PCD_FILE_ASCII
   pcl::PCDWriter writer;
@@ -61,6 +62,10 @@ void lidarCallback(const LidarDecodedFrame<PointXYZIT>  &frame) {
 //save point cloud with pcd file(BIN) if define SAVE_PCD_FILE_BIN.
 #ifdef SAVE_PCD_FILE_BIN
   pcl::io::savePCDFileBinary(file_name2, *pcl_pointcloud);
+#endif
+// save point cloud with pcd file(binary_compress) if define SAVE_PCD_FILE_BIN_COMPRESSED
+#ifdef SAVE_PCD_FILE_BIN_COMPRESSED
+  pcl::io::savePCDFileBinaryCompressed(file_name4, *pcl_pointcloud);
 #endif
 //save point cloud with ply file if define SAVE_PLY_FILE
 #ifdef SAVE_PLY_FILE

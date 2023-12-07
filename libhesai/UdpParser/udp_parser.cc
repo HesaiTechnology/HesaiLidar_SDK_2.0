@@ -35,7 +35,7 @@ UdpParser<T_Point>::UdpParser(uint8_t major, uint8_t minor) {
   parser_ = nullptr;
   pcap_saver_ = nullptr;
   fisrt_packet_ = true;
-  pcap_time_synchronization_ = true;
+  pcap_time_synchronization_ = false;
   this->CreatGeneralParser(major, minor);
 }
 
@@ -44,7 +44,7 @@ UdpParser<T_Point>::UdpParser(UdpPacket& packet) {
   parser_ = nullptr;
   pcap_saver_ = nullptr;
   fisrt_packet_ = true;
-  pcap_time_synchronization_ = true;
+  pcap_time_synchronization_ = false;
   this->CreatGeneralParser(packet);
 }
 
@@ -53,7 +53,7 @@ UdpParser<T_Point>::UdpParser(std::string lidar_type) {
   parser_ = nullptr;
   pcap_saver_ = nullptr;
   fisrt_packet_ = true;
-  pcap_time_synchronization_ = true;
+  pcap_time_synchronization_ = false;
   this->CreatGeneralParser(lidar_type);
 }
 
@@ -62,7 +62,7 @@ UdpParser<T_Point>::UdpParser() {
   parser_ = nullptr;
   pcap_saver_ = nullptr;
   fisrt_packet_ = true;
-  pcap_time_synchronization_ = true;
+  pcap_time_synchronization_ = false;
 }
 
 template<typename T_Point>
@@ -115,7 +115,6 @@ void UdpParser<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
           parser_ = new Udp1_4Parser<T_Point>();
           lidar_type_decoded_ = "Pandar128";
           break;
-
         default:
           break;
       }
