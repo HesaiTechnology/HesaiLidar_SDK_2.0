@@ -318,6 +318,105 @@ int PtcClient::SetSocketTimeout(uint32_t u32RecMillisecond,
   return client_->SetTimeout(u32RecMillisecond, u32SendMillisecond);
 }
 
+bool PtcClient::SetNet(std::string IP, std::string mask, std::string getway, uint8_t vlan_flag, uint16_t vlan_ID)
+{
+  u8Array_t input, output;
+  std::stringstream Ip(IP);
+  std::stringstream Mask(mask);
+  std::stringstream GetWay(getway);
+  std::string byte;
+  while (std::getline(Ip, byte, '.')) {
+    input.push_back(static_cast<uint8_t>(std::stoi(byte)));
+  }
+  while (std::getline(Mask, byte, '.')) {
+    input.push_back(static_cast<uint8_t>(std::stoi(byte)));
+  }
+  while (std::getline(GetWay, byte, '.')) {
+    input.push_back(static_cast<uint8_t>(std::stoi(byte)));
+  }
+  input.push_back(vlan_flag);
+  input.push_back(static_cast<uint8_t>(vlan_ID >> 8));
+  input.push_back(static_cast<uint8_t>(vlan_ID >> 0));
+  return this->QueryCommand(input, output, CMD_SET_NET);
+}
+
+bool PtcClient::SetDesIpandPort(std::string des, uint16_t port, uint16_t GPS_port)
+{
+  u8Array_t input, output;
+  std::stringstream Des(des);
+  std::string byte;
+  while (std::getline(Des, byte, '.')) {
+    input.push_back(static_cast<uint8_t>(std::stoi(byte)));
+  }
+  input.push_back(static_cast<uint8_t>(port >> 8));
+  input.push_back(static_cast<uint8_t>(port >> 0));
+  input.push_back(static_cast<uint8_t>(GPS_port >> 8));
+  input.push_back(static_cast<uint8_t>(GPS_port >> 0));
+  return this->QueryCommand(input, output, CMD_SET_IP_PORT);
+}
+
+bool PtcClient::SetReturnMode(uint8_t return_mode)
+{
+  u8Array_t input, output;
+  input.push_back(return_mode);
+  return this->QueryCommand(input, output, CMD_SET_RETURN_MODE);
+}
+
+bool PtcClient::SetSyncAngle(uint8_t enable_flag, uint16_t sync_angle)
+{
+  u8Array_t input, output;
+  input.push_back(enable_flag);
+  input.push_back(static_cast<uint8_t>(sync_angle >> 8));
+  input.push_back(static_cast<uint8_t>(sync_angle >> 0));
+  return this->QueryCommand(input, output, CMD_SET_SYNC_ANGLE);
+}
+
+bool PtcClient::SetTmbFPGARegister(uint32_t address, uint32_t data)
+{
+  u8Array_t input, output;
+  input.push_back(static_cast<uint8_t>(CMD_SET_TMD_FPGA_REGISTER >> 24));
+  input.push_back(static_cast<uint8_t>(CMD_SET_TMD_FPGA_REGISTER >> 16));
+  input.push_back(static_cast<uint8_t>(CMD_SET_TMD_FPGA_REGISTER >> 8));
+  input.push_back(static_cast<uint8_t>(CMD_SET_TMD_FPGA_REGISTER >> 0));
+  input.push_back(static_cast<uint8_t>(address >> 24));
+  input.push_back(static_cast<uint8_t>(address >> 16));
+  input.push_back(static_cast<uint8_t>(address >> 8));
+  input.push_back(static_cast<uint8_t>(address >> 0));
+  input.push_back(static_cast<uint8_t>(data >> 24));
+  input.push_back(static_cast<uint8_t>(data >> 16));
+  input.push_back(static_cast<uint8_t>(data >> 8));
+  input.push_back(static_cast<uint8_t>(data >> 0));
+  return this->QueryCommand(input, output, 0xff);
+}
+
+bool PtcClient::SetFPGARegister(uint32_t address, uint32_t data)
+{
+  u8Array_t input, output;
+  input.push_back(static_cast<uint8_t>(address >> 24));
+  input.push_back(static_cast<uint8_t>(address >> 16));
+  input.push_back(static_cast<uint8_t>(address >> 8));
+  input.push_back(static_cast<uint8_t>(address >> 0));
+  input.push_back(static_cast<uint8_t>(data >> 24));
+  input.push_back(static_cast<uint8_t>(data >> 16));
+  input.push_back(static_cast<uint8_t>(data >> 8));
+  input.push_back(static_cast<uint8_t>(data >> 0));
+  return this->QueryCommand(input, output, CMD_SET_FPGA_REGISTER);
+}
+
+bool PtcClient::SetStandbyMode(uint32_t standby_mode)
+{
+  u8Array_t input1, output1;
+  input1.push_back(static_cast<uint8_t>(standby_mode));
+  return this->QueryCommand(input1, output1, CMD_SET_STANDBY_MODE);
+}
+
+bool PtcClient::SetSpinSpeed(uint32_t speed)
+{
+  u8Array_t input2, output2;
+  input2.push_back(static_cast<uint8_t>(speed >> 8));
+  input2.push_back(static_cast<uint8_t>(speed >> 0));
+  return this->QueryCommand(input2, output2, CMD_SET_SPIN_SPEED);
+}
 
 void PtcClient::CRCInit() {
   uint32_t i, j, k;

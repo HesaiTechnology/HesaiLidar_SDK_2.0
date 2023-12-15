@@ -33,10 +33,19 @@
 #include "driver_param.h"
 #include "ptc_parser.h"
 
-#define PKT_SIZE_40P (1262)
-#define PKT_SIZE_AC (1256)
-#define PKT_SIZE_64 (1194)
-#define PKT_SIZE_20 (1270)
+#define PKT_SIZE_40P                                (1262)
+#define PKT_SIZE_AC                                 (1256)
+#define PKT_SIZE_64                                 (1194)
+#define PKT_SIZE_20                                 (1270)
+
+#define CMD_SET_NET                                 (0x21)
+#define CMD_SET_IP_PORT                             (0x20)
+#define CMD_SET_RETURN_MODE                         (0x1E)
+#define CMD_SET_SYNC_ANGLE                          (0x18)
+#define CMD_SET_TMD_FPGA_REGISTER                   (0x00010031)
+#define CMD_SET_FPGA_REGISTER                       (0x0D)
+#define CMD_SET_STANDBY_MODE                        (0x1c)
+#define CMD_SET_SPIN_SPEED                          (0x17)
 namespace hesai
 {
 namespace lidar
@@ -73,6 +82,88 @@ class PtcClient {
   int GetFiretimesInfo(u8Array_t &dataOut);
   int GetChannelConfigInfo(u8Array_t &dataOut);
   int SetSocketTimeout(uint32_t u32RecMillisecond, uint32_t u32SendMillisecond);
+
+  /**
+   * @brief Set the lidar net
+   * 
+   * @param IP                          Expected lidar IP
+   * @param mask                        Expected lidar mask
+   * @param getway                      Expected lidar getwag
+   * @param vlan_flag                   Expected lidar valan_flag [1 0] If you want set it vlan_flag should be set 1
+   * @param vlan_ID                     Expected lidar valan_ID
+   * @return true                       Set successful
+   * @return false                      Set faild
+   */
+  bool SetNet(std::string IP, std::string mask, std::string getway, uint8_t vlan_flag, uint16_t vlan_ID);
+
+  /**
+   * @brief Set the destination Ip and Port and gps_port
+   * 
+   * @param des                         Expected destination_IP  
+   * @param port                        Expected destination_PORT
+   * @param GPS_port                    Expected GPS_port
+   * @return true                       Set successful 
+   * @return false                      Set faild
+   */
+  bool SetDesIpandPort(std::string des, uint16_t port, uint16_t GPS_port);
+
+  /**
+   * @brief Set the Return_Mode of lidar
+   * 
+   * @param return_mode                Expected return_mode of lidar              
+   * @return true                      Set successful
+   * @return false                     Set faild
+   */
+  bool SetReturnMode(uint8_t return_mode);
+
+  /**
+   * @brief Set the syncangle of lidar
+   * 
+   * @param enable_flag                Expected lidar enable_flag [1 0] If you want set it enable_flag should be set 1        
+   * @param sync_angle                 Expected syncangle
+   * @return true                      Set successful
+   * @return false                     Set faild
+   */
+  bool SetSyncAngle(uint8_t enable_flag, uint16_t sync_angle);
+
+  /**
+   * @brief Set the TmbFPGARegister, it is worth noting that this setting is volatile
+   * 
+   * @param address                    Address of register
+   * @param data                       The data you want to wirte
+   * @return true                      Set successful
+   * @return false                     Set faild
+   */
+  bool SetTmbFPGARegister(uint32_t address, uint32_t data);
+
+   /**
+   * @brief Set the FPGARegister, it is worth noting that this setting is volatile
+   * 
+   * @param address                    Address of register
+   * @param data                       The data you want to wirte
+   * @return true                      Set successful
+   * @return false                     Set faild
+   */
+  bool SetFPGARegister(uint32_t address, uint32_t data);
+
+  /**
+   * @brief Set the standby_mode of lidar
+   * 
+   * @param standby_mode              Expected standby_mode [0:in operation  1:standby_mode]
+   * @return true                     Set successful
+   * @return false                    Set faild
+   */
+  bool SetStandbyMode(uint32_t standby_mode);
+
+  /**
+   * @brief Set the spin_speed of lidar
+   * 
+   * @param speed                     Expected spinspeed, it is important to note that you must fill in the RPM supported by the radar you are using
+   * @return true 
+   * @return false 
+   */
+  bool SetSpinSpeed(uint32_t speed);
+
   void CRCInit();
   uint32_t CRCCalc(uint8_t *bytes, int len); 
 
