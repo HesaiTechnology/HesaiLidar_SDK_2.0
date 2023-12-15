@@ -52,7 +52,7 @@ void Udp2_5Parser<T_Point>::LoadCorrectionFile(std::string correction_path) {
 
 template<typename T_Point>
 int Udp2_5Parser<T_Point>::LoadCorrectionString(char *data) {
-  if (!LoadCorrectionDatData(data) == 0) {
+  if (LoadCorrectionDatData(data) == 0) {
     return 0;
   }
   return LoadCorrectionCsvData(data);

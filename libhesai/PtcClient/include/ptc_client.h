@@ -33,28 +33,28 @@
 #include "driver_param.h"
 #include "ptc_parser.h"
 
-#define PKT_SIZE_40P                                (1262)
-#define PKT_SIZE_AC                                 (1256)
-#define PKT_SIZE_64                                 (1194)
-#define PKT_SIZE_20                                 (1270)
+#define PKT_SIZE_40P (1262)
+#define PKT_SIZE_AC  (1256)
+#define PKT_SIZE_64  (1194)
+#define PKT_SIZE_20  (1270)
 
-#define CMD_SET_NET                                 (0x21)
-#define CMD_SET_IP_PORT                             (0x20)
-#define CMD_SET_RETURN_MODE                         (0x1E)
-#define CMD_SET_SYNC_ANGLE                          (0x18)
-#define CMD_SET_TMD_FPGA_REGISTER                   (0x00010031)
-#define CMD_SET_FPGA_REGISTER                       (0x0D)
-#define CMD_SET_STANDBY_MODE                        (0x1c)
-#define CMD_SET_SPIN_SPEED                          (0x17)
 namespace hesai
 {
 namespace lidar
 {
 
-const uint8_t kPTCGetLidarCalibration = 0x05;
-const uint8_t kPTCGetInventoryInfo = 0x07;
-const uint8_t kPTCGetLidarFiretimes = 0xA9;
-const uint8_t kPTCGetLidarChannelConfig = 0xA8;
+const uint8_t  kPTCGetLidarCalibration = 0x05;
+const uint8_t  kPTCGetInventoryInfo = 0x07;
+const uint8_t  kPTCGetLidarFiretimes = 0xA9;
+const uint8_t  kPTCGetLidarChannelConfig = 0xA8;
+const uint8_t  kPTCSetNet = 0x21;
+const uint8_t  kPTCSetDestinationIPandPort = 0x20;
+const uint8_t  kPTCSetReturnMode = 0x1E;
+const uint8_t  kPTCSetSyncAngle = 0x18;
+const uint8_t  kPTCSetStandbyMode = 0x1C;
+const uint8_t  kPTCSetSpinSpeed = 0x17;
+const uint32_t kPTCSetTemFpgaRegister = 0x00010031;
+const uint8_t  kPTCSetFpgaRegister = 0x0D;
 
 class PtcClient {
  public:
