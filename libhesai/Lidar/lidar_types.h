@@ -182,20 +182,8 @@ class LidarDecodedFrame
         frame_index = 0;
     };
     ~LidarDecodedFrame() {
-        delete points;
-        points = nullptr;
-        delete sensor_timestamp;
-        sensor_timestamp = nullptr;
-        delete azimuths;
-        azimuths = nullptr;
-        delete distances;
-        distances = nullptr;
-        delete reflectivities;
-        reflectivities = nullptr;
-        delete azimuth;
-        azimuth = nullptr;
-        delete elevation;
-        elevation = nullptr;
+      delete total_memory;
+      total_memory = nullptr;
     }
     void Update(){
       host_timestamp = 0;
