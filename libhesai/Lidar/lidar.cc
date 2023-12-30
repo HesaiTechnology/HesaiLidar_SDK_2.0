@@ -125,7 +125,9 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
                                                   , 1
                                                   , param.input_param.certFile
                                                   , param.input_param.privateKeyFile
-                                                  , param.input_param.caFile);
+                                                  , param.input_param.caFile
+                                                  , 1000
+                                                  , 1000);
       if (param.input_param.standby_mode != -1) {
         if(!SetStandbyMode(ptc_client_, param.input_param.standby_mode)) {
           std::cout << "set standby mode successed!" << std::endl;

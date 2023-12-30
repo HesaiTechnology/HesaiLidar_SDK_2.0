@@ -56,7 +56,9 @@ class PtcClient {
             , uint8_t ptc_version = 1
             , const char* cert = nullptr
             , const char* private_key = nullptr
-            , const char* ca = nullptr);
+            , const char* ca = nullptr
+            , uint32_t u32RecvTimeoutMs = 500
+            , uint32_t u32SendTimeoutMs = 500);
   ~PtcClient() {}
 
   PtcClient(const PtcClient &orig) = delete;
