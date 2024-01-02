@@ -153,6 +153,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
                                   param.decoder_param.transform_param.roll, \
                                   param.decoder_param.transform_param.pitch, \
                                   param.decoder_param.transform_param.yaw);
+    use_timestamp_type_ = param.decoder_param.use_timestamp_type;
     SetThreadNum(param.decoder_param.thread_num);
     /********************************************************************************/
 
@@ -409,7 +410,7 @@ void Lidar<T_Point>::RecieveUdpThread() {
     }
     while(origin_packets_buffer_.full() && running_) std::this_thread::sleep_for(std::chrono::microseconds(1000));
     if(running_ == false) break;
-
+    udp_packet.recv_timestamp = GetMicroTimeU64();
     switch (len) {
       case 0:
         if (is_timeout_ == false) {
@@ -432,7 +433,6 @@ void Lidar<T_Point>::RecieveUdpThread() {
         }
         break;
   }
-
     if (udp_packet.packet_len > 0 && is_record_pcap_) {
         udp_parser_->GetPcapSaver()->Dump(udp_packet.buffer, udp_packet.packet_len, udp_port_);
     }
@@ -453,6 +453,7 @@ void Lidar<T_Point>::ParserThread() {
   while (running_) {
     LidarDecodedPacket<T_Point> decoded_packet;
     decoded_packets_buffer_.try_pop_front(decoded_packet);
+    // decoded_packet.use_timestamp_type = use_timestamp_type_;
     if (handle_thread_count_ < 2) {
       udp_parser_->ComputeXYZI(frame_, decoded_packet);
       continue;

@@ -246,7 +246,11 @@ int Udp7_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       reinterpret_cast<const HS_LIDAR_TAIL_FT_V2 *>(
           (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_FT_V2) +
           (sizeof(HS_LIDAR_BODY_CHN_UNIT_FT_V2) * pHeader->GetChannelNum()));  
-  output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+  if (output.use_timestamp_type == 0) {
+    output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+  } else {
+    output.sensor_timestamp = udpPacket.recv_timestamp;
+  }
   output.host_timestamp = GetMicroTickCountU64();
 
   if (this->enable_packet_loss_tool_ == true) {

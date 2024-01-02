@@ -214,7 +214,11 @@ int Udp2_5Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   // write the value to output
   output.host_timestamp = GetMicroTickCountU64();
   output.distance_unit = pHeader->GetDistUnit();
-  output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+  if (output.use_timestamp_type == 0) {
+    output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+  } else {
+    output.sensor_timestamp = udpPacket.recv_timestamp;
+  }
   output.host_timestamp = GetMicroTickCountU64();
   output.points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
   output.scan_complete = false;

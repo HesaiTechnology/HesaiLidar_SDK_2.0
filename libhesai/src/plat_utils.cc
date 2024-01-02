@@ -33,6 +33,7 @@ static const int kTimeStrLen = 1000;
 #else
 #include <sys/syscall.h>
 #include <time.h>
+#include <sys/time.h>
 #include <unistd.h>
 #define gettid() syscall(SYS_gettid)
 #endif
@@ -116,6 +117,25 @@ uint64_t GetMicroTickCountU64() {
   memset(&time, 0, sizeof(time));
   if (clock_gettime(CLOCK_MONOTONIC, &time) == 0) {
     ret = time.tv_nsec / 1000 + time.tv_sec * 1000000;
+  }
+#endif
+  return ret;
+}
+
+uint64_t GetMicroTimeU64() {
+  uint64_t ret = 0;
+#ifdef _MSC_VER
+  FILETIME time;
+  LARGE_INTEGER larger_int;
+  GetSystemTimeAsFileTime(&time);
+  larger_int.LowPart = time.dwLowDateTime;
+  larger_int.HighPart = time.dwHighDateTime;
+  ret = (larger_int.QuadPart - EPOCHFILETIME) / 10;
+#else
+  struct timeval time;
+  memset(&time, 0, sizeof(time));
+  if (gettimeofday(&time, NULL) == 0) {
+    ret = time.tv_usec + time.tv_sec * 1000000;
   }
 #endif
   return ret;
