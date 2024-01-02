@@ -160,11 +160,11 @@ class LidarDecodedFrame
         azimuths = reinterpret_cast<uint16_t* >(total_memory + offset);
         offset = sizeof(uint16_t) * kMaxPacketNumPerFrame + offset;
         azimuth = reinterpret_cast<float* >(total_memory + offset);
-        offset = sizeof(float) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket;
+        offset = sizeof(float) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
         elevation = reinterpret_cast<float* >(total_memory + offset);
-        offset = sizeof(float) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket;
+        offset = sizeof(float) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
         distances = reinterpret_cast<uint16_t* >(total_memory + offset);
-        offset = sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket;
+        offset = sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
         reflectivities = reinterpret_cast<uint8_t* >(total_memory + offset);
 
         host_timestamp = 0;
