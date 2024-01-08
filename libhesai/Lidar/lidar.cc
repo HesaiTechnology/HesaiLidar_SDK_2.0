@@ -125,7 +125,9 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
                                                   , 1
                                                   , param.input_param.certFile
                                                   , param.input_param.privateKeyFile
-                                                  , param.input_param.caFile);
+                                                  , param.input_param.caFile
+                                                  , 1000
+                                                  , 1000);
       if (param.input_param.standby_mode != -1) {
         if(!SetStandbyMode(ptc_client_, param.input_param.standby_mode)) {
           std::cout << "set standby mode successed!" << std::endl;
@@ -145,12 +147,8 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     }
     parser_thread_running_ = param.decoder_param.enable_parser_thread;
     udp_thread_running_ = param.decoder_param.enable_udp_thread;
-    udp_parser_->SetTransformPara(param.decoder_param.transform_param.x, \
-                                  param.decoder_param.transform_param.y, \
-                                  param.decoder_param.transform_param.z, \
-                                  param.decoder_param.transform_param.roll, \
-                                  param.decoder_param.transform_param.pitch, \
-                                  param.decoder_param.transform_param.yaw);
+    
+    use_timestamp_type_ = param.decoder_param.use_timestamp_type;
     SetThreadNum(param.decoder_param.thread_num);
     /********************************************************************************/
 
@@ -172,6 +170,12 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     if (udp_parser_->GetParser() == nullptr) {
       return res;
     }
+    udp_parser_->SetTransformPara(param.decoder_param.transform_param.x, \
+                                  param.decoder_param.transform_param.y, \
+                                  param.decoder_param.transform_param.z, \
+                                  param.decoder_param.transform_param.roll, \
+                                  param.decoder_param.transform_param.pitch, \
+                                  param.decoder_param.transform_param.yaw);
     switch (param.input_param.source_type)
     {
     case 1:
@@ -409,7 +413,7 @@ void Lidar<T_Point>::RecieveUdpThread() {
     }
     while(origin_packets_buffer_.full() && running_) std::this_thread::sleep_for(std::chrono::microseconds(1000));
     if(running_ == false) break;
-
+    udp_packet.recv_timestamp = GetMicroTimeU64();
     switch (len) {
       case 0:
         if (is_timeout_ == false) {
@@ -432,7 +436,6 @@ void Lidar<T_Point>::RecieveUdpThread() {
         }
         break;
   }
-
     if (udp_packet.packet_len > 0 && is_record_pcap_) {
         udp_parser_->GetPcapSaver()->Dump(udp_packet.buffer, udp_packet.packet_len, udp_port_);
     }
@@ -453,6 +456,7 @@ void Lidar<T_Point>::ParserThread() {
   while (running_) {
     LidarDecodedPacket<T_Point> decoded_packet;
     decoded_packets_buffer_.try_pop_front(decoded_packet);
+    // decoded_packet.use_timestamp_type = use_timestamp_type_;
     if (handle_thread_count_ < 2) {
       udp_parser_->ComputeXYZI(frame_, decoded_packet);
       continue;

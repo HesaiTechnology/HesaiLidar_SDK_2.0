@@ -382,7 +382,11 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
         pTailSeqNum->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
       }
     }                                      
-    output.sensor_timestamp = pTail->GetMicroLidarTimeU64();    
+    if (output.use_timestamp_type == 0) {
+      output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+    } else {
+      output.sensor_timestamp = udpPacket.recv_timestamp;
+    }    
     output.host_timestamp = GetMicroTickCountU64();   
     if(this->enable_packet_loss_tool_ == true) return 0;
 
@@ -461,7 +465,11 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
                     pHeader->HasFunctionSafety()
                 ? sizeof(HS_LIDAR_FUNCTION_SAFETY)
                 : 0);
-    output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+    if (output.use_timestamp_type == 0) {
+      output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+    } else {
+      output.sensor_timestamp = udpPacket.recv_timestamp;
+    }
     this->spin_speed_ = pTail->m_u16MotorSpeed;
     uint16_t u16Azimuth = 0;
     for (int i = 0; i < pHeader->GetBlockNum(); i++) {

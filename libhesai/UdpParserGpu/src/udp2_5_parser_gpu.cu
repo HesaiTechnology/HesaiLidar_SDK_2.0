@@ -212,21 +212,21 @@ int Udp2_5ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
     char *p = data;
     struct ETCorrectionsHeader ETheader = *((struct ETCorrectionsHeader* )p);
     if (0xee == ETheader.delimiter[0] && 0xff == ETheader.delimiter[1]) {
-      switch (ETheader.min_version) {
+      switch (ETheader.header.min_version) {
         case 1: {
-          memcpy((void *)&corrections_, p, sizeof(struct ETCorrectionsHeader));
+          memcpy((void *)&corrections_.hedar, p, sizeof(struct ETCorrectionsHeader));
           p += sizeof(ETCorrectionsHeader);
-          auto channel_num = corrections_.channel_number;
-          uint16_t division = corrections_.angle_division;
+          auto channel_num = corrections_.header.channel_number;
+          uint16_t division = corrections_.header.angle_division;
           memcpy((void *)&corrections_.raw_azimuths, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;
           memcpy((void *)&corrections_.raw_elevations, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(uint32_t) * channel_num;
-          corrections_.elevations[0] = ((float)(corrections_.apha)) / division;
-          corrections_.elevations[1] = ((float)(corrections_.beta)) / division;
-          corrections_.elevations[2] = ((float)(corrections_.gamma)) / division;
+          corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
+          corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
+          corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;
           printf("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
           for (int i = 0; i < channel_num; i++) {
             corrections_.azimuths[i + 3] = ((float)(corrections_.raw_azimuths[i])) / division;

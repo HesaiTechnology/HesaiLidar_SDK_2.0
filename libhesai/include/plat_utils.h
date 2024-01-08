@@ -33,6 +33,8 @@ extern unsigned int GetMicroTickCount();
 
 extern uint64_t GetMicroTickCountU64();
 
+extern uint64_t GetMicroTimeU64();
+
 extern int GetAvailableCPUNum();
 
 template <typename T_Point>

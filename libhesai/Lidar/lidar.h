@@ -137,6 +137,7 @@ public:
   PtcClient *ptc_client_;
   LidarDecodedFrame<T_Point> frame_;
   BlockingRing<UdpPacket, kPacketBufferSize> origin_packets_buffer_;
+  uint16_t use_timestamp_type_ = 0;
 
 private:
   uint16_t ptc_port_;

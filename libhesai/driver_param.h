@@ -46,6 +46,12 @@ enum PtcMode
   tcp_ssl
 };
 
+enum UseTimestampType
+{
+  point_cloud_timestamp = 0,
+  sdk_recv_timestamp = 1,
+};
+
 ///< The Point transform parameter
 typedef struct TransformParam  
 {
@@ -83,6 +89,9 @@ typedef struct DecoderParam
   // enable the udp packet loss detection tool
   // it forbiddens parser udp packet while trun on this tool
   bool enable_packet_loss_tool = false;
+  // 0 use point cloud timestamp
+  // 1 use sdk receive timestamp
+  uint16_t use_timestamp_type = point_cloud_timestamp;
 } DecoderParam;
 
 ///< The LiDAR input parameter

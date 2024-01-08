@@ -59,7 +59,9 @@ PtcClient::PtcClient(std::string ip
                     , uint8_t ptc_version
                     , const char* cert
                     , const char* private_key
-                    , const char* ca)
+                    , const char* ca
+                    , uint32_t u32RecvTimeoutMs
+                    , uint32_t u32SendTimeoutMs)
   : client_mode_(client_mode)
   , ptc_version_(ptc_version) {
   std::cout << "PtcClient::PtcClient()" << ip.c_str()
@@ -71,6 +73,11 @@ PtcClient::PtcClient(std::string ip
   } else if(client_mode == PtcMode::tcp_ssl) {
     client_ = std::make_shared<TcpSslClient>();
     client_->Open(ip, u16TcpPort, bAutoReceive, cert, private_key, ca);
+  }
+  if (u32RecvTimeoutMs != 0 && u32SendTimeoutMs != 0) {
+    std::cout << "u32RecvTimeoutMs " << u32RecvTimeoutMs << std::endl;
+    std::cout << "u32SendTimeoutMs " << u32SendTimeoutMs << std::endl;    
+    client_->SetTimeout(u32RecvTimeoutMs, u32SendTimeoutMs);
   }
 
   // init ptc parser

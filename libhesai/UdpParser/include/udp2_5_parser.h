@@ -18,27 +18,6 @@ namespace lidar
   
   static constexpr int ET_MAX_CHANNEL_NUM = 512;
 
-  struct ETCorrections {
-    uint8_t delimiter[2];
-    uint8_t major_version;
-    uint8_t min_version;
-    uint8_t reserved1;
-    uint8_t reserved2;
-    uint8_t channel_number;
-    uint8_t mirror_nummber_reserved3;
-    uint16_t angle_division;
-    int16_t apha;
-    int16_t beta;
-    int16_t gamma;
-    float azimuths[ET_MAX_CHANNEL_NUM];
-    float elevations[ET_MAX_CHANNEL_NUM];
-    int16_t raw_azimuths[ET_MAX_CHANNEL_NUM];
-    int16_t raw_elevations[ET_MAX_CHANNEL_NUM];
-    // SHA-256_value
-    uint8_t SHA_value[32];
-    
-  };
-
   struct ETCorrectionsHeader {
     uint8_t delimiter[2];
     uint8_t major_version;
@@ -51,7 +30,58 @@ namespace lidar
     int16_t apha;
     int16_t beta;
     int16_t gamma;
+    ETCorrectionsHeader():angle_division(1)
+    {
+      major_version = 0;
+      min_version = 0;
+    }
   };
+  struct ETCorrections {
+    struct ETCorrectionsHeader header;
+    float azimuths[ET_MAX_CHANNEL_NUM];
+    float elevations[ET_MAX_CHANNEL_NUM];
+    int16_t raw_azimuths[ET_MAX_CHANNEL_NUM];
+    int16_t raw_elevations[ET_MAX_CHANNEL_NUM];
+    int16_t elevation_adjust[3000];
+    int16_t azimuth_adjust[3000];
+    uint8_t azimuth_adjust_interval;
+    uint8_t elevation_adjust_interval;
+    // SHA-256_value
+    uint8_t SHA_value[32];
+    float getAziAdjustV2(float azi, float ele) const{
+        float azimuth_fov = 120.0f;
+        float elevation_fov = 25.0f;
+        float adjust_interval_resolution = 0.5f;
+        int azimuth_offset_num = azimuth_fov / (azimuth_adjust_interval * adjust_interval_resolution) + 1;
+        int elevation_offset_num = elevation_fov / (elevation_adjust_interval * adjust_interval_resolution) + 1;
+        int offset_index1 = (azi + azimuth_fov / 2) /  (azimuth_adjust_interval * adjust_interval_resolution);      //azi dimension
+        int offset_index2 = (ele + elevation_fov / 2) /  (elevation_adjust_interval * adjust_interval_resolution);      //ele dimension
+        if (offset_index1 >= (azimuth_offset_num - 1)  || offset_index2 >= (elevation_offset_num - 1)) return 0;
+        if (offset_index1 < 0  || offset_index2 < 0) return 0;
+        float coefficient1 = ((offset_index1 + 1) * (azimuth_adjust_interval * adjust_interval_resolution)  - azi - azimuth_fov / 2) / (azimuth_adjust_interval * adjust_interval_resolution);
+        float coefficient2 = ((offset_index2 + 1) * (elevation_adjust_interval * adjust_interval_resolution)  - ele - elevation_fov / 2) / (elevation_adjust_interval * adjust_interval_resolution);
+        float offset1 = coefficient1 * azimuth_adjust[offset_index1  + offset_index2 * azimuth_offset_num] + (1 - coefficient1) * azimuth_adjust[offset_index1 + 1 + offset_index2 * azimuth_offset_num];
+        float offset2 = coefficient1 * azimuth_adjust[offset_index1 + (offset_index2 + 1) * azimuth_offset_num] + (1 - coefficient1) * azimuth_adjust[offset_index1 + 1 + (offset_index2 + 1) * azimuth_offset_num];
+        return (coefficient2 * offset1 + (1 - coefficient2) * offset2) / header.angle_division;
+    }
+    float getEleAdjustV2(float azi, float ele) const{
+        float azimuth_fov = 120.0f;
+        float elevation_fov = 25.0f;
+        float adjust_interval_resolution = 0.5f;
+        int azimuth_offset_num = azimuth_fov / (azimuth_adjust_interval * adjust_interval_resolution) + 1;
+        int elevation_offset_num = elevation_fov / (elevation_adjust_interval * adjust_interval_resolution) + 1;
+        unsigned int offset_index1 = (azi + azimuth_fov / 2) /  (azimuth_adjust_interval * adjust_interval_resolution);      //azi dimension
+        unsigned int offset_index2 = (ele + elevation_fov / 2) /  (elevation_adjust_interval * adjust_interval_resolution);      //ele dimension
+        if (offset_index1 >= (azimuth_offset_num - 1)  || offset_index2 >= (elevation_offset_num - 1)) return 0;
+        if (offset_index1 < 0  || offset_index2 < 0) return 0;
+        float coefficient1 = ((offset_index1 + 1) * (azimuth_adjust_interval * adjust_interval_resolution)  - azi - azimuth_fov / 2) / (azimuth_adjust_interval * adjust_interval_resolution);
+        float coefficient2 = ((offset_index2 + 1) * (elevation_adjust_interval * adjust_interval_resolution)  - ele - elevation_fov / 2) / (elevation_adjust_interval * adjust_interval_resolution);
+        float offset1 = coefficient1 * elevation_adjust[offset_index1  + offset_index2 * azimuth_offset_num] + (1 - coefficient1) * elevation_adjust[offset_index1 + 1 + offset_index2 * azimuth_offset_num];
+        float offset2 = coefficient1 * elevation_adjust[offset_index1 + (offset_index2 + 1) * azimuth_offset_num] + (1 - coefficient1) * elevation_adjust[offset_index1 + 1 + (offset_index2 + 1) * azimuth_offset_num];
+        return (coefficient2 * offset1 + (1 - coefficient2) * offset2) / header.angle_division;
+    }
+  };
+
 
 
   // class Udp2_5Parser
