@@ -126,19 +126,19 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
     if (0xee == ETheader.delimiter[0] && 0xff == ETheader.delimiter[1]) {
       switch (ETheader.min_version) {
         case 1: {
-          memcpy((void *)&corrections_, p, sizeof(struct ETCorrectionsHeader));
+          memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
           p += sizeof(ETCorrectionsHeader);
-          auto channel_num = corrections_.channel_number;
-          uint16_t division = corrections_.angle_division;
+          auto channel_num = corrections_.header.channel_number;
+          uint16_t division = corrections_.header.angle_division;
           memcpy((void *)&corrections_.raw_azimuths, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;
           memcpy((void *)&corrections_.raw_elevations, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(uint32_t) * channel_num;
-          corrections_.elevations[0] = ((float)(corrections_.apha)) / division;
-          corrections_.elevations[1] = ((float)(corrections_.beta)) / division;
-          corrections_.elevations[2] = ((float)(corrections_.gamma)) / division;
+          corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
+          corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
+          corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;
           printf("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
           for (int i = 0; i < channel_num; i++) {
             corrections_.azimuths[i + 3] = ((float)(corrections_.raw_azimuths[i])) / division;
@@ -146,6 +146,41 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
             printf("%d %f %f \n",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
           }
           
+          memcpy((void*)&corrections_.SHA_value, p, 32);
+          // successed
+          this->get_correction_file_ = true;
+          return 0;
+        } break;
+        case 2: {
+          memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
+          p += sizeof(ETCorrectionsHeader);
+          auto channel_num = corrections_.header.channel_number;
+          uint16_t division = corrections_.header.angle_division;
+          memcpy((void *)&corrections_.raw_azimuths, p,
+                 sizeof(int16_t) * channel_num);
+          p += sizeof(int16_t) * channel_num;
+          memcpy((void *)&corrections_.raw_elevations, p,
+                 sizeof(int16_t) * channel_num);
+          p += sizeof(uint32_t) * channel_num;
+          corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
+          corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
+          corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;
+          printf("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
+          for (int i = 0; i < channel_num; i++) {
+            corrections_.azimuths[i + 3] = ((float)(corrections_.raw_azimuths[i])) / division;
+            corrections_.elevations[i + 3] = ((float)(corrections_.raw_elevations[i])) / division;
+            printf("%d %f %f \n",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
+          }
+          corrections_.azimuth_adjust_interval = *((char*)p);
+          p = p + 1;
+          corrections_.elevation_adjust_interval = *((char*)p);
+          p = p + 1;
+          int angle_offset_len = (120 / (corrections_.azimuth_adjust_interval * 0.5) + 1) * (25 / (corrections_.elevation_adjust_interval * 0.5) + 1);
+          memcpy((void*)corrections_.azimuth_adjust, p, sizeof(int16_t) * angle_offset_len);
+          p = p + sizeof(int16_t) * angle_offset_len;
+          memcpy((void*)corrections_.elevation_adjust, p, sizeof(int16_t) * angle_offset_len); 
+          p = p + sizeof(int16_t) * angle_offset_len;
+          int adjustNum = channel_num;
           memcpy((void*)&corrections_.SHA_value, p, 32);
           // successed
           this->get_correction_file_ = true;
@@ -296,7 +331,7 @@ int16_t Udp2_5Parser<T_Point>::GetVecticalAngle(int channel) {
 template<typename T_Point>
 int Udp2_5Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
   // get configer information from corrections_, 1 block 1 corrections_ 
-  float division = (float)corrections_.angle_division;
+  float division = (float)corrections_.header.angle_division;
   float apha =  corrections_.elevations[0];
   float beta =  corrections_.elevations[1];
   float gamma =  corrections_.elevations[2];
@@ -322,8 +357,10 @@ int Udp2_5Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       float delt_azi_h = std::sin(eta * M_PI / 180) * std::tan(2 * gamma * M_PI / 180) * std::tan(elv_v ) + std::sin(2 * eta * M_PI / 180) * gamma * gamma * M_PI / 180 * M_PI / 180;
       float elv_h = elv_v * 180 / M_PI + std::cos(eta * M_PI / 180) * 2 * gamma ;
       float azi_h = 90 +  raw_azimuth + delt_azi_h * 180 / M_PI + delt_azi_v * 180 / M_PI + phi;
-
-
+      if (corrections_.header.min_version == 2) {
+        azi_h = azi_h + corrections_.getAziAdjustV2(azi_h - 90, elv_h);
+        elv_h = elv_h + corrections_.getEleAdjustV2(azi_h - 90, elv_h);
+      }
       int azimuth = (int)(azi_h * 100 + CIRCLE) % CIRCLE;
       int elevation = (int)(elv_h * 100 + CIRCLE) % CIRCLE;
       float xyDistance = distance * this->cos_all_angle_[elevation];

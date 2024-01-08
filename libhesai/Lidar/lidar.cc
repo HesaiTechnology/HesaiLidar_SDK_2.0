@@ -147,12 +147,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     }
     parser_thread_running_ = param.decoder_param.enable_parser_thread;
     udp_thread_running_ = param.decoder_param.enable_udp_thread;
-    udp_parser_->SetTransformPara(param.decoder_param.transform_param.x, \
-                                  param.decoder_param.transform_param.y, \
-                                  param.decoder_param.transform_param.z, \
-                                  param.decoder_param.transform_param.roll, \
-                                  param.decoder_param.transform_param.pitch, \
-                                  param.decoder_param.transform_param.yaw);
+    
     use_timestamp_type_ = param.decoder_param.use_timestamp_type;
     SetThreadNum(param.decoder_param.thread_num);
     /********************************************************************************/
@@ -173,6 +168,12 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     if (udp_parser_->GetParser() == nullptr) {
       return res;
     }
+    udp_parser_->SetTransformPara(param.decoder_param.transform_param.x, \
+                                  param.decoder_param.transform_param.y, \
+                                  param.decoder_param.transform_param.z, \
+                                  param.decoder_param.transform_param.roll, \
+                                  param.decoder_param.transform_param.pitch, \
+                                  param.decoder_param.transform_param.yaw);
     switch (param.input_param.source_type)
     {
     case 1:
