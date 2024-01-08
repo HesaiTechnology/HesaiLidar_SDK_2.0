@@ -98,6 +98,7 @@ public:
     is_thread_runing_ = true;
     UdpFrame_t udp_packet_frame;
     LidarDecodedPacket<T_Point> decoded_packet;
+    decoded_packet.use_timestamp_type = lidar_ptr_->use_timestamp_type_;
     int packet_index = 0;
     uint32_t start = GetMicroTickCount();
     UdpPacket packet;

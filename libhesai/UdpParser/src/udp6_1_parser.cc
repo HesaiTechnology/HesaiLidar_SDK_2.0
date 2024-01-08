@@ -104,7 +104,11 @@ int Udp6_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
            sizeof(HsLidarXTV1BodyChannelData) * pHeader->GetLaserNum()) *
               pHeader->GetBlockNum());          
 
-  output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+  if (output.use_timestamp_type == 0) {
+    output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+  } else {
+    output.sensor_timestamp = udpPacket.recv_timestamp;
+  }
   output.host_timestamp = GetMicroTickCountU64();
 
   if (this->enable_packet_loss_tool_ == true) {

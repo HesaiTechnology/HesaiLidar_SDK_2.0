@@ -197,7 +197,6 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       }
     }
   }
-
   if (udpPacket.buffer[0] != 0xEE || udpPacket.buffer[1] != 0xFF ) {
     output.scan_complete = false;
     output.points_num = 0;
@@ -236,7 +235,13 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     }
   }      
   output.host_timestamp = GetMicroTickCountU64();  
-  output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+  if (output.use_timestamp_type == 0) {
+    output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+  } else {
+    output.sensor_timestamp = udpPacket.recv_timestamp;
+    // printf("udpPacket.recv_timestamp %lu, %lu\n", pTail->GetMicroLidarTimeU64(), udpPacket.recv_timestamp);
+  }
+
   if(this->enable_packet_loss_tool_ == true) return 0;
 
   this->spin_speed_ = pTail->GetMotorSpeed();

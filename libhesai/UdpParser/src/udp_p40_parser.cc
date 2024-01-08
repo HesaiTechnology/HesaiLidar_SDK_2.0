@@ -108,7 +108,11 @@ int UdpP40Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   output.distance_unit = DISTANCEUNIT;
 
   output.host_timestamp = GetMicroTickCountU64();
-  output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+  if (output.use_timestamp_type == 0) {
+    output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
+  } else {
+    output.sensor_timestamp = udpPacket.recv_timestamp;
+  }
   int index = 0;
   float minAzimuth = 0;
   float maxAzimuth = 0;
