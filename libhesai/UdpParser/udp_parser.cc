@@ -115,7 +115,6 @@ void UdpParser<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
           parser_ = new Udp1_4Parser<T_Point>();
           lidar_type_decoded_ = "Pandar128";
           break;
-
         default:
           break;
       }

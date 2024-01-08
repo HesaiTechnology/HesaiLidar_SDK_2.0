@@ -86,6 +86,19 @@ target_link_libraries(pcl_tool
   ${OPENSSL_LIBRARIES}
 )
 
+add_executable(ptc_tool
+  ./ptc_tool.cc
+)
+
+target_link_libraries(ptc_tool
+  source_lib
+  container_lib
+  ptcClient_lib
+  ptcParser_lib
+  log_lib
+  ${PCL_LIBRARIES}  
+  ${OPENSSL_LIBRARIES}
+)
 
 find_package(CUDA )
 if(${CUDA_FOUND})

@@ -135,7 +135,7 @@ compute_xyzs_2_5_impl<<<kMaxPacketNumPerFrame, kMaxPointsNumPerPacket>>>(this->f
 }
 template<typename T_Point>
 int Udp2_5ParserGpu<T_Point>::LoadCorrectionString(char *data) {
-  if (LoadCorrectionDatData(data)) {
+  if (LoadCorrectionDatData(data) == 0) {
     return 0;
   }
   return LoadCorrectionCsvData(data);
