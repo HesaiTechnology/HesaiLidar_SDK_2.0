@@ -112,6 +112,18 @@ typedef struct LidarPointRTHI
     int radius;            
     int intensity;         
 } LidarPointRTHI;
+
+typedef struct _LidarDecodeConfig {
+    int fov_start;
+    int fov_end;
+
+    _LidarDecodeConfig()
+    {
+      fov_start = -1;
+      fov_end = -1;
+    }
+} LidarDecodeConfig;
+
 template <typename PointT>
 struct LidarDecodedPacket
 {
@@ -134,6 +146,7 @@ struct LidarDecodedPacket
     uint8_t lidar_state;
     uint8_t work_mode;
     uint16_t use_timestamp_type;
+    LidarDecodeConfig config;
     bool IsDecodedPacketValid() {
       return block_num != 0;
     }

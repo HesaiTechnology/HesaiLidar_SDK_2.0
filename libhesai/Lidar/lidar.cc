@@ -149,6 +149,8 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     udp_thread_running_ = param.decoder_param.enable_udp_thread;
     
     use_timestamp_type_ = param.decoder_param.use_timestamp_type;
+    fov_start_ = param.decoder_param.fov_start;
+    fov_end_ = param.decoder_param.fov_end;
     SetThreadNum(param.decoder_param.thread_num);
     /********************************************************************************/
 

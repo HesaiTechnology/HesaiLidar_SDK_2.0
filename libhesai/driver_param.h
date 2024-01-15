@@ -92,6 +92,8 @@ typedef struct DecoderParam
   // 0 use point cloud timestamp
   // 1 use sdk receive timestamp
   uint16_t use_timestamp_type = point_cloud_timestamp;
+  int fov_start = -1;
+  int fov_end = -1;
 } DecoderParam;
 
 ///< The LiDAR input parameter
