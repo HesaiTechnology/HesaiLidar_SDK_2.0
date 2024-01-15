@@ -63,6 +63,13 @@ int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
         azimuth = Azimuth + this->azimuth_collection_[i] * kResolutionInt;
         azimuth = (CIRCLE + azimuth) % CIRCLE;
       } 
+      if (packet.config.fov_start != -1 && packet.config.fov_end != -1)
+      {
+        int fov_transfer = azimuth / 256 / 100;
+        if (fov_transfer < packet.config.fov_start || fov_transfer > packet.config.fov_end){//不在fov范围continue
+          continue;
+        }
+      }       
       float x = 0;
       float y = 0;
       float z = 0;

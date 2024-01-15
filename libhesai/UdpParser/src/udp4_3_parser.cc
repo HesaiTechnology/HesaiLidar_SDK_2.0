@@ -443,7 +443,14 @@ int Udp4_3Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
                          m_PandarAT_corrections.l.azimuth[i] +
                          m_PandarAT_corrections.GetAzimuthAdjustV3(i, Azimuth) * FINE_AZIMUTH_UNIT);
         azimuth = (MAX_AZI_LEN + azimuth) % MAX_AZI_LEN;
-      }      
+      }
+      if (packet.config.fov_start != -1 && packet.config.fov_end != -1)
+      {
+        int fov_transfer = azimuth / 256 / 100;
+        if (fov_transfer < packet.config.fov_start || fov_transfer > packet.config.fov_end){//不在fov范围continue
+          continue;
+        }
+      }
       float xyDistance = distance * m_PandarAT_corrections.cos_map[(elevation)];
       float x = xyDistance * m_PandarAT_corrections.sin_map[(azimuth)];
       float y = xyDistance * m_PandarAT_corrections.cos_map[(azimuth)];

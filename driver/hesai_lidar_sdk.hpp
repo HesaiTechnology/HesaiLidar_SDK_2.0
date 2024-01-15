@@ -99,6 +99,8 @@ public:
     UdpFrame_t udp_packet_frame;
     LidarDecodedPacket<T_Point> decoded_packet;
     decoded_packet.use_timestamp_type = lidar_ptr_->use_timestamp_type_;
+    decoded_packet.config.fov_start = lidar_ptr_->fov_start_;
+    decoded_packet.config.fov_end = lidar_ptr_->fov_end_;
     int packet_index = 0;
     uint32_t start = GetMicroTickCount();
     UdpPacket packet;
@@ -129,7 +131,7 @@ public:
         //log info, display frame message
         if (lidar_ptr_->frame_.points_num > kMinPointsOfOneFrame) {
           // LogInfo("frame:%d   points:%u  packet:%d  time:%lf %lf\n",lidar_ptr_->frame_.frame_index,  lidar_ptr_->frame_.points_num, packet_index, lidar_ptr_->frame_.points[0].timestamp, lidar_ptr_->frame_.points[lidar_ptr_->frame_.points_num - 1].timestamp) ;
-          
+
           //publish point cloud topic
           if(point_cloud_cb_) point_cloud_cb_(lidar_ptr_->frame_);
 

@@ -62,7 +62,14 @@ int UdpP40Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
         elevation = (CIRCLE + elevation) % CIRCLE;
         azimuth = Azimuth + this->azimuth_collection_[i] * kResolutionInt;
         azimuth = (CIRCLE + azimuth) % CIRCLE;
-      }      
+      } 
+      if (packet.config.fov_start != -1 && packet.config.fov_end != -1)
+      {
+        int fov_transfer = azimuth / 256 / 100;
+        if (fov_transfer < packet.config.fov_start || fov_transfer > packet.config.fov_end){//不在fov范围continue
+          continue;
+        }
+      }     
       float xyDistance = distance * this->cos_all_angle_[(elevation)];
       float x = xyDistance * this->sin_all_angle_[(azimuth)];
       float y = xyDistance * this->cos_all_angle_[(azimuth)];
