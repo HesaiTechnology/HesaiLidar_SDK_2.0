@@ -212,9 +212,9 @@ int Udp2_5ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
     char *p = data;
     struct ETCorrectionsHeader ETheader = *((struct ETCorrectionsHeader* )p);
     if (0xee == ETheader.delimiter[0] && 0xff == ETheader.delimiter[1]) {
-      switch (ETheader.header.min_version) {
+      switch (ETheader.min_version) {
         case 1: {
-          memcpy((void *)&corrections_.hedar, p, sizeof(struct ETCorrectionsHeader));
+          memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
           p += sizeof(ETCorrectionsHeader);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
