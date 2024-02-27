@@ -117,7 +117,7 @@ bool TcpClient::Open() {
 
   m_tcpSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-  if (m_tcpSock == -1) return false;
+  if ((int)m_tcpSock == -1) return false;
 
   memset(&serverAddr, 0, sizeof(serverAddr));
 
@@ -314,7 +314,7 @@ void TcpClient::SetReceiveBufferSize(const uint32_t &size) {
   }
 
   m_u32ReceiveBufferSize = size;
-  int recbuffSize;
+  uint32_t recbuffSize;
   socklen_t optlen = sizeof(recbuffSize);
   int ret = getsockopt(m_tcpSock, SOL_SOCKET, SO_RCVBUF, (char*)&recbuffSize, &optlen);
   if (ret == 0 && recbuffSize < size) {

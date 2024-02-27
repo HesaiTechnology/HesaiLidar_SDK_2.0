@@ -139,7 +139,7 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
   frame.work_mode = packet.work_mode;
   frame.spin_speed = packet.spin_speed;
   for (int blockid = 0; blockid < packet.block_num; blockid++) {
-    T_Point point;
+    // T_Point point;
     int Azimuth = packet.azimuth[blockid * packet.laser_num];
     int elevation = 0;
     auto azimuth = Azimuth;
@@ -260,8 +260,8 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   output.scan_complete = false;
   output.distance_unit = pHeader->GetDistUnit();
   int index = 0;
-  float minAzimuth = 0;
-  float maxAzimuth = 0;
+  // float minAzimuth = 0;
+  // float maxAzimuth = 0;
   output.block_num = pHeader->GetBlockNum();
   output.laser_num = pHeader->GetLaserNum();
   

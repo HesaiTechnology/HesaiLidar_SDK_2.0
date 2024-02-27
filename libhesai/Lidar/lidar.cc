@@ -155,19 +155,19 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     /********************************************************************************/
 
     /***************************Init decoder****************************************/   
-    clock_t start_time, end_time;
-    double time_interval = 0;
+    // clock_t start_time, end_time;
+    // double time_interval = 0;
     UdpPacket udp_packet;
     LidarDecodedPacket<T_Point> decoded_packet;
-    start_time = clock();
+    // start_time = clock();
     while (udp_parser_->GetParser() == nullptr) {
       int ret = this->GetOnePacket(udp_packet);
       // Avoid configuring the actual lidar to have problems with the lidar connection causing the program card here.
       if (param.input_param.source_type == 1 && ret == -1) return ret;
       if (ret == -1) continue;
       this->DecodePacket(decoded_packet, udp_packet);
-      end_time = clock();
-      time_interval = double(end_time-start_time) / CLOCKS_PER_SEC;
+      // end_time = clock();
+      // time_interval = double(end_time-start_time) / CLOCKS_PER_SEC;
     }
     if (udp_parser_->GetParser() == nullptr) {
       return res;
@@ -288,7 +288,7 @@ int Lidar<T_Point>::SaveUdpPacket(const std::string &record_path,
 
 template <typename T_Point>
 int Lidar<T_Point>::ComputeXYZI(LidarDecodedPacket<T_Point> &packet) {
-  int ret = -1;
+
   decoded_packets_buffer_.push_back(std::move(packet));
   return 0;
 
@@ -319,7 +319,7 @@ int Lidar<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPac
 
 template <typename T_Point>
 bool Lidar<T_Point>::ComputeXYZIComplete(int index) {
-  return frame_.packet_num == index;
+  return frame_.packet_num == (uint32_t)index;
 }
 
 template <typename T_Point>
@@ -395,7 +395,7 @@ int Lidar<T_Point>::GetGeneralParser(GeneralParser<T_Point> **parser) {
 template <typename T_Point>
 void Lidar<T_Point>::RecieveUdpThread() {
   if(!udp_thread_running_) return;
-  uint32_t u32StartTime = GetMicroTickCount();
+  // uint32_t u32StartTime = GetMicroTickCount();
   std::cout << "Lidar::Recieve Udp Thread start to run\n";
 #ifdef _MSC_VER
   SetThreadPriorityWin(THREAD_PRIORITY_TIME_CRITICAL);
@@ -479,7 +479,7 @@ void Lidar<T_Point>::ParserThread() {
 
 template <typename T_Point>
 void Lidar<T_Point>::HandleThread(int nThreadNum) {
-  struct timespec timeout;
+  // struct timespec timeout;
 #ifdef _MSC_VER
   SetThreadPriorityWin(THREAD_PRIORITY_TIME_CRITICAL);
 #else

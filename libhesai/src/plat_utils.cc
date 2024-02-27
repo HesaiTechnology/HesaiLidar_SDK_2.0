@@ -164,11 +164,17 @@ int GetAnglesFromFile(
   }
 
   char sContent[255] = {0};
-  fgets(sContent, 255, pFile);  // skip first line
+  if (fgets(sContent, 255, pFile) == NULL) { // skip first line
+    printf("Failed to read from file\n");
+    return 1;
+  } 
 
   while (!feof(pFile)) {
     memset(sContent, 0, 255);
-    fgets(sContent, 255, pFile);
+    if (fgets(sContent, 255, pFile) == NULL) {
+      printf("Failed to read from file\n");
+      return 1;
+    }
 
     if (strlen(sContent) < strlen(" , , ")) {
       break;

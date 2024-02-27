@@ -101,7 +101,7 @@ struct HS_LIDAR_TAIL_FT_V2 {
 
   void CalPktLoss(uint32_t &u32StartSeqNum, uint32_t &u32LastSeqNum, uint32_t &u32LossCount, 
         uint32_t &u32StartTime, uint32_t &u32TotalLossCount, uint32_t &u32TotalStartSeqNum) const {
-    bool print = false;
+    // bool print = false;
     if (u32StartSeqNum == 0) {
       u32LossCount = 0;
       u32TotalLossCount = 0;
@@ -114,7 +114,7 @@ struct HS_LIDAR_TAIL_FT_V2 {
     if (sequence_num - u32LastSeqNum > 1) {
       u32LossCount += (sequence_num - u32LastSeqNum - 1);
       u32TotalLossCount += (sequence_num - u32LastSeqNum - 1);
-      print = true;
+      // print = true;
       // if (sequence_num - u32LastSeqNum - 1 > 1000)
       // printf("%d,  %u, %u\n", sequence_num - u32LastSeqNum - 1, u32LastSeqNum,
       // sequence_num);
@@ -133,10 +133,10 @@ struct HS_LIDAR_TAIL_FT_V2 {
   }
 
   void CalPktLoss(uint32_t &u32StartSeqNum, uint32_t &u32LastSeqNum, uint32_t &u32LossCount, uint32_t &u32StartTime) const {
-    bool print = false;
+    // bool print = false;
     if (sequence_num - u32LastSeqNum > 1) {
       u32LossCount += (sequence_num - u32LastSeqNum - 1);
-      print = true;
+      // print = true;
       // if (sequence_num - u32LastSeqNum - 1 > 1000)
       // printf("%d,  %u, %u\n", sequence_num - u32LastSeqNum - 1, u32LastSeqNum,
       // sequence_num);

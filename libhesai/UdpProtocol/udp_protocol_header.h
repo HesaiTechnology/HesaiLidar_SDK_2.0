@@ -59,7 +59,7 @@ T little_to_native(T data) {
     unsigned char *pSrc = reinterpret_cast<unsigned char *>(&data +
                                                             sizeof(data) - 1),
                   *pDst = reinterpret_cast<unsigned char *>(&out);
-    for (int i = 0; i < sizeof(data); i++) {
+    for (size_t i = 0; i < sizeof(data); i++) {
       *pDst++ = *pSrc--;
     }
   }

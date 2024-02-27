@@ -22,7 +22,9 @@ bool IsPlayEnded(HesaiLidarSdk<LidarPointXYZIRT>& sdk)
 int main(int argc, char *argv[])
 {
 #ifndef _MSC_VER
-  system("sudo sh -c \"echo 562144000 > /proc/sys/net/core/rmem_max\"");
+  if (system("sudo sh -c \"echo 562144000 > /proc/sys/net/core/rmem_max\"") == -1) {
+    printf("Command execution failed!\n");
+  }
 #endif
   HesaiLidarSdk<LidarPointXYZIRT> sample;
   DriverParam param;
@@ -50,7 +52,6 @@ int main(int argc, char *argv[])
 
   sample.Start();
 
-  uint64_t start = GetMicroTickCountU64();
   // You can select the parameters in while():
   // 1.[IsPlayEnded(sample)]: adds the ability for the PCAP to automatically quit after playing the program
   // 2.[1                  ]: the application will not quit voluntarily

@@ -152,10 +152,10 @@ namespace hesai
       static uint32_t GetSeqNumSize() { return sizeof(m_u32SeqNum); }
       
       void CalPktLoss(uint32_t &u32StartSeqNum, uint32_t &u32LastSeqNum, uint32_t &u32LossCount, uint32_t &u32StartTime) const {
-        bool print = false;
+        // bool print = false;
         if (m_u32SeqNum - u32LastSeqNum > 1) {
           u32LossCount += (m_u32SeqNum - u32LastSeqNum - 1);
-          print = true;
+          // print = true;
         }
       
        if (GetMicroTickCount() - u32StartTime >= 1 * 1000 * 1000) {

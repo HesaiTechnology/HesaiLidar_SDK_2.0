@@ -102,7 +102,7 @@ public:
     decoded_packet.config.fov_start = lidar_ptr_->fov_start_;
     decoded_packet.config.fov_end = lidar_ptr_->fov_end_;
     int packet_index = 0;
-    uint32_t start = GetMicroTickCount();
+    // uint32_t start = GetMicroTickCount();
     UdpPacket packet;
     FaultMessageInfo fault_message_info;
     while (is_thread_runing_) {
@@ -127,7 +127,7 @@ public:
       if(decoded_packet.scan_complete) {
         //waiting for parser thread compute xyzi of points in the same frame
         while(!lidar_ptr_->ComputeXYZIComplete(decoded_packet.packet_index)) std::this_thread::sleep_for(std::chrono::microseconds(100));
-        uint32_t end =  GetMicroTickCount();
+        // uint32_t end =  GetMicroTickCount();
         //log info, display frame message
         if (lidar_ptr_->frame_.points_num > kMinPointsOfOneFrame) {
           // LogInfo("frame:%d   points:%u  packet:%d  time:%lf %lf\n",lidar_ptr_->frame_.frame_index,  lidar_ptr_->frame_.points_num, packet_index, lidar_ptr_->frame_.points[0].timestamp, lidar_ptr_->frame_.points[lidar_ptr_->frame_.points_num - 1].timestamp) ;

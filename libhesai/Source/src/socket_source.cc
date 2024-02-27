@@ -78,7 +78,7 @@ bool SocketSource::Open() {
 
   udp_sock_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-  if (udp_sock_ == -1) return false;
+  if ((int)udp_sock_ == -1) return false;
 
   memset(&serverAddr, 0, sizeof(serverAddr));
 

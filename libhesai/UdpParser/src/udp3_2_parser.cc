@@ -73,7 +73,7 @@ int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
       std::vector<std::string> ChannelLine;
       split_string(ChannelLine, line, ',');
       for (int j = 0; j < loopNum; j++) {
-        if (ChannelLine.size() == loopNum * 2) {
+        if ((int)ChannelLine.size() == loopNum * 2) {
           int laserId = atoi(ChannelLine[j * 2].c_str()) - 1;
           if (laserId >= 0)
           firetimes[j][laserId] = std::stof(ChannelLine[j * 2 + 1].c_str());
@@ -295,7 +295,7 @@ void Udp3_2Parser<T_Point>::GetDistanceCorrection(double &azi, double &ele,
 template<typename T_Point>
 int Udp3_2Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
   for (int blockid = 0; blockid < packet.block_num; blockid++) {
-    T_Point point;
+    // T_Point point;
     int elevation = 0;
     int azimuth = 0;
 
@@ -344,8 +344,8 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   output.points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
   output.scan_complete = false;
   int index = 0;
-  float minAzimuth = 0;
-  float maxAzimuth = 0;
+  // float minAzimuth = 0;
+  // float maxAzimuth = 0;
   output.block_num = pHeader->GetBlockNum();
   output.laser_num = pHeader->GetLaserNum();  
   output.distance_unit = pHeader->GetDistUnit();      
@@ -399,10 +399,10 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
 
     this->spin_speed_ = pTail->m_u16MotorSpeed;
     uint16_t u16Azimuth = 0;
-    for (int i = 0; i < pHeader->GetBlockNum(); i++) {
+    for (size_t i = 0; i < pHeader->GetBlockNum(); i++) {
       // point to channel unit addr
       u16Azimuth = pAzimuth->GetAzimuth();
-      auto elevation = 0;
+      // auto elevation = 0;
       pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_QT_V2 *>(
           (const unsigned char *)pAzimuth +
           sizeof(HS_LIDAR_BODY_AZIMUTH_QT_V2));
@@ -426,9 +426,9 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
                   : j;
           double elevationCorr = this->elevation_correction_[laserId];
           double azimuthCorr = u16Azimuth / 100.0f + this->azimuth_collection_[laserId];
-          uint16_t u16Distance = pChnUnit->GetDistance();
-          uint8_t u8Intensity = pChnUnit->GetReflectivity();
-          uint8_t u8Confidence = 0;
+          // uint16_t u16Distance = pChnUnit->GetDistance();
+          // uint8_t u8Intensity = pChnUnit->GetReflectivity();
+          // uint8_t u8Confidence = 0;
           double distance =
               static_cast<double>(pChnUnit->GetDistance()) * pHeader->GetDistUnit();
           if (this->enable_distance_correction_) {
@@ -479,7 +479,7 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     }
     this->spin_speed_ = pTail->m_u16MotorSpeed;
     uint16_t u16Azimuth = 0;
-    for (int i = 0; i < pHeader->GetBlockNum(); i++) {
+    for (size_t i = 0; i < pHeader->GetBlockNum(); i++) {
       // point to channel unit addr
       pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_NO_CONF_QT_V2 *>(
           (const unsigned char *)pAzimuth +

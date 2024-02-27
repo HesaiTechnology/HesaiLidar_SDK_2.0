@@ -113,7 +113,7 @@ int  Udp2_4Parser<T_Point>::LoadCorrectionString_csv(std::string lidar_correctio
     m_ET_corrections.channel_number = 0x40;
     m_ET_corrections.angle_division = 0x01;
   
-    for (int i = 0; i < column3.size(); i++) {
+    for (size_t i = 0; i < column3.size(); i++) {
       m_ET_corrections.elevations[i] = column2[i];
       m_ET_corrections.azimuths[i] = column3[i];
     }
@@ -187,14 +187,14 @@ int Udp2_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       sizeof(HS_LIDAR_TAIL_SEQ_NUM_ET_V4) - 
       sizeof(HS_LIDAR_TAIL_ET_V4)
       );
-  if (pHeader->HasSeqNum()){
-    const HS_LIDAR_TAIL_SEQ_NUM_ET_V4 *pTailSeqNum =
-      reinterpret_cast<const HS_LIDAR_TAIL_SEQ_NUM_ET_V4 *>(
-      &(udpPacket.buffer[0]) + pHeader->GetPacketSize() - 
-      sizeof(HS_LIDAR_TAIL_CRC_ET_V4) - 
-      sizeof(HS_LIDAR_TAIL_SEQ_NUM_ET_V4)
-      );
-  }
+  // if (pHeader->HasSeqNum()){
+  //   const HS_LIDAR_TAIL_SEQ_NUM_ET_V4 *pTailSeqNum =
+  //     reinterpret_cast<const HS_LIDAR_TAIL_SEQ_NUM_ET_V4 *>(
+  //     &(udpPacket.buffer[0]) + pHeader->GetPacketSize() - 
+  //     sizeof(HS_LIDAR_TAIL_CRC_ET_V4) - 
+  //     sizeof(HS_LIDAR_TAIL_SEQ_NUM_ET_V4)
+  //     );
+  // }
   const HS_LIDAR_BODY_SEQ2_ET_V4* pSeq2 = 
     reinterpret_cast<const HS_LIDAR_BODY_SEQ2_ET_V4 *>(
       (const unsigned char *)pHeader + 
@@ -220,7 +220,7 @@ int Udp2_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   output.laser_num = pHeader->GetLaserNum();
   
   int index_unit = 0;
-  int index_seq = 0;
+  // int index_seq = 0;
   for (int blockId = 0; blockId < pHeader->GetBlockNum(); blockId++) {
     for (int seqId = 0; seqId < pHeader->GetSeqNum(); seqId++) {
       int16_t horizontalAngle = pSeq2->GetHorizontalAngle();
@@ -228,7 +228,7 @@ int Udp2_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       for (int unitId = 0; unitId < (pHeader->GetLaserNum()/pHeader->GetSeqNum()); unitId++){
         int16_t distance = pUnit->GetDistance();
         int8_t reflectivity = pUnit->GetReflectivity();
-        int8_t confidence = pUnit->GetConfidence();
+        // int8_t confidence = pUnit->GetConfidence();
         output.reflectivities[index_unit] = reflectivity;
         output.distances[index_unit] = distance;
         // get the degrees
@@ -293,16 +293,16 @@ int16_t Udp2_4Parser<T_Point>::GetVecticalAngle(int channel) {
 template<typename T_Point>
 int Udp2_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
   // get configer information from m_ET_corrections, 1 block 1 m_ET_corrections 
-  float division = (float)m_ET_corrections.angle_division;
+  // float division = (float)m_ET_corrections.angle_division;
   float apha =  m_ET_corrections.elevations[0];
   float beta =  m_ET_corrections.elevations[1];
   float gamma =  m_ET_corrections.elevations[2];
   // get the laser_num
   uint16_t lasernum = packet.laser_num;
   for (int blockId = 0; blockId < packet.block_num; blockId++) {
-    T_Point point;
-    float delte_apha = 0;
-    float delte_theta = 0;
+    // T_Point point;
+    // float delte_apha = 0;
+    // float delte_theta = 0;
     for (int i = 0; i < lasernum; i++) {
       int point_index = packet.packet_index * packet.points_num + blockId * packet.laser_num + i; 
       // get phi and psi and distance
