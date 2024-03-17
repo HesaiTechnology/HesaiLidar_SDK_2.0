@@ -336,7 +336,12 @@ void Udp3_1Parser<T_Point>::GetDistanceCorrection(double &azi, double &ele,
   }
 }
 
-
+template<typename T_Point>
+int Udp3_1Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket)
+{
+  // TO DO
+  return 0;
+}
 
 
 

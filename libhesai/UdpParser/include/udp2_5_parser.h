@@ -70,9 +70,9 @@ namespace lidar
         float adjust_interval_resolution = 0.5f;
         unsigned int azimuth_offset_num = azimuth_fov / (azimuth_adjust_interval * adjust_interval_resolution) + 1;
         unsigned int elevation_offset_num = elevation_fov / (elevation_adjust_interval * adjust_interval_resolution) + 1;
-        unsigned int offset_index1 = (azi + azimuth_fov / 2) /  (azimuth_adjust_interval * adjust_interval_resolution);      //azi dimension
-        unsigned int offset_index2 = (ele + elevation_fov / 2) /  (elevation_adjust_interval * adjust_interval_resolution);      //ele dimension
-        if (offset_index1 >= (azimuth_offset_num - 1)  || offset_index2 >= (elevation_offset_num - 1)) return 0;
+        int offset_index1 = (azi + azimuth_fov / 2) /  (azimuth_adjust_interval * adjust_interval_resolution);      //azi dimension
+        int offset_index2 = (ele + elevation_fov / 2) /  (elevation_adjust_interval * adjust_interval_resolution);      //ele dimension
+        if (offset_index1 >= (int)(azimuth_offset_num - 1)  || offset_index2 >= (int)(elevation_offset_num - 1)) return 0;
         if (offset_index1 < 0  || offset_index2 < 0) return 0;
         float coefficient1 = ((offset_index1 + 1) * (azimuth_adjust_interval * adjust_interval_resolution)  - azi - azimuth_fov / 2) / (azimuth_adjust_interval * adjust_interval_resolution);
         float coefficient2 = ((offset_index2 + 1) * (elevation_adjust_interval * adjust_interval_resolution)  - ele - elevation_fov / 2) / (elevation_adjust_interval * adjust_interval_resolution);
@@ -110,6 +110,9 @@ namespace lidar
       // covert a origin udp packet to decoded packet, the decode function is in UdpParser module
       // udp_packet is the origin udp packet, output is the decoded packet
       virtual int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket);  
+
+      // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
+      virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket);
 
       // compute xyzi of points from decoded packet
       // param packet is the decoded packet; xyzi of points after computed is puted in frame    

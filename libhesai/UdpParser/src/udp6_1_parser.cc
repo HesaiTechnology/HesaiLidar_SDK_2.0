@@ -283,3 +283,9 @@ void Udp6_1Parser<T_Point>::GetDistanceCorrection(int const& aziOrigin,
     z = calDistance * this->sin_all_angle_[elevation];
 }
 
+template<typename T_Point>
+int Udp6_1Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket)
+{
+  // TO DO
+  return 0;
+}

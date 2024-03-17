@@ -229,14 +229,14 @@ class LidarDecodedFrame
       return_mode = 0;
       spin_speed = 0;
       points_num = 0;
-      packet_num = -1;
+      packet_num = 0;
       block_num = 0;
       laser_num = 0; 
       packet_index = 0;
       scan_complete = false;
       distance_unit = 0;
-      lidar_state = -1;
-      work_mode = -1;
+      lidar_state = (uint8_t)(-1);
+      work_mode = (uint8_t)(-1);
       frame_index++;
     }
     uint64_t host_timestamp;   

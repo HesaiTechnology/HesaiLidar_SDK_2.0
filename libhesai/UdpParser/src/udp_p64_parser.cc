@@ -218,3 +218,9 @@ bool UdpP64Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
   }
 }
 
+template<typename T_Point>
+int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket)
+{
+  // TO DO
+  return 0;
+}

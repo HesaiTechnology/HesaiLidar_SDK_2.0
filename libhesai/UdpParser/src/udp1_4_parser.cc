@@ -206,7 +206,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     );
     output.lidar_state = function_savety_ptr->GetLidarState();
   } else {
-    output.lidar_state = -1;
+    output.lidar_state = (uint8_t)(-1);
   }
 
   const auto *pTail = reinterpret_cast<const HS_LIDAR_TAIL_ME_V4 *>(
@@ -413,4 +413,11 @@ void Udp1_4Parser<T_Point>::GetDistanceCorrection(int laser_id, float distance, 
       azimuth -= distance_correction_para_a_ * std::asin(sin_delt_azimuth) * kHalfCircleFloat / M_PI;
       azimuth = azimuth % CIRCLE;
   }
+}
+
+template<typename T_Point>
+int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket)
+{
+  // TO DO
+  return 0;
 }

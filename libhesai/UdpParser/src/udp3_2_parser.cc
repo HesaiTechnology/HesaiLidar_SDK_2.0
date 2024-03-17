@@ -591,3 +591,10 @@ bool Udp3_2Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
     return false;
   }
 }
+
+template<typename T_Point>
+int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket)
+{
+  // TO DO
+  return 0;
+}

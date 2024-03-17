@@ -65,7 +65,9 @@ namespace hesai
       int LoadCorrectionString_csv(std::string lidar_correction_file);
       // covert a origin udp packet to decoded packet, the decode function is in UdpParser module
       // udp_packet is the origin udp packet, output is the decoded packet
-      virtual int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket);  
+      virtual int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket); 
+      // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
+      virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket); 
       // compute xyzi of points from decoded packet
       // param packet is the decoded packet; xyzi of points after computed is puted in frame    
       virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);

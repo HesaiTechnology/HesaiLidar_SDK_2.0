@@ -171,7 +171,7 @@ int Udp4_3ParserGpu<T_Point>::LoadCorrectionString(char *p) {
     if (mirror_azi_ends_cu) cudaFree(mirror_azi_ends_cu);
     corrections_loaded_ = false;
   }
-  float channel_azimuths[kMaxPointsNumPerPacket];
+  // float channel_azimuths[kMaxPointsNumPerPacket];
   switch (corrections_header.version[1]) {
     case 3: {
       // HCHECK_GE(size, sizeof(CorrectionsV1_3));
@@ -191,9 +191,9 @@ int Udp4_3ParserGpu<T_Point>::LoadCorrectionString(char *p) {
       CUDACheck(cudaMemcpy(channel_elevations_cu_, corrections.channel_elevations, sizeof(corrections.channel_elevations), cudaMemcpyHostToDevice));
       CUDACheck(cudaMemcpy(dazis_cu, corrections.dazis, sizeof(corrections.dazis), cudaMemcpyHostToDevice));
       CUDACheck(cudaMemcpy(deles_cu, corrections.deles, sizeof(corrections.deles), cudaMemcpyHostToDevice));
-      for (auto i = 0; i < kMaxPointsNumPerPacket; ++i) {
-          channel_azimuths[i] = corrections.channel_azimuths[i];
-      }
+      // for (auto i = 0; i < kMaxPointsNumPerPacket; ++i) {
+      //     channel_azimuths[i] = corrections.channel_azimuths[i];
+      // }
       break;
     }
     case 5: {
@@ -228,10 +228,10 @@ int Udp4_3ParserGpu<T_Point>::LoadCorrectionString(char *p) {
       CUDACheck(cudaMemcpy(deles_cu, corrections.deles, sizeof(corrections.deles), cudaMemcpyHostToDevice));
       CUDACheck(cudaMemcpy(mirror_azi_begins_cu, corrections.mirror_azi_begins, sizeof(corrections.mirror_azi_begins), cudaMemcpyHostToDevice));
       CUDACheck(cudaMemcpy(mirror_azi_ends_cu, corrections.mirror_azi_ends, sizeof(corrections.mirror_azi_ends), cudaMemcpyHostToDevice));
-      for (auto i = 0; i < 128; ++i) {
-          channel_azimuths[i] = corrections.channel_azimuths[i] * corrections.header.resolution / kFineResolutionFloat;
-          // std::cout << corrections.channel_azimuths[i] * corrections.header.resolution / kFineResolutionFloat << std::endl;
-      }
+      // for (auto i = 0; i < 128; ++i) {
+      //     channel_azimuths[i] = corrections.channel_azimuths[i] * corrections.header.resolution / kFineResolutionFloat;
+      //     // std::cout << corrections.channel_azimuths[i] * corrections.header.resolution / kFineResolutionFloat << std::endl;
+      // }
       break;
     }
     default:
