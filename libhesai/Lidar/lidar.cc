@@ -457,10 +457,17 @@ void Lidar<T_Point>::ParserThread() {
 #endif
   while (running_) {
     LidarDecodedPacket<T_Point> decoded_packet;
-    decoded_packets_buffer_.try_pop_front(decoded_packet);
+    bool decoded_result = decoded_packets_buffer_.try_pop_front(decoded_packet);
     // decoded_packet.use_timestamp_type = use_timestamp_type_;
     if (handle_thread_count_ < 2) {
-      udp_parser_->ComputeXYZI(frame_, decoded_packet);
+      if (decoded_result)
+      {
+        udp_parser_->ComputeXYZI(frame_, decoded_packet);
+      }
+      // else
+      // {
+      //   printf("decoded_packets_buffer_ try_pop_front timeout\n");
+      // }
       continue;
     } else {
       nUDPCount = nUDPCount % handle_thread_count_;
