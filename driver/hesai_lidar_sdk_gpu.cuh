@@ -39,6 +39,9 @@ private:
   std::thread *runing_thread_ptr_;
   std::function<void(const UdpFrame_t &, double)> pkt_cb_;
   std::function<void(const LidarDecodedFrame<T_Point> &)> point_cloud_cb_;
+  std::function<void(const u8Array_t&)> correction_cb_;
+  std::function<void(const uint32_t &, const uint32_t &)> pkt_loss_cb_;
+  std::function<void(const uint8_t&, const u8Array_t&)> ptp_cb_;
   bool is_thread_runing_;
   bool packet_loss_tool_; 
 
@@ -255,6 +258,18 @@ public:
   void RegRecvCallback(const std::function<void(const UdpFrame_t &, double)>& callback)
   {
     pkt_cb_ = callback;
+  }
+
+  // assign callback fuction
+  void RegRecvCallback(const std::function<void (const u8Array_t&)>& callback) {
+    correction_cb_ = callback;
+  }
+
+  void RegRecvCallback(const std::function<void (const uint32_t &, const uint32_t &)>& callback) {
+    pkt_loss_cb_ = callback;
+  }
+  void RegRecvCallback(const std::function<void (const uint8_t&, const u8Array_t&)>& callback) {
+    ptp_cb_ = callback;
   }
 
   void FaultMessageCallback(UdpPacket& udp_packet, FaultMessageInfo& fault_message_info) {

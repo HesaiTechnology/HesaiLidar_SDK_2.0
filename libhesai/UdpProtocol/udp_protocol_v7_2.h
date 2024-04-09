@@ -121,7 +121,7 @@ struct HS_LIDAR_TAIL_FT_V2 {
     }
 
     // print log every 1s
-    if (GetMicroTickCount() - u32StartTime >= 1 * 1000 * 1000) {
+    if (u32LossCount != 0 && GetMicroTickCount() - u32StartTime >= 1 * 1000 * 1000) {
       printf("pkt loss freq: %u/%u\n", u32LossCount,
              sequence_num - u32StartSeqNum);
       u32LossCount = 0;
@@ -132,27 +132,27 @@ struct HS_LIDAR_TAIL_FT_V2 {
     u32LastSeqNum = sequence_num;
   }
 
-  void CalPktLoss(uint32_t &u32StartSeqNum, uint32_t &u32LastSeqNum, uint32_t &u32LossCount, uint32_t &u32StartTime) const {
-    // bool print = false;
-    if (sequence_num - u32LastSeqNum > 1) {
-      u32LossCount += (sequence_num - u32LastSeqNum - 1);
-      // print = true;
-      // if (sequence_num - u32LastSeqNum - 1 > 1000)
-      // printf("%d,  %u, %u\n", sequence_num - u32LastSeqNum - 1, u32LastSeqNum,
-      // sequence_num);
-    }
+  // void CalPktLoss(uint32_t &u32StartSeqNum, uint32_t &u32LastSeqNum, uint32_t &u32LossCount, uint32_t &u32StartTime) const {
+  //   // bool print = false;
+  //   if (sequence_num - u32LastSeqNum > 1) {
+  //     u32LossCount += (sequence_num - u32LastSeqNum - 1);
+  //     // print = true;
+  //     // if (sequence_num - u32LastSeqNum - 1 > 1000)
+  //     // printf("%d,  %u, %u\n", sequence_num - u32LastSeqNum - 1, u32LastSeqNum,
+  //     // sequence_num);
+  //   }
 
-    // print log every 1s
-    if (GetMicroTickCount() - u32StartTime >= 1 * 1000 * 1000) {
-      printf("pkt loss freq: %u/%u\n", u32LossCount,
-             sequence_num - u32StartSeqNum);
-      u32LossCount = 0;
-      u32StartTime = GetMicroTickCount();
-      u32StartSeqNum = sequence_num;
-    }
+  //   // print log every 1s
+  //   if (GetMicroTickCount() - u32StartTime >= 1 * 1000 * 1000) {
+  //     printf("pkt loss freq: %u/%u\n", u32LossCount,
+  //            sequence_num - u32StartSeqNum);
+  //     u32LossCount = 0;
+  //     u32StartTime = GetMicroTickCount();
+  //     u32StartSeqNum = sequence_num;
+  //   }
 
-    u32LastSeqNum = sequence_num;
-  }
+  //   u32LastSeqNum = sequence_num;
+  // }
   static uint32_t GetSeqNumSize() { return sizeof(sequence_num); }
 
 

@@ -242,7 +242,7 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     // printf("udpPacket.recv_timestamp %lu, %lu\n", pTail->GetMicroLidarTimeU64(), udpPacket.recv_timestamp);
   }
 
-  if(this->enable_packet_loss_tool_ == true) return 0;
+  // if(this->enable_packet_loss_tool_ == true) return 0;
 
   this->spin_speed_ = pTail->GetMotorSpeed();
   this->is_dual_return_= pTail->IsDualReturn();

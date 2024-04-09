@@ -40,6 +40,9 @@ private:
   std::thread *runing_thread_ptr_;
   std::function<void(const UdpFrame_t&, double)> pkt_cb_;
   std::function<void(const LidarDecodedFrame<T_Point>&)> point_cloud_cb_;
+  std::function<void(const u8Array_t&)> correction_cb_;
+  std::function<void(const uint32_t &, const uint32_t &)> pkt_loss_cb_;
+  std::function<void(const uint8_t&, const u8Array_t&)> ptp_cb_;
   bool is_thread_runing_;
   bool packet_loss_tool_;
 public:
@@ -105,7 +108,11 @@ public:
     // uint32_t start = GetMicroTickCount();
     UdpPacket packet;
     FaultMessageInfo fault_message_info;
-    while (is_thread_runing_) {
+
+    uint32_t total_packet_count;
+    uint32_t total_packet_loss_count;
+    while (is_thread_runing_)
+    {
 
       //get one packte from origin_packets_buffer_, which receive data from upd or pcap thread
       int ret = lidar_ptr_->GetOnePacket(packet);
@@ -121,7 +128,8 @@ public:
       lidar_ptr_->DecodePacket(decoded_packet, packet);
 
       //do not compute xyzi of points if enable packet_loss_tool_
-      if(packet_loss_tool_ == true) continue;
+      // if(packet_loss_tool_ == true) continue;
+      // Cancle this for XT
 
       //one frame is receive completely, split frame
       if(decoded_packet.scan_complete) {
@@ -137,6 +145,30 @@ public:
 
           //publish upd packet topic
           if(pkt_cb_) pkt_cb_(udp_packet_frame, lidar_ptr_->frame_.points[0].timestamp);
+
+          // if (lidar_ptr_->frame_.frame_index == 10)
+          {
+            if (correction_cb_)
+              correction_cb_(lidar_ptr_->correction_string_);
+          }
+
+          // if (lidar_ptr_->frame_.frame_index % 100 == 0)
+          {
+            if (pkt_loss_cb_)
+            {
+              total_packet_count = lidar_ptr_->udp_parser_->GetGeneralParser()->total_packet_count_;
+              total_packet_loss_count = lidar_ptr_->udp_parser_->GetGeneralParser()->total_loss_count_;
+              pkt_loss_cb_(total_packet_count, total_packet_loss_count);
+            }
+            if (ptp_cb_)
+            {
+              u8Array_t ptp_status;
+              u8Array_t ptp_lock_offset;
+              lidar_ptr_->ptc_client_->GetPTPDiagnostics(ptp_status, 1); // ptp_query_type = 1
+              lidar_ptr_->ptc_client_->GetPTPLockOffset(ptp_lock_offset);
+              ptp_cb_(ptp_lock_offset.front(), ptp_status);
+            }
+          }
         }
 
         //reset frame variable
@@ -181,6 +213,17 @@ public:
     pkt_cb_ = callback;
   }
 
+  // assign callback fuction
+  void RegRecvCallback(const std::function<void (const u8Array_t&)>& callback) {
+    correction_cb_ = callback;
+  }
+
+  void RegRecvCallback(const std::function<void (const uint32_t &, const uint32_t &)>& callback) {
+    pkt_loss_cb_ = callback;
+  }
+  void RegRecvCallback(const std::function<void (const uint8_t&, const u8Array_t&)>& callback) {
+    ptp_cb_ = callback;
+  }
   //parsar fault message
   void FaultMessageCallback(UdpPacket& udp_packet, FaultMessageInfo& fault_message_info) {
      FaultMessageVersion3 *fault_message_ptr = 

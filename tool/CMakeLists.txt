@@ -100,7 +100,9 @@ target_link_libraries(ptc_tool
   ${OPENSSL_LIBRARIES}
 )
 
-find_package(CUDA )
+# No support cuda and pcl compile, the error case will occur
+# error: unterminated argument list invoking macro "VTK_AUTOINIT1" 
+# find_package(CUDA )
 if(${CUDA_FOUND})
 	set(CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 	set(CUDA_SEPARABLE_COMPILATION ON)

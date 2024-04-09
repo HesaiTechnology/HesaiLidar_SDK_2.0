@@ -137,7 +137,7 @@ struct HS_LIDAR_TAIL_QT_V1 {
     }
 
     // print log every 1s
-    if (GetMicroTickCount() - u32StartTime >= 1 * 1000 * 1000) {
+    if (u32LossCount != 0 && GetMicroTickCount() - u32StartTime >= 1 * 1000 * 1000) {
       printf("pkt loss freq: %u/%u\n", u32LossCount,
              m_u32SeqNum - u32StartSeqNum);  
       u32LossCount = 0;
@@ -148,22 +148,22 @@ struct HS_LIDAR_TAIL_QT_V1 {
     u32LastSeqNum = m_u32SeqNum;
   }
 
-  void CalPktLoss(uint32_t &u32StartSeqNum, uint32_t &u32LastSeqNum, uint32_t &u32LossCount, uint32_t &u32StartTime) const {
-    // bool print = false;
-    if (m_u32SeqNum - u32LastSeqNum > 1) {
-      u32LossCount += (m_u32SeqNum - u32LastSeqNum - 1);
-      // print = true;
-    }
-    if (GetMicroTickCount() - u32StartTime >= 1 * 1000 * 1000) {
-      printf("pkt loss freq: %u/%u\n", u32LossCount,
-             m_u32SeqNum - u32StartSeqNum);
-      u32LossCount = 0;
-      u32StartTime = GetMicroTickCount();
-      u32StartSeqNum = m_u32SeqNum;
-    }
+  // void CalPktLoss(uint32_t &u32StartSeqNum, uint32_t &u32LastSeqNum, uint32_t &u32LossCount, uint32_t &u32StartTime) const {
+  //   // bool print = false;
+  //   if (m_u32SeqNum - u32LastSeqNum > 1) {
+  //     u32LossCount += (m_u32SeqNum - u32LastSeqNum - 1);
+  //     // print = true;
+  //   }
+  //   if (GetMicroTickCount() - u32StartTime >= 1 * 1000 * 1000) {
+  //     printf("pkt loss freq: %u/%u\n", u32LossCount,
+  //            m_u32SeqNum - u32StartSeqNum);
+  //     u32LossCount = 0;
+  //     u32StartTime = GetMicroTickCount();
+  //     u32StartSeqNum = m_u32SeqNum;
+  //   }
 
-    u32LastSeqNum = m_u32SeqNum;
-  }
+  //   u32LastSeqNum = m_u32SeqNum;
+  // }
   static uint32_t GetSeqNumSize() { return sizeof(m_u32SeqNum); }
   int64_t GetMicroLidarTimeU64() const {
     if (m_u8UTC[0] != 0) {

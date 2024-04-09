@@ -118,11 +118,11 @@ typedef struct InputParam
   std::string correction_file_path = "Your correction file path";   ///< Path of angle calibration files(angle.csv).Only used for internal debugging.
   std::string firetimes_path = "Your firetime file path";  ///< Path of firetime files(angle.csv).
   /// certFile          Represents the path of the user's certificate
-  char* certFile = nullptr;
+  const char* certFile = nullptr;
   /// privateKeyFile    Represents the path of the user's private key
-  char* privateKeyFile = nullptr;
+  const char* privateKeyFile = nullptr;
   /// caFile            Represents the path of the root certificate
-  char* caFile = nullptr;
+  const char* caFile = nullptr;
   /// standby_mode    set the standby_mode of lidar
   int standby_mode = -1;
   /// speed             set the rotational speed of lidar

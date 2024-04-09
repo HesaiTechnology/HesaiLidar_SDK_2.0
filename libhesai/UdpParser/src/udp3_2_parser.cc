@@ -395,7 +395,7 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       output.sensor_timestamp = udpPacket.recv_timestamp;
     }    
     output.host_timestamp = GetMicroTickCountU64();   
-    if(this->enable_packet_loss_tool_ == true) return 0;
+    // if(this->enable_packet_loss_tool_ == true) return 0;
 
     this->spin_speed_ = pTail->m_u16MotorSpeed;
     uint16_t u16Azimuth = 0;

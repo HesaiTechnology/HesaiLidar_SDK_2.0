@@ -204,12 +204,25 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
 }
 
 template <typename T_Point>
+int Lidar<T_Point>::LoadCorrectionFromROSbag() {
+  if (udp_parser_) {
+    return udp_parser_->LoadCorrectionString(
+        (char *)correction_string_.data());
+  } else {
+    std::cout << __func__ << "udp_parser_ nullptr\n";
+    return -1;
+  }
+  return 0;
+}
+
+template <typename T_Point>
 int Lidar<T_Point>::LoadCorrectionForUdpParser() {
   u8Array_t sData;
   if (ptc_client_->GetCorrectionInfo(sData) != 0) {
     std::cout << __func__ << "get correction info fail\n";
     return -1;
   }
+  correction_string_ = sData;
   if (udp_parser_) {
     return udp_parser_->LoadCorrectionString(
         (char *)sData.data());
@@ -228,6 +241,7 @@ int Lidar<T_Point>::SaveCorrectionFile(std::string correction_save_path) {
     std::cout << __func__ << "get correction info fail\n";
     return ret;
   }
+  correction_string_ = raw_data;
   std::string correction_content_str = (char*) raw_data.data();
   std::ofstream out_file(correction_save_path, std::ios::out);
   if(out_file.is_open()) {
