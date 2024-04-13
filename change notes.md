@@ -51,3 +51,5 @@ V2.0.7
 2. Resolve compile warnings, inluding cpu compile and gpu compile
 3. ROS add topics, support angle correction data, ptp data, loss bag count data
 4. Support AT128P inversion
+5. Update XT16/XT32/XT32M2X/OT128 firetime correction file
+6. Update AT128 and AT128P angle correction file
