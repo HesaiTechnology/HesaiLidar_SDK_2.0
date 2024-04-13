@@ -25,7 +25,7 @@ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT
 TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
-
+#pragma once
 #include "lidar.h"
 #include "fault_message.h"
 
@@ -129,7 +129,6 @@ public:
 
       //do not compute xyzi of points if enable packet_loss_tool_
       // if(packet_loss_tool_ == true) continue;
-      // Cancle this for XT
 
       //one frame is receive completely, split frame
       if(decoded_packet.scan_complete) {
@@ -146,28 +145,23 @@ public:
           //publish upd packet topic
           if(pkt_cb_) pkt_cb_(udp_packet_frame, lidar_ptr_->frame_.points[0].timestamp);
 
-          // if (lidar_ptr_->frame_.frame_index == 10)
+          if (pkt_loss_cb_ )
           {
-            if (correction_cb_)
-              correction_cb_(lidar_ptr_->correction_string_);
+            total_packet_count = lidar_ptr_->udp_parser_->GetGeneralParser()->total_packet_count_;
+            total_packet_loss_count = lidar_ptr_->udp_parser_->GetGeneralParser()->total_loss_count_;
+            pkt_loss_cb_(total_packet_count, total_packet_loss_count);
           }
-
-          // if (lidar_ptr_->frame_.frame_index % 100 == 0)
+          if (ptp_cb_ && lidar_ptr_->frame_.frame_index % 100 == 1)
           {
-            if (pkt_loss_cb_)
-            {
-              total_packet_count = lidar_ptr_->udp_parser_->GetGeneralParser()->total_packet_count_;
-              total_packet_loss_count = lidar_ptr_->udp_parser_->GetGeneralParser()->total_loss_count_;
-              pkt_loss_cb_(total_packet_count, total_packet_loss_count);
-            }
-            if (ptp_cb_)
-            {
-              u8Array_t ptp_status;
-              u8Array_t ptp_lock_offset;
-              lidar_ptr_->ptc_client_->GetPTPDiagnostics(ptp_status, 1); // ptp_query_type = 1
-              lidar_ptr_->ptc_client_->GetPTPLockOffset(ptp_lock_offset);
-              ptp_cb_(ptp_lock_offset.front(), ptp_status);
-            }
+            u8Array_t ptp_status;
+            u8Array_t ptp_lock_offset;
+            lidar_ptr_->ptc_client_->GetPTPDiagnostics(ptp_status, 1); // ptp_query_type = 1
+            lidar_ptr_->ptc_client_->GetPTPLockOffset(ptp_lock_offset);
+            ptp_cb_(ptp_lock_offset.front(), ptp_status);
+          }
+          if (correction_cb_ && lidar_ptr_->frame_.frame_index % 1000 == 1)
+          {
+            correction_cb_(lidar_ptr_->correction_string_);
           }
         }
 

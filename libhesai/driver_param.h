@@ -33,6 +33,9 @@ namespace hesai
 {
 namespace lidar
 {
+
+#define NULL_TOPIC  "your topic name"
+
 enum SourceType
 {
   DATA_FROM_LIDAR = 1,
@@ -127,6 +130,22 @@ typedef struct InputParam
   int standby_mode = -1;
   /// speed             set the rotational speed of lidar
   int speed = -1;
+
+  bool send_packet_ros;
+  bool send_point_cloud_ros;
+  std::string frame_id;
+
+  std::string ros_send_packet_topic = NULL_TOPIC;
+  std::string ros_send_point_topic = NULL_TOPIC;
+  std::string ros_send_packet_loss_topic = NULL_TOPIC; 
+  std::string ros_send_ptp_topic = NULL_TOPIC;
+  std::string ros_send_correction_topic = NULL_TOPIC;
+  std::string ros_send_firetime_topic = NULL_TOPIC;
+
+  std::string ros_recv_correction_topic = NULL_TOPIC;
+  std::string ros_recv_packet_topic = NULL_TOPIC;
+
+
 } InputParam;
 
 ///< The LiDAR driver parameter
