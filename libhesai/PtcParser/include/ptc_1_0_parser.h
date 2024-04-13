@@ -72,11 +72,11 @@ struct PTCHeader_1_0 {
   uint8_t GetReturnCode() const { return return_code_; }
   uint8_t GetCmd() const {return cmd_; }
 #ifdef _MSC_VER
-  uint32_t GetPayloadLen() const { return be32toh(payload_len_); }
-  void SetPayloadLen(uint32_t u32Len) { payload_len_ = htobe32(u32Len); }
+  uint32_t GetPayloadLen() const { return ntohl(payload_len_); }
+  void SetPayloadLen(uint32_t u32Len) { payload_len_ = htonl(u32Len); }
 #else
-  uint32_t GetPayloadLen() const { return be32toh(payload_len_); }
-  void SetPayloadLen(uint32_t u32Len) { payload_len_ = htobe32(u32Len); }
+  uint32_t GetPayloadLen() const { return ntohl(payload_len_); }
+  void SetPayloadLen(uint32_t u32Len) { payload_len_ = htonl(u32Len); }
 #endif
 
 } PACKED;

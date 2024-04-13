@@ -37,7 +37,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ws2tcpip.h> 
 #pragma comment(lib, "ws2_32.lib")  // Winsock Library
 #include <BaseTsd.h>
-typedef int ssize_t;
+
 typedef int socklen_t;
 #define MSG_DONTWAIT (0x40)
 #else
@@ -185,7 +185,7 @@ bool TcpClient::IsOpened(bool bExpectation) {
 }
 
 int TcpClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
-  ssize_t len = -1;
+  int len = -1;
   bool ret = true;
 
   if (!IsOpened()) ret = Open();
@@ -208,7 +208,7 @@ int TcpClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
 }
 
 int TcpClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
-  ssize_t len = -1;
+  int len = -1;
   bool ret = true;
 
   if (!IsOpened()) ret = Open();

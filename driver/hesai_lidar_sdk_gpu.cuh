@@ -194,30 +194,32 @@ public:
           //publish upd packet topic
           if(pkt_cb_) pkt_cb_(udp_packet_frame, frame.points[0].timestamp);
 
-          //publish upd packet topic
-          if(pkt_cb_) pkt_cb_(udp_packet_frame, lidar_ptr_->frame_.points[0].timestamp);
-
           if (pkt_loss_cb_ )
           {
             total_packet_count = lidar_ptr_->udp_parser_->GetGeneralParser()->total_packet_count_;
             total_packet_loss_count = lidar_ptr_->udp_parser_->GetGeneralParser()->total_loss_count_;
             pkt_loss_cb_(total_packet_count, total_packet_loss_count);
           }
-          if (ptp_cb_ && lidar_ptr_->frame_.frame_index % 100 == 1)
+          if (ptp_cb_ && frame.frame_index % 100 == 1)
           {
             u8Array_t ptp_status;
             u8Array_t ptp_lock_offset;
-            lidar_ptr_->ptc_client_->GetPTPDiagnostics(ptp_status, 1); // ptp_query_type = 1
-            lidar_ptr_->ptc_client_->GetPTPLockOffset(ptp_lock_offset);
-            ptp_cb_(ptp_lock_offset.front(), ptp_status);
+            int ret_status = lidar_ptr_->ptc_client_->GetPTPDiagnostics(ptp_status, 1); // ptp_query_type = 1
+            int ret_offset = lidar_ptr_->ptc_client_->GetPTPLockOffset(ptp_lock_offset);
+            if (ret_status != 0 || ret_offset != 0)
+            {
+              printf("-->%d %d %lu %lu\n", ret_status, ret_offset, ptp_status.size(), ptp_lock_offset.size());
+            }
+            else
+            {
+              ptp_cb_(ptp_lock_offset.front(), ptp_status);
+            }
           }
-          if (correction_cb_ && lidar_ptr_->frame_.frame_index % 1000 == 1)
+          if (correction_cb_ && frame.frame_index % 1000 == 1)
           {
             correction_cb_(lidar_ptr_->correction_string_);
           }
         }
-
-
 
         //reset frame variable
         frame.Update();

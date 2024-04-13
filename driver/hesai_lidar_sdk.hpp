@@ -155,9 +155,16 @@ public:
           {
             u8Array_t ptp_status;
             u8Array_t ptp_lock_offset;
-            lidar_ptr_->ptc_client_->GetPTPDiagnostics(ptp_status, 1); // ptp_query_type = 1
-            lidar_ptr_->ptc_client_->GetPTPLockOffset(ptp_lock_offset);
-            ptp_cb_(ptp_lock_offset.front(), ptp_status);
+            int ret_status = lidar_ptr_->ptc_client_->GetPTPDiagnostics(ptp_status, 1); // ptp_query_type = 1
+            int ret_offset = lidar_ptr_->ptc_client_->GetPTPLockOffset(ptp_lock_offset);
+            if (ret_status != 0 || ret_offset != 0)
+            {
+              printf("-->%d %d %lu %lu\n", ret_status, ret_offset, ptp_status.size(), ptp_lock_offset.size());
+            }
+            else
+            {
+              ptp_cb_(ptp_lock_offset.front(), ptp_status);
+            }
           }
           if (correction_cb_ && lidar_ptr_->frame_.frame_index % 1000 == 1)
           {

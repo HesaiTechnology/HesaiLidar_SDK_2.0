@@ -35,7 +35,7 @@
 #include <thread>
 #include <memory>
 #include <vector>
-
+#include <arpa/inet.h>
 
 namespace hesai
 {
