@@ -117,7 +117,6 @@ public:
       //get one packte from origin_packets_buffer_, which receive data from upd or pcap thread
       int ret = lidar_ptr_->GetOnePacket(packet);
       if (ret == -1) continue;
-      
       //get fault message
       if (packet.packet_len == kFaultMessageLength) {
         FaultMessageCallback(packet, fault_message_info);
@@ -159,7 +158,7 @@ public:
             int ret_offset = lidar_ptr_->ptc_client_->GetPTPLockOffset(ptp_lock_offset);
             if (ret_status != 0 || ret_offset != 0)
             {
-              printf("-->%d %d %lu %lu\n", ret_status, ret_offset, ptp_status.size(), ptp_lock_offset.size());
+              printf("-->%d %d %zu %zu\n", ret_status, ret_offset, ptp_status.size(), ptp_lock_offset.size());
             }
             else
             {
@@ -171,7 +170,6 @@ public:
             correction_cb_(lidar_ptr_->correction_string_);
           }
         }
-
         //reset frame variable
         lidar_ptr_->frame_.Update();
 

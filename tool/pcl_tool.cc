@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
   param.input_param.udp_port = 2368;
   param.input_param.host_ip_address = "192.168.1.100";
   param.input_param.multicast_ip_address = "";
-
+  // param.decoder_param.enable_packet_loss_tool = true;
   //init lidar with param
   sample.Init(param);
 

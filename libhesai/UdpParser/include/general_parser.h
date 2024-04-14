@@ -148,12 +148,12 @@ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, timestamp)>::type setT
 
 inline float deg2Rad(float deg)
 {
-    return deg * 0.01745329251994329575;
+    return (float)(deg * 0.01745329251994329575);
 }
 
 inline float rad2Deg(float rad)
 {
-    return rad * 57.29577951308232087721;
+    return (float)(rad * 57.29577951308232087721);
 }
 
 struct Transform {

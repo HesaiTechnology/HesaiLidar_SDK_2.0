@@ -238,7 +238,7 @@ struct HS_LIDAR_HEADER_FT_V2 {
   uint16_t channel_num;
   uint8_t reserved[8];
 
-  uint8_t GetChannelNum() const { return channel_num; }
+  uint16_t GetChannelNum() const { return channel_num; }
   double GetDistUnit() const { return dist_unit / 1000.f; }
   uint8_t GetEchoCount() const { return echo; }
   bool IsFirstBlockLastReturn() const {

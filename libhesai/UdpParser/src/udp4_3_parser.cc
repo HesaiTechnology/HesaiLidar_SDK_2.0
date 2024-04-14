@@ -302,8 +302,10 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
 
     if (this->use_angle_ && IsNeedFrameSplit(u16Azimuth, field)) {
       output.scan_complete = true;
+      // printf("IsNeedFrameSplit %d %d\n", u16Azimuth, this->last_azimuth_);
     }
     this->last_azimuth_ = u16Azimuth;
+    // printf("%d, %u, %d\n", this->current_seqnum_, u16Azimuth, this->last_azimuth_);
   }
   return 0;
 }

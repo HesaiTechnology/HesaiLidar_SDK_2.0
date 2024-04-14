@@ -91,36 +91,22 @@ struct PandarATCorrections {
   std::array<float, MAX_AZI_LEN> cos_map;
   PandarATCorrections() {
     for (int i = 0; i < MAX_AZI_LEN; ++i) {
-      sin_map[i] = std::sin(2 * i * M_PI / MAX_AZI_LEN);
-      cos_map[i] = std::cos(2 * i * M_PI / MAX_AZI_LEN);
+      sin_map[i] = float(std::sin(2 * i * M_PI / MAX_AZI_LEN));
+      cos_map[i] = float(std::cos(2 * i * M_PI / MAX_AZI_LEN));
     }
   }
-  static const int STEP = CORRECTION_AZIMUTH_STEP;
-  int8_t GetAzimuthAdjust(uint8_t ch, uint16_t azi) const {
-    unsigned int i = std::floor(1.f * azi / STEP);
-    unsigned int l = azi - i * STEP;
-    float k = 1.f * l / STEP;
-    return round((1 - k) * azimuth_offset[ch * CORRECTION_AZIMUTH_NUM + i] +
-                 k * azimuth_offset[ch * CORRECTION_AZIMUTH_NUM + i + 1]);
-  }
-  int8_t GetElevationAdjust(uint8_t ch, uint16_t azi) const {
-    unsigned int i = std::floor(1.f * azi / STEP);
-    unsigned int l = azi - i * STEP;
-    float k = 1.f * l / STEP;
-    return round((1 - k) * elevation_offset[ch * CORRECTION_AZIMUTH_NUM + i] +
-                 k * elevation_offset[ch * CORRECTION_AZIMUTH_NUM + i + 1]);
-  }
+
   static const int STEP3 = CORRECTION_AZIMUTH_STEP * FINE_AZIMUTH_UNIT;
-  int8_t GetAzimuthAdjustV3(uint8_t ch, uint32_t azi) const {
-    unsigned int i = std::floor(1.f * azi / STEP3);
-    unsigned int l = azi - i * STEP3;
+  float GetAzimuthAdjustV3(uint8_t ch, uint32_t azi) const {
+    int i = int(std::floor(1.f * azi / STEP3));
+    int l = azi - i * STEP3;
     float k = 1.f * l / STEP3;
     return round((1 - k) * azimuth_offset[ch * CORRECTION_AZIMUTH_NUM + i] +
                  k * azimuth_offset[ch * CORRECTION_AZIMUTH_NUM + i + 1]);
   }
-  int8_t GetElevationAdjustV3(uint8_t ch, uint32_t azi) const {
-    unsigned int i = std::floor(1.f * azi / STEP3);
-    unsigned int l = azi - i * STEP3;
+  float GetElevationAdjustV3(uint8_t ch, uint32_t azi) const {
+    int i = int(std::floor(1.f * azi / STEP3));
+    int l = azi - i * STEP3;
     float k = 1.f * l / STEP3;
     return round((1 - k) * elevation_offset[ch * CORRECTION_AZIMUTH_NUM + i] +
                  k * elevation_offset[ch * CORRECTION_AZIMUTH_NUM + i + 1]);

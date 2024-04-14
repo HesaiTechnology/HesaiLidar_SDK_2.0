@@ -45,8 +45,8 @@ GeneralParser<T_Point>::GeneralParser() {
   this->last_seqnum_ = 0;
   this->loss_count_ = 0;
   this->start_time_ = 0;
-  this->last_azimuth_ = -1;
-  this->last_last_azimuth_ = -1;
+  this->last_azimuth_ = 0;
+  this->last_last_azimuth_ = 0;
   this->total_packet_count_ = 0;
   this->enable_packet_loss_tool_ = false;
   for (int i = 0; i < CIRCLE; ++i) {
