@@ -50,7 +50,7 @@ int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
   frame.work_mode = packet.work_mode;
   frame.spin_speed = packet.spin_speed;
   for (int blockid = 0; blockid < packet.block_num; blockid++) {
-    T_Point point;
+    // T_Point point;
     int elevation = 0;
     int azimuth = 0;
     for (int i = 0; i < packet.laser_num; i++) {
@@ -125,7 +125,8 @@ int Udp6_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     }
     pTail->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, 
         this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
-    return 0;
+    // return 0;
+    // why return 0 ? 
   }
 
   this->spin_speed_ = pTail->m_u16MotorSpeed;
@@ -137,8 +138,8 @@ int Udp6_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   output.scan_complete = false;
   output.distance_unit = pHeader->GetDistUnit();
   int index = 0;
-  float minAzimuth = 0;
-  float maxAzimuth = 0;
+  // float minAzimuth = 0;
+  // float maxAzimuth = 0;
   output.block_num = pHeader->GetBlockNum();
   output.laser_num = pHeader->GetLaserNum();
   
@@ -254,9 +255,9 @@ void Udp6_1Parser<T_Point>::GetDistanceCorrection(int const& aziOrigin,
     int aziCal = (aziOrigin + aziDelt) % CIRCLE;                                                    
     if(distance <= 0.1) {
       float xyDistance = distance * this->cos_all_angle_[(elevation)];
-      float x = xyDistance * this->sin_all_angle_[(aziCal)];
-      float y = xyDistance * this->cos_all_angle_[(aziCal)];
-      float z = distance * this->sin_all_angle_[(elevation)];
+      x = xyDistance * this->sin_all_angle_[(aziCal)];
+      y = xyDistance * this->cos_all_angle_[(aziCal)];
+      z = distance * this->sin_all_angle_[(elevation)];
       return;
     }
     switch (block_num_) {
@@ -282,3 +283,9 @@ void Udp6_1Parser<T_Point>::GetDistanceCorrection(int const& aziOrigin,
     z = calDistance * this->sin_all_angle_[elevation];
 }
 
+template<typename T_Point>
+int Udp6_1Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket)
+{
+  // TO DO
+  return 0;
+}

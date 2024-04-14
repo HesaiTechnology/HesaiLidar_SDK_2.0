@@ -36,7 +36,11 @@
 #include <memory>
 #include <vector>
 
-
+#ifdef _MSC_VER
+#include <WinSock2.h>
+#else
+#include <arpa/inet.h>
+#endif
 namespace hesai
 {
 namespace lidar

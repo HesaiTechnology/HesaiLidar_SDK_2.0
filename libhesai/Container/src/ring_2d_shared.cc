@@ -2,9 +2,7 @@
 #include <cassert>
 #include <iterator>
 #include <iostream>
-#include <boost/interprocess/shared_memory_object.hpp>
 #if _MSC_VER
-#include <boost/interprocess/windows_shared_memory.hpp>
 # else
 #include <stdio.h>
 #include <unistd.h>
@@ -51,15 +49,10 @@ public:
 template <typename T, size_t N, typename T2, size_t M>
 Ring2D_shared<T, N, T2, M>::Ring2D_shared() : _ring(new std::array<T, N>), _begin(0), _size(0) 
 {
-    using namespace boost::interprocess;
     std::cout << "sizeof(T2): " << sizeof(T2) << std::endl;
     std::cout << "sizeof(T2) * N * M: " << sizeof(T2) * N * M << std::endl;
 #if _MSC_VER
     windows_shared_memory shm (open_or_create, "MySharedMemory", read_write, sizeof(T2) * N * M);
-    _mapped_region = mapped_region{ shm, read_write };
-    _ring2 = new(_mapped_region.get_address())T2[N*M];
-    std::cout << "region.get_size():" << _mapped_region.get_size() << std::endl;
-    std::cout << "region.get_address():" << _mapped_region.get_address() << std::endl;
 #else
     // shared_memory_object shm (open_or_create, "MySharedMemory", read_write);
     // shm.truncate(sizeof(T2) * N * M);
@@ -97,7 +90,6 @@ Ring2D_shared<T, N, T2, M>::Ring2D_shared() : _ring(new std::array<T, N>), _begi
 template <typename T, size_t N, typename T2, size_t M>
 Ring2D_shared<T, N, T2, M>::~Ring2D_shared()
 {
-    using namespace boost::interprocess;
 #if _MSC_VER
     shared_memory_object::remove("MySharedMemory"); 
 #else

@@ -27,7 +27,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 #ifndef GENERAL_PARSER_GPU_H_
 #define GENERAL_PARSER_GPU_H_
-#define MAX_LASER_NUM (256)
+#define MAX_LASER_NUM (512)
 #include <stdint.h>
 #include <iostream>
 #include "nvbuffer.h"

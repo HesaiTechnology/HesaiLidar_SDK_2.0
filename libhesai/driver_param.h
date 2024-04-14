@@ -33,6 +33,9 @@ namespace hesai
 {
 namespace lidar
 {
+
+#define NULL_TOPIC  "your topic name"
+
 enum SourceType
 {
   DATA_FROM_LIDAR = 1,
@@ -118,15 +121,31 @@ typedef struct InputParam
   std::string correction_file_path = "Your correction file path";   ///< Path of angle calibration files(angle.csv).Only used for internal debugging.
   std::string firetimes_path = "Your firetime file path";  ///< Path of firetime files(angle.csv).
   /// certFile          Represents the path of the user's certificate
-  char* certFile = nullptr;
+  const char* certFile = nullptr;
   /// privateKeyFile    Represents the path of the user's private key
-  char* privateKeyFile = nullptr;
+  const char* privateKeyFile = nullptr;
   /// caFile            Represents the path of the root certificate
-  char* caFile = nullptr;
+  const char* caFile = nullptr;
   /// standby_mode    set the standby_mode of lidar
   int standby_mode = -1;
   /// speed             set the rotational speed of lidar
   int speed = -1;
+
+  bool send_packet_ros;
+  bool send_point_cloud_ros;
+  std::string frame_id;
+
+  std::string ros_send_packet_topic = NULL_TOPIC;
+  std::string ros_send_point_topic = NULL_TOPIC;
+  std::string ros_send_packet_loss_topic = NULL_TOPIC; 
+  std::string ros_send_ptp_topic = NULL_TOPIC;
+  std::string ros_send_correction_topic = NULL_TOPIC;
+  std::string ros_send_firetime_topic = NULL_TOPIC;
+
+  std::string ros_recv_correction_topic = NULL_TOPIC;
+  std::string ros_recv_packet_topic = NULL_TOPIC;
+
+
 } InputParam;
 
 ///< The LiDAR driver parameter

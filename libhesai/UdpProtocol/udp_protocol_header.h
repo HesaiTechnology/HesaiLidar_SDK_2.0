@@ -59,7 +59,7 @@ T little_to_native(T data) {
     unsigned char *pSrc = reinterpret_cast<unsigned char *>(&data +
                                                             sizeof(data) - 1),
                   *pDst = reinterpret_cast<unsigned char *>(&out);
-    for (int i = 0; i < sizeof(data); i++) {
+    for (size_t i = 0; i < sizeof(data); i++) {
       *pDst++ = *pSrc--;
     }
   }
@@ -93,7 +93,7 @@ struct HS_LIDAR_PRE_HEADER {
   bool IsValidDelimiter() const {
     return little_to_native(m_u16Delimiter) == kDelimiter;
   }
-  uint8_t GetDelimiter() const { return little_to_native(m_u16Delimiter); }
+  uint16_t GetDelimiter() const { return little_to_native(m_u16Delimiter); }
   uint8_t GetVersionMajor() const { return m_u8VersionMajor; }
   uint8_t GetVersionMinor() const { return m_u8VersionMinor; }
   uint8_t GetStatusInfoVersion() const { return m_u8StatusInfoVersion; }

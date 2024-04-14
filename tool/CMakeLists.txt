@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 14)
 PROJECT(SDKTool)
 set(VERSION_MAJOR 2)
 set(VERSION_MINOR 0)
-set(VERSION_TINY  5)
+set(VERSION_TINY  7)
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/Version.h.in"
   "${CMAKE_CURRENT_BINARY_DIR}/Version.h"
@@ -100,7 +100,9 @@ target_link_libraries(ptc_tool
   ${OPENSSL_LIBRARIES}
 )
 
-find_package(CUDA )
+# No support cuda and pcl compile, the error case will occur
+# error: unterminated argument list invoking macro "VTK_AUTOINIT1" 
+# find_package(CUDA )
 if(${CUDA_FOUND})
 	set(CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 	set(CUDA_SEPARABLE_COMPILATION ON)

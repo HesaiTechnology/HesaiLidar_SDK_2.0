@@ -78,7 +78,7 @@ bool SocketSource::Open() {
 
   udp_sock_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-  if (udp_sock_ == -1) return false;
+  if ((int)udp_sock_ == -1) return false;
 
   memset(&serverAddr, 0, sizeof(serverAddr));
 
@@ -178,7 +178,7 @@ bool SocketSource::IsOpened() {
 }
 
 int SocketSource::Send(uint8_t* u8Buf, uint16_t u16Len, int flags) {
-  ssize_t len = -1;
+  int len = -1;
   bool ret = true;
   if (!IsOpened()) ret = false;
 
@@ -199,7 +199,7 @@ bool isTimeout = false;
 
 int SocketSource::Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags,
                        int iTimeout) {  
-  ssize_t len = -1;
+  int len = -1;
   bool ret = true;
   if (!IsOpened()) ret = Open();
 

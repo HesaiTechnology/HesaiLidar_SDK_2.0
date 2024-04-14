@@ -36,7 +36,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define LIDARCOMMUNICATIONHEADER_H
 
 #include <endian.h>
-
+#include <arpa/inet.h>
 #ifdef _MSC_VER
 #define PACKED
 #pragma pack(push, 1)
@@ -72,7 +72,7 @@ struct LidarCommunicationHeader {
     m_u16Length = htobe16(u16Len);
   }
 
-  uint32_t GetAddr() const { return be32toh(m_u32Addr); }
+  uint32_t GetAddr() const { return ntohl(m_u32Addr); }
 
   uint16_t GetOpertationLength() const { return be16toh(m_u16Length); }
   uint8_t GetOperationByte() const {

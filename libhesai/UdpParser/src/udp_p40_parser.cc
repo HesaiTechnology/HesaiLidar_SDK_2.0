@@ -49,7 +49,7 @@ UdpP40Parser<T_Point>::~UdpP40Parser() { printf("release general parser\n"); }
 template<typename T_Point>
 int UdpP40Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
   for (int blockid = 0; blockid < packet.block_num; blockid++) {
-    T_Point point;
+    // T_Point point;
     int elevation = 0;
     int azimuth = 0;
 
@@ -121,8 +121,8 @@ int UdpP40Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     output.sensor_timestamp = udpPacket.recv_timestamp;
   }
   int index = 0;
-  float minAzimuth = 0;
-  float maxAzimuth = 0;
+  // float minAzimuth = 0;
+  // float maxAzimuth = 0;
   uint16_t u16Azimuth = 0;
   for (int j = 0; j < BLOCKNUM; j++) {
     u16Azimuth = pAzimuth->GetAzimuth();
@@ -149,7 +149,7 @@ int UdpP40Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   if (IsNeedFrameSplit(u16Azimuth)) {
     output.scan_complete = true;
   }
-  this->last_last_azimuth_ - this->last_azimuth_;
+  this->last_last_azimuth_ = this->last_azimuth_; // lapsus calami fix
   this->last_azimuth_ = u16Azimuth;  
   return 0;
 }  
@@ -213,4 +213,11 @@ bool UdpP40Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
     }
     return false;
   }
+}
+
+template<typename T_Point>
+int UdpP40Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket)
+{
+  // TO DO
+  return 0;
 }

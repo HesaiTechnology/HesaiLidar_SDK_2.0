@@ -318,8 +318,7 @@ template<typename T_Point>
 int UdpParser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
   if (parser_ == nullptr) {
     return -1;
-  }
-  if (parser_ != nullptr) {
+  } else {
     return parser_->ComputeXYZI(frame, packet);
   }
 }

@@ -92,7 +92,7 @@ void Logger::AddToQueue(LOGLEVEL loglevel, const char* pszFile, int lineNo, cons
     time_t now = time(NULL);  
     struct tm* tmstr = localtime(&now);  
     char content[512] = { 0 };  
-	char* logLevel;
+	const char* logLevel;
 	if (loglevel == LOG_DEBUG){
 		logLevel = "DEBUG";
 	}
@@ -116,7 +116,7 @@ void Logger::AddToQueue(LOGLEVEL loglevel, const char* pszFile, int lineNo, cons
                 tmstr->tm_min,  
                 tmstr->tm_sec,  
                 logLevel,  
-                std::this_thread::get_id(),  
+                (unsigned int)std::hash<std::thread::id>{}(std::this_thread::get_id()),
                 pszFile,  
                 lineNo,  
                 pszFuncSig,  

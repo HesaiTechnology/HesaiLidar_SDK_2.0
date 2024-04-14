@@ -139,7 +139,7 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
   frame.work_mode = packet.work_mode;
   frame.spin_speed = packet.spin_speed;
   for (int blockid = 0; blockid < packet.block_num; blockid++) {
-    T_Point point;
+    // T_Point point;
     int Azimuth = packet.azimuth[blockid * packet.laser_num];
     int elevation = 0;
     auto azimuth = Azimuth;
@@ -206,7 +206,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     );
     output.lidar_state = function_savety_ptr->GetLidarState();
   } else {
-    output.lidar_state = -1;
+    output.lidar_state = (uint8_t)(-1);
   }
 
   const auto *pTail = reinterpret_cast<const HS_LIDAR_TAIL_ME_V4 *>(
@@ -250,7 +250,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   }
   output.host_timestamp = GetMicroTickCountU64();
 
-  if(this->enable_packet_loss_tool_ == true) return 0 ;
+  // if(this->enable_packet_loss_tool_ == true) return 0 ;
   this->spin_speed_ = pTail->m_u16MotorSpeed;
   this->is_dual_return_= pTail->IsDualReturn();
   output.spin_speed = pTail->GetMotorSpeed();
@@ -260,8 +260,8 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   output.scan_complete = false;
   output.distance_unit = pHeader->GetDistUnit();
   int index = 0;
-  float minAzimuth = 0;
-  float maxAzimuth = 0;
+  // float minAzimuth = 0;
+  // float maxAzimuth = 0;
   output.block_num = pHeader->GetBlockNum();
   output.laser_num = pHeader->GetLaserNum();
   
@@ -413,4 +413,11 @@ void Udp1_4Parser<T_Point>::GetDistanceCorrection(int laser_id, float distance, 
       azimuth -= distance_correction_para_a_ * std::asin(sin_delt_azimuth) * kHalfCircleFloat / M_PI;
       azimuth = azimuth % CIRCLE;
   }
+}
+
+template<typename T_Point>
+int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket)
+{
+  // TO DO
+  return 0;
 }

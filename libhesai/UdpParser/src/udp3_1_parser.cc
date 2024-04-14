@@ -47,7 +47,7 @@ Udp3_1Parser<T_Point>::~Udp3_1Parser() { printf("release general parser\n"); }
 template<typename T_Point>
 int Udp3_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
   for (int blockid = 0; blockid < packet.block_num; blockid++) {
-    T_Point point;
+    // T_Point point;
     int elevation = 0;
     int azimuth = 0;
 
@@ -115,7 +115,7 @@ int Udp3_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     output.sensor_timestamp = udpPacket.recv_timestamp;
   }   
   output.host_timestamp = GetMicroTickCountU64();   
-  if(this->enable_packet_loss_tool_ == true) return 0;
+  // if(this->enable_packet_loss_tool_ == true) return 0;
   this->spin_speed_ = pTail->m_u16MotorSpeed;
   this->is_dual_return_= pTail->IsDualReturn();
   output.spin_speed = pTail->m_u16MotorSpeed;
@@ -126,8 +126,8 @@ int Udp3_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   output.scan_complete = false;
 
   int index = 0;
-  float minAzimuth = 0;
-  float maxAzimuth = 0;
+  // float minAzimuth = 0;
+  // float maxAzimuth = 0;
   output.block_num = pHeader->GetBlockNum();
   output.laser_num = pHeader->GetLaserNum();
   
@@ -150,7 +150,7 @@ int Udp3_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
         (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_QT_V1) +
         sizeof(HS_LIDAR_BODY_CHN_NNIT_QT_V1) * pHeader->GetLaserNum());
     // point to next block fine azimuth addr
-    auto elevation = 0;
+    // auto elevation = 0;
     for (int i = 0; i < pHeader->GetLaserNum(); i++) {
       double elevationCorr = this->elevation_correction_[i];
       double azimuthCorr = u16Azimuth / kResolutionFloat + this->azimuth_collection_[i];
@@ -336,7 +336,12 @@ void Udp3_1Parser<T_Point>::GetDistanceCorrection(double &azi, double &ele,
   }
 }
 
-
+template<typename T_Point>
+int Udp3_1Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket)
+{
+  // TO DO
+  return 0;
+}
 
 
 

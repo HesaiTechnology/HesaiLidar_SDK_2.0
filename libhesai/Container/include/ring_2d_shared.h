@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <array>
-#include <boost/interprocess/mapped_region.hpp>  
+ 
 namespace hesai
 {
 namespace lidar
@@ -16,7 +16,6 @@ public:
     using const_iterator = ItemIterator<const T>;
 private:
     std::unique_ptr<std::array<T, N>> _ring;
-    boost::interprocess::mapped_region _mapped_region;
     int _shmid;
     T2 *_ring2;
     size_t _begin, _size;

@@ -36,12 +36,12 @@ static constexpr uint32_t pcap_magic_number = 0xa1b2c3d4;
 
 
 PcapSaver::PcapSaver()
-    : ofs_()
+    : tcp_dumped_(false)
+    , ofs_()
     , pcap_path_("")
+    , packets_cache_(new Container)
     , dumping_(false)
     , dumping_blocked_(false)
-    , tcp_dumped_(false)
-    , packets_cache_(new Container)
 {}
 
 PcapSaver::~PcapSaver()
@@ -121,7 +121,7 @@ void PcapSaver::TcpDump(const uint8_t* data, uint32_t data_len, uint32_t max_pkt
     std::this_thread::sleep_for(100ms); // delay to make sure Dump successful
 
     using namespace std::chrono_literals;
-    int remain_len = data_len, pkt_len = max_pkt_len;
+    uint32_t remain_len = data_len, pkt_len = max_pkt_len;
     int i = 0;
     while ( remain_len > 0 ) {
         pkt_len = (remain_len > max_pkt_len) ? max_pkt_len : remain_len;
@@ -181,7 +181,7 @@ int PcapSaver::Save(const std::string& recordPath, const UdpFrame_t& packets,
       }
     }
     // static unsigned int time_begin = GetMicroTickCount();
-    for (int i = 0; i < packets.size(); i++) {
+    for (size_t i = 0; i < packets.size(); i++) {
       auto pkt = PandarPacket(packets[i].buffer, packets[i].packet_len, port);
       auto& len = packets[i].packet_len;
       std::array<uint8_t, 1500> data_with_fake_header;
@@ -209,7 +209,7 @@ int PcapSaver::Save(const std::string& recordPath, const UdpFrame_t& packets,
 int PcapSaver::Save(const std::string& recordPath,
                     const UdpFrameArray_t& packets, int port) {
   int ret = 0;
-  for (int i = 0; i < packets.size(); i++) {
+  for (size_t i = 0; i < packets.size(); i++) {
     ret = Save(recordPath, packets[i], port);
     if (ret != 0) {
       break;

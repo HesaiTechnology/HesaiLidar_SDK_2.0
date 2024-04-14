@@ -242,7 +242,7 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     // printf("udpPacket.recv_timestamp %lu, %lu\n", pTail->GetMicroLidarTimeU64(), udpPacket.recv_timestamp);
   }
 
-  if(this->enable_packet_loss_tool_ == true) return 0;
+  // if(this->enable_packet_loss_tool_ == true) return 0;
 
   this->spin_speed_ = pTail->GetMotorSpeed();
   this->is_dual_return_= pTail->IsDualReturn();
@@ -302,8 +302,10 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
 
     if (this->use_angle_ && IsNeedFrameSplit(u16Azimuth, field)) {
       output.scan_complete = true;
+      // printf("IsNeedFrameSplit %d %d\n", u16Azimuth, this->last_azimuth_);
     }
     this->last_azimuth_ = u16Azimuth;
+    // printf("%d, %u, %d\n", this->current_seqnum_, u16Azimuth, this->last_azimuth_);
   }
   return 0;
 }
@@ -338,16 +340,16 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
            sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V3) * pHeader->GetLaserNum()) *
               pHeader->GetBlockNum() +
           sizeof(HS_LIDAR_BODY_CRC_ST_V3));
-  if (pHeader->HasSeqNum()) {
-    const HS_LIDAR_TAIL_SEQ_NUM_ST_V3 *pTailSeqNum =
-        reinterpret_cast<const HS_LIDAR_TAIL_SEQ_NUM_ST_V3 *>(
-            (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ST_V3) +
-            (sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V3) +
-             sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V3) +
-             sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V3) * pHeader->GetLaserNum()) *
-                pHeader->GetBlockNum() +
-            sizeof(HS_LIDAR_BODY_CRC_ST_V3) + sizeof(HS_LIDAR_TAIL_ST_V3));      
-  }        
+  // if (pHeader->HasSeqNum()) {
+  //   const HS_LIDAR_TAIL_SEQ_NUM_ST_V3 *pTailSeqNum =
+  //       reinterpret_cast<const HS_LIDAR_TAIL_SEQ_NUM_ST_V3 *>(
+  //           (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ST_V3) +
+  //           (sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V3) +
+  //            sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V3) +
+  //            sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V3) * pHeader->GetLaserNum()) *
+  //               pHeader->GetBlockNum() +
+  //           sizeof(HS_LIDAR_BODY_CRC_ST_V3) + sizeof(HS_LIDAR_TAIL_ST_V3));      
+  // }        
   this->spin_speed_ = pTail->m_i16MotorSpeed;
   this->is_dual_return_= pTail->IsDualReturn();
   frame.laser_num = pHeader->GetBlockNum();
@@ -355,8 +357,8 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   frame.points_num += pHeader->GetBlockNum() * pHeader->GetLaserNum();
   frame.scan_complete = false;
   int index = frame.packet_index * pHeader->GetBlockNum() * pHeader->GetLaserNum();
-  float minAzimuth = 0;
-  float maxAzimuth = 0;
+  // float minAzimuth = 0;
+  // float maxAzimuth = 0;
   const HS_LIDAR_BODY_AZIMUTH_ST_V3 *pAzimuth =
       reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_ST_V3 *>(
           (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ST_V3));
@@ -401,8 +403,8 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
       frame.scan_complete = true;
     }
     this->last_azimuth_ = u16Azimuth;
-    if(blockid  == 0 ) minAzimuth =  azimuth;
-    else maxAzimuth = azimuth;
+    // if(blockid  == 0 ) minAzimuth =  azimuth;
+    // else maxAzimuth = azimuth;
     
   }
   frame.packet_index++;
@@ -412,7 +414,7 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
 template<typename T_Point>
 int Udp4_3Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet){
   for (int blockid = 0; blockid < packet.block_num; blockid++) {
-    T_Point point;
+    // T_Point point;
     int Azimuth = packet.azimuth[blockid * packet.laser_num];
     int count = 0, field = 0;
     if ( this->get_correction_file_) {

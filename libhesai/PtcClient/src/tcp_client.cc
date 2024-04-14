@@ -37,7 +37,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ws2tcpip.h> 
 #pragma comment(lib, "ws2_32.lib")  // Winsock Library
 #include <BaseTsd.h>
-typedef int ssize_t;
+
 typedef int socklen_t;
 #define MSG_DONTWAIT (0x40)
 #else
@@ -117,7 +117,7 @@ bool TcpClient::Open() {
 
   m_tcpSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-  if (m_tcpSock == -1) return false;
+  if ((int)m_tcpSock == -1) return false;
 
   memset(&serverAddr, 0, sizeof(serverAddr));
 
@@ -185,7 +185,7 @@ bool TcpClient::IsOpened(bool bExpectation) {
 }
 
 int TcpClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
-  ssize_t len = -1;
+  int len = -1;
   bool ret = true;
 
   if (!IsOpened()) ret = Open();
@@ -208,7 +208,7 @@ int TcpClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
 }
 
 int TcpClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
-  ssize_t len = -1;
+  int len = -1;
   bool ret = true;
 
   if (!IsOpened()) ret = Open();
@@ -314,7 +314,7 @@ void TcpClient::SetReceiveBufferSize(const uint32_t &size) {
   }
 
   m_u32ReceiveBufferSize = size;
-  int recbuffSize;
+  uint32_t recbuffSize;
   socklen_t optlen = sizeof(recbuffSize);
   int ret = getsockopt(m_tcpSock, SOL_SOCKET, SO_RCVBUF, (char*)&recbuffSize, &optlen);
   if (ret == 0 && recbuffSize < size) {

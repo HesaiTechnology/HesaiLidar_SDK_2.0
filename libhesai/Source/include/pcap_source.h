@@ -191,7 +191,6 @@ public:
     void setPacketInterval(int microsecond);
     virtual void SetSocketBufferSize(uint32_t u32BufSize) {};
 };
-#pragma pack(pop)
 }  // namespace lidar
 }  // namespace hesai
 #endif // PCPASTREAMER_H_

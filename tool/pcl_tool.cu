@@ -21,7 +21,7 @@ struct PointXYZIT {
 POINT_CLOUD_REGISTER_POINT_STRUCT(
     PointXYZIT,
     (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
-    (double, timestamp, timestamp)(uint16_t, ring, ring))
+    (double, timestamp, timestamp)(std::uint16_t, ring, ring))
 
 
 using namespace pcl::visualization;

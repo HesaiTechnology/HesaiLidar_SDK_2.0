@@ -14,7 +14,9 @@ void lidarCallback(const LidarDecodedFrame<LidarPointXYZIRT>  &frame) {
 int main(int argc, char *argv[])
 {
 #ifndef _MSC_VER
-  system("sudo sh -c \"echo 562144000 > /proc/sys/net/core/rmem_max\"");
+  if (system("sudo sh -c \"echo 562144000 > /proc/sys/net/core/rmem_max\"") == -1) {
+     printf("Command execution failed!\n");
+  }
 #endif
   HesaiLidarSdk<LidarPointXYZIRT> sample;
   DriverParam param;
@@ -68,11 +70,11 @@ int main(int argc, char *argv[])
   uint64_t end = GetMicroTickCountU64();
   uint32_t total_packet_count = sample.lidar_ptr_->udp_parser_->GetGeneralParser()->total_packet_count_;
   uint32_t total_packet_loss_count = sample.lidar_ptr_->udp_parser_->GetGeneralParser()->total_loss_count_;
-  printf("total recevice packet time: %ums\n",(end -start) / 1000);
+  printf("total recevice packet time: %lums\n",(end -start) / 1000);
   printf("total receviced packet count: %u\n",total_packet_count);
   printf("total loss packet count: %u\n",total_packet_loss_count);
   if (float(total_packet_loss_count) / float(total_packet_count) > 0.01) {
-    printf("Error: Packet loss rate exceeds 1%\n");
+    printf("Error: Packet loss rate exceeds 1%%\n");
   }
   sample.Stop();
 

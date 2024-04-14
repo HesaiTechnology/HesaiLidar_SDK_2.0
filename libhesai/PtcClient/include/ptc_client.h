@@ -43,6 +43,9 @@ namespace hesai
 namespace lidar
 {
 
+const uint8_t  kPTCGetPTPLockOffset = 0x3a;
+const uint8_t  kPTCGetLidarStatus = 0x09;
+const uint8_t  kPTCGetPTPDiagnostics= 0x06;
 const uint8_t  kPTCGetLidarCalibration = 0x05;
 const uint8_t  kPTCGetInventoryInfo = 0x07;
 const uint8_t  kPTCGetLidarFiretimes = 0xA9;
@@ -80,6 +83,9 @@ class PtcClient {
   bool GetValFromOutput(uint8_t cmd, uint8_t retcode, const u8Array_t &payload, int start_pos, int length, u8Array_t &res);
 
   u8Array_t GetCorrectionInfo();
+  int GetLidarStatus();
+  int GetPTPDiagnostics (u8Array_t &dataOut, uint8_t query_type);
+  int GetPTPLockOffset(u8Array_t &dataOut);
   int GetCorrectionInfo(u8Array_t &dataOut);
   int GetFiretimesInfo(u8Array_t &dataOut);
   int GetChannelConfigInfo(u8Array_t &dataOut);

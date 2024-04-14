@@ -9,7 +9,7 @@
 // #define SAVE_PCD_FILE_BIN
 // #define SAVE_PCD_FILE_BIN_COMPRESSED
 // #define SAVE_PLY_FILE
-// #define ENABLE_VIEWER
+#define ENABLE_VIEWER
 
 
 struct PointXYZIT {
@@ -23,7 +23,7 @@ struct PointXYZIT {
 POINT_CLOUD_REGISTER_POINT_STRUCT(
     PointXYZIT,
     (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
-    (double, timestamp, timestamp)(uint16_t, ring, ring))
+    (double, timestamp, timestamp)(std::uint16_t, ring, ring))
 
 using namespace pcl::visualization;
 std::shared_ptr<PCLVisualizer> pcl_viewer;
@@ -101,10 +101,10 @@ int main(int argc, char *argv[])
   DriverParam param;
   // assign param
   param.input_param.source_type = DATA_FROM_LIDAR;
-  param.input_param.pcap_path = "Your pcap file path";
-  param.input_param.correction_file_path = "Your correction file path";
-  param.input_param.firetimes_path = "Your firetime file path";
-  param.input_param.ptc_mode = PtcMode::tcp_ssl;
+  param.input_param.pcap_path = {"Your pcap file path"};
+  param.input_param.correction_file_path = {"Your correction file path"};
+  param.input_param.firetimes_path = {"Your firetime file path"};
+  param.input_param.ptc_mode = PtcMode::tcp;
   param.input_param.certFile = "Your cert file";
   param.input_param.privateKeyFile = "Your privateKey file";
   param.input_param.caFile = "Your ca file";
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
   param.input_param.udp_port = 2368;
   param.input_param.host_ip_address = "192.168.1.100";
   param.input_param.multicast_ip_address = "";
-
+  // param.decoder_param.enable_packet_loss_tool = true;
   //init lidar with param
   sample.Init(param);
 

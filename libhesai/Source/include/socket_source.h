@@ -45,7 +45,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ws2tcpip.h> 
 #pragma comment(lib, "ws2_32.lib")  // Winsock Library
 #include <BaseTsd.h>
-typedef int ssize_t;
+
 #else
 #include <arpa/inet.h>
 #include <errno.h>

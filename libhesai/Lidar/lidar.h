@@ -132,6 +132,8 @@ public:
   int SetStandbyMode(PtcClient *Ptc_client, int standby_mode);
   // set spin speed
   int SetSpinSpeed(PtcClient *Ptc_client, int speed);
+  // load correction file from Ros bag 
+  int LoadCorrectionFromROSbag();
   UdpParser<T_Point> *udp_parser_;
   Source *source_;
   PtcClient *ptc_client_;
@@ -140,6 +142,7 @@ public:
   uint16_t use_timestamp_type_ = 0;
   int fov_start_ = 0;
   int fov_end_ = 0;
+  u8Array_t correction_string_;
 
 private:
   uint16_t ptc_port_;

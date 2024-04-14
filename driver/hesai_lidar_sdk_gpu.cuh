@@ -25,6 +25,7 @@ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT
 TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
+#pragma once
 #include "lidar.h"
 #include "udp_parser_gpu.h"
 #include "fault_message.h"
@@ -39,6 +40,9 @@ private:
   std::thread *runing_thread_ptr_;
   std::function<void(const UdpFrame_t &, double)> pkt_cb_;
   std::function<void(const LidarDecodedFrame<T_Point> &)> point_cloud_cb_;
+  std::function<void(const u8Array_t&)> correction_cb_;
+  std::function<void(const uint32_t &, const uint32_t &)> pkt_loss_cb_;
+  std::function<void(const uint8_t&, const u8Array_t&)> ptp_cb_;
   bool is_thread_runing_;
   bool packet_loss_tool_; 
 
@@ -152,10 +156,11 @@ public:
     FaultMessageInfo fault_message_info;
     int packet_index = 0;
     uint32_t start = GetMicroTickCount();
+    uint32_t total_packet_count;
+    uint32_t total_packet_loss_count;    
     while (is_thread_runing_)
     {
       UdpPacket packet;
-
       //get one packte from origin_packets_buffer_, which receive data from upd or pcap thread
       int ret = lidar_ptr_->GetOnePacket(packet);
       if (ret == -1) continue;
@@ -170,7 +175,7 @@ public:
       int res = lidar_ptr_->DecodePacket(decoded_packet, packet);
 
       //do not compute xyzi of points if enable packet_loss_tool_
-      if(packet_loss_tool_ == true) continue;
+      // if(packet_loss_tool_ == true) continue;
 
       //one frame is receive completely, split frame
       if (decoded_packet.scan_complete)
@@ -181,13 +186,39 @@ public:
 
         //log info, display frame message
         if (frame.points_num > kMinPointsOfOneFrame) {
-          // LogInfo("frame:%d   points:%u  packet:%d  time:%lf\n", frame.frame_index, frame.points_num, packet_index, frame.points[0].timestamp);
+          // printf("frame:%d   points:%u  packet:%d  time:%lf\n", frame.frame_index, frame.points_num, packet_index, frame.points[0].timestamp);
           
           //publish point cloud topic
           if(point_cloud_cb_) point_cloud_cb_(frame);
 
           //publish upd packet topic
           if(pkt_cb_) pkt_cb_(udp_packet_frame, frame.points[0].timestamp);
+
+          if (pkt_loss_cb_ )
+          {
+            total_packet_count = lidar_ptr_->udp_parser_->GetGeneralParser()->total_packet_count_;
+            total_packet_loss_count = lidar_ptr_->udp_parser_->GetGeneralParser()->total_loss_count_;
+            pkt_loss_cb_(total_packet_count, total_packet_loss_count);
+          }
+          if (ptp_cb_ && frame.frame_index % 100 == 1)
+          {
+            u8Array_t ptp_status;
+            u8Array_t ptp_lock_offset;
+            int ret_status = lidar_ptr_->ptc_client_->GetPTPDiagnostics(ptp_status, 1); // ptp_query_type = 1
+            int ret_offset = lidar_ptr_->ptc_client_->GetPTPLockOffset(ptp_lock_offset);
+            if (ret_status != 0 || ret_offset != 0)
+            {
+              printf("-->%d %d %lu %lu\n", ret_status, ret_offset, ptp_status.size(), ptp_lock_offset.size());
+            }
+            else
+            {
+              ptp_cb_(ptp_lock_offset.front(), ptp_status);
+            }
+          }
+          if (correction_cb_ && frame.frame_index % 1000 == 1)
+          {
+            correction_cb_(lidar_ptr_->correction_string_);
+          }
         }
 
         //reset frame variable
@@ -255,6 +286,18 @@ public:
   void RegRecvCallback(const std::function<void(const UdpFrame_t &, double)>& callback)
   {
     pkt_cb_ = callback;
+  }
+
+  // assign callback fuction
+  void RegRecvCallback(const std::function<void (const u8Array_t&)>& callback) {
+    correction_cb_ = callback;
+  }
+
+  void RegRecvCallback(const std::function<void (const uint32_t &, const uint32_t &)>& callback) {
+    pkt_loss_cb_ = callback;
+  }
+  void RegRecvCallback(const std::function<void (const uint8_t&, const u8Array_t&)>& callback) {
+    ptp_cb_ = callback;
   }
 
   void FaultMessageCallback(UdpPacket& udp_packet, FaultMessageInfo& fault_message_info) {

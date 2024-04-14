@@ -29,7 +29,7 @@
 #include <ws2tcpip.h> 
 #pragma comment(lib, "ws2_32.lib")  // Winsock Library
 #include <BaseTsd.h>
-typedef int ssize_t;
+
 typedef int socklen_t;
 #define MSG_DONTWAIT (0x40)
 #else
@@ -264,7 +264,7 @@ SSL_CTX* TcpSslClient::InitSslClient(const char* cert, const char* private_key, 
 }
 
 int TcpSslClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
-  ssize_t len = -1;
+  int len = -1;
   bool ret = true;
 
   if(!IsOpened()) ret = Open();
@@ -283,15 +283,15 @@ int TcpSslClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
 }
 
 int TcpSslClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
-  ssize_t len = -1;
+  int len = -1;
   bool ret = true;
   
   if(!IsOpened()) ret = Open();
 
   int tick = GetMicroTickCount();
   if(ret) {
-    len = sys_readn_by_ssl(ssl_, u8Buf , u32Len);
-    if(len != u32Len) {
+    len = sys_readn_by_ssl(ssl_, u8Buf , (int32_t)u32Len);
+    if(len != (int32_t)u32Len) {
       printf("ssl receive failed\n");
 		  Close();
       return -1;
@@ -379,7 +379,7 @@ void TcpSslClient::SetReceiveBufferSize(const uint32_t &size) {
   }
 
   m_u32ReceiveBufferSize = size;
-  int recbuffSize;
+  uint32_t recbuffSize;
   socklen_t optlen = sizeof(recbuffSize);
   int ret = getsockopt(tcpsock_, SOL_SOCKET, SO_RCVBUF, (char*)&recbuffSize, &optlen);
   if (ret == 0 && recbuffSize < size) {

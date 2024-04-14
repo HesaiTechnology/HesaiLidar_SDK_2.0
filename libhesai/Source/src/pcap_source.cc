@@ -43,7 +43,7 @@ PcapIPHeader::PcapIPHeader(uint8_t protocol, uint16_t pkt_len)
 
 PcapIPv6Header::PcapIPv6Header(uint8_t protocol, uint16_t pkt_len)
     : ether{ {0xff,0xff,0xff,0xff,0xff,0xff}, {0x00, 0x0a, 0x35, 0x00, 0x1e, 0x53}, 0xdd86 }
-    , ipv6 { 0x6, 0, 0, 0, uint16_t((((pkt_len + 40) & 0xff) << 8) | ((pkt_len + 40) >> 8)), protocol, }
+    , ipv6 { 0x6, 0, 0, 0, uint8_t((((pkt_len + 40) & 0xff) << 8) | ((pkt_len + 40) >> 8)), protocol, }
 {}
 
 PcapUDPHeader::PcapUDPHeader(uint16_t pkt_len, uint16_t port)
