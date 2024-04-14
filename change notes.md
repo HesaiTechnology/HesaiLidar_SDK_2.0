@@ -53,3 +53,4 @@ V2.0.7
 4. Support AT128P inversion
 5. Update XT16/XT32/XT32M2X/OT128 firetime correction file
 6. Update AT128 and AT128P angle correction file
+7. Resolve windows compile error
