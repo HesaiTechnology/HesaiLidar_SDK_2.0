@@ -61,6 +61,12 @@ int GeneralParser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, Lidar
   return 0;
 }
 template <typename T_Point>
+void GeneralParser<T_Point>::FrameNumAdd(LidarDecodedFrame<T_Point> &frame, uint32_t points_num) {
+  LockS lock(this->_mutex);
+  frame.points_num += points_num;
+  frame.packet_num++;
+}
+template <typename T_Point>
 int GeneralParser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket) {
   return 0;
 }  

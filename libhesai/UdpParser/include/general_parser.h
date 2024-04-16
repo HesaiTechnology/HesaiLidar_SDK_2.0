@@ -187,6 +187,9 @@ struct LidarOpticalCenter {
 template <typename T_Point>
 class GeneralParser {
  public:
+  using Mutex = std::mutex;
+  using LockS = std::lock_guard<Mutex>;
+ public:
   GeneralParser();
   virtual ~GeneralParser();
 
@@ -227,6 +230,8 @@ class GeneralParser {
   // compute xyzi of points from decoded packet
   // param packet is the decoded packet; xyzi of points after computed is puted in frame  
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
+  // Under thread safety, increase the points_num in the frame
+  void FrameNumAdd(LidarDecodedFrame<T_Point> &frame, uint32_t points_num);
 
   //set frame azimuth
   virtual void SetFrameAzimuth(float frame_start_azimuth);
@@ -249,6 +254,7 @@ class GeneralParser {
   uint32_t total_packet_count_;
   
  protected:
+  Mutex _mutex;
   uint16_t monitor_info1_[256];
   uint16_t monitor_info2_[256];
   uint16_t monitor_info3_[256];

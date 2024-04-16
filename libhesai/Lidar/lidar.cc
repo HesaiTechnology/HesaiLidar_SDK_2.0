@@ -474,15 +474,11 @@ void Lidar<T_Point>::ParserThread() {
     LidarDecodedPacket<T_Point> decoded_packet;
     bool decoded_result = decoded_packets_buffer_.try_pop_front(decoded_packet);
     // decoded_packet.use_timestamp_type = use_timestamp_type_;
+    if (!decoded_result) {
+      continue;
+    }
     if (handle_thread_count_ < 2) {
-      if (decoded_result)
-      {
         udp_parser_->ComputeXYZI(frame_, decoded_packet);
-      }
-      // else
-      // {
-      //   printf("decoded_packets_buffer_ try_pop_front timeout\n");
-      // }
       continue;
     } else {
       nUDPCount = nUDPCount % handle_thread_count_;
@@ -564,6 +560,15 @@ void Lidar<T_Point>::SetThreadNum(int nThreadNum) {
       new std::thread(std::bind(&Lidar::RecieveUdpThread, this));
   parser_thread_ptr_ =
       new std::thread(std::bind(&Lidar::ParserThread, this));    
+}
+template <typename T_Point>
+void Lidar<T_Point>::ClearPacketBuffer() {
+  decoded_packets_buffer_.eff_clear();
+  if (handle_thread_count_ > 1) {
+    for (int i = 0; i < handle_thread_count_; i++) {
+      handle_thread_packet_buffer_[i].clear();
+    }
+  }
 }
 template <typename T_Point>
 void Lidar<T_Point>::SetSource(Source **source) {

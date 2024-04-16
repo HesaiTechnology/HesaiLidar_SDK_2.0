@@ -216,8 +216,8 @@ struct HS_LIDAR_TAIL_ME_V4 {
   bool IsLastReturn() const { return m_u8ReturnMode == kLastReturn; }
   bool IsStrongestReturn() const { return m_u8ReturnMode == kStrongestReturn; }
   bool IsDualReturn() const { return m_u8ReturnMode == kDualReturn; }
-  bool IsFirstSecondReturn() const {
-    return m_u8ReturnMode == kFirstSecondReturn;
+  bool IsFirstLastReturn() const {
+    return m_u8ReturnMode == kFirstLastReturn;
   }
   bool IsStongestFirstReturn() const {
     return m_u8ReturnMode == kStongestFirstReturn;

@@ -180,8 +180,7 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       setRing(frame.points[point_index], i);
     }
   }
-  frame.points_num += packet.points_num;
-  frame.packet_num = packet.packet_index;
+  GeneralParser<T_Point>::FrameNumAdd(frame, packet.points_num);
   return 0;
 }
 
