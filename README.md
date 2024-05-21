@@ -4,10 +4,12 @@ This repository includes the software development kit for Hesai LiDAR sensor man
 
 ## Support Lidar type
 - Pandar
-- AT128
+- AT128/AT128P
 - QT
 - FT120
 - XT16/XT32
+- ET25
+- OT
 
 ## Environment and Dependencies
 
