@@ -72,7 +72,9 @@ void Udp1_4Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
             dist.push_back(e);
           }
         }
-        section_distance = std::stod(dist);
+        if (dist.size() != 0) {
+          section_distance = std::stod(dist);
+        }
       }
       if(uselessLine < 3) {
         uselessLine++;
@@ -82,7 +84,7 @@ void Udp1_4Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
         lineStr = lineStr.substr(lineStr.size() - 1);
       }
       if (strList.size() < 17) {
-        std::cout << "nvalid input file!" << std::endl;
+        std::cout << "invalid input file!" << std::endl;
         this->get_firetime_file_ = false;
         return;
       }
