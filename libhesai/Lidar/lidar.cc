@@ -437,7 +437,10 @@ void Lidar<T_Point>::ParserThread() {
 #endif
   while (running_) {
     LidarDecodedPacket<T_Point> decoded_packet;
-    decoded_packets_buffer_.try_pop_front(decoded_packet);
+    int status = decoded_packets_buffer_.try_pop_front(decoded_packet);
+    if (!status){
+      continue;
+    }
     if (handle_thread_count_ < 2) {
       udp_parser_->ComputeXYZI(frame_, decoded_packet);
       continue;
