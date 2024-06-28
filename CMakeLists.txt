@@ -66,6 +66,19 @@ target_link_libraries(sample
   ${OPENSSL_LIBRARIES}
 )
 
+add_library(HesaiSDK STATIC  
+  lidar_sdk.cc
+)
+
+target_link_libraries(HesaiSDK
+  source_lib
+  container_lib
+  ptcClient_lib
+  ptcParser_lib
+  log_lib
+  ${OPENSSL_LIBRARIES}
+)
+
 # if install different cuda version, set the cuda path, like cuda-11.4
 # set(CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda-11.4/)
 # find_package(CUDA REQUIRED)
