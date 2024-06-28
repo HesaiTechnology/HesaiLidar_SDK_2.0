@@ -56,7 +56,9 @@ sdk_create_pcd_header(FILE *f_pcd, size_t size)
 }
 #endif //DEBUG_PLUGIN
 
+#ifdef DEBUG
 std::chrono::high_resolution_clock::time_point prevTime;
+#endif //DEBUG
 
 void lidarAcquisitionCallback(const LidarDecodedFrame<LidarPointXYZIRT>  &frame) {
     frameIndex = 0;
@@ -68,11 +70,13 @@ void lidarAcquisitionCallback(const LidarDecodedFrame<LidarPointXYZIRT>  &frame)
     sdk_create_pcd_header(f_pcd, cloud->size());
     #endif //DEBUG_PLUGIN
 
+    #ifdef DEBUG
     auto now = std::chrono::system_clock::now();
     auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now - prevTime).count();
     prevTime = now;
 
     printf("* skd frame %d ms: %ld\n", frame.frame_index, (long)milliseconds); //cloud->size()
+    #endif // DEBUG
     
     LidarPoint* p = buffer;
     for (uint32_t i = 0 ; i<frame.points_num; i++)
@@ -83,8 +87,6 @@ void lidarAcquisitionCallback(const LidarDecodedFrame<LidarPointXYZIRT>  &frame)
           printf("ERROR: lidarAcquisitionCallback. numPoints >= MAX_LIDAR_POINTS. Please contact the Dev. team\n");
           break;
         }
-        // if(count++ %100==0)
-        //   printf("-- %d\n", count);
         p->x = point.x;
         p->y = point.y;
         p->z = point.z;
@@ -112,7 +114,6 @@ void acquisituionFunction()
     }
     lidar_sdk->Stop();
     delete(lidar_sdk);
-    // return NULL;
 }
 
 void initCloudAcquisition(void* lidarPtr, 
@@ -153,7 +154,7 @@ void initCloudAcquisition(void* lidarPtr,
   std::unique_lock<std::mutex> lock(firstFrameMutex);
   firstFrameArrived.wait(lock, [] { return frameIndex > -1; });
 
-  printf("=== initCloudAcquisition continued");
+//   printf("=== initCloudAcquisition continued");
 }
 
 void startCloudAcquisition()
