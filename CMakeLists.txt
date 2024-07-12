@@ -53,21 +53,21 @@ include_directories(
 )
 link_directories(./libhesai/PtcClient/lib)
 
-add_executable(sample
-  test/test.cc
-)
+# add_executable(sample
+#   test/test.cc
+# )
 
-target_link_libraries(sample
-  source_lib
-  container_lib
-  ptcClient_lib
-  ptcParser_lib
-  log_lib
-  ${OPENSSL_LIBRARIES}
-)
+# target_link_libraries(sample
+#   source_lib
+#   container_lib
+#   ptcClient_lib
+#   ptcParser_lib
+#   log_lib
+#   ${OPENSSL_LIBRARIES}
+# )
 
 add_library(HesaiSDK STATIC  
-  lidar_sdk.cc
+  lidar_sdk.cpp
 )
 
 target_link_libraries(HesaiSDK
