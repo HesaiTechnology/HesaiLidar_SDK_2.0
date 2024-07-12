@@ -135,7 +135,7 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
           p += sizeof(int16_t) * channel_num;
           memcpy((void *)&corrections_.raw_elevations, p,
                  sizeof(int16_t) * channel_num);
-          p += sizeof(uint32_t) * channel_num;
+          p += sizeof(int16_t) * channel_num;
           corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
           corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
           corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;
@@ -161,7 +161,7 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
           p += sizeof(int16_t) * channel_num;
           memcpy((void *)&corrections_.raw_elevations, p,
                  sizeof(int16_t) * channel_num);
-          p += sizeof(uint32_t) * channel_num;
+          p += sizeof(int16_t) * channel_num;
           corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
           corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
           corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;

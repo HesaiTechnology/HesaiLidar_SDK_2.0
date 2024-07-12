@@ -141,6 +141,7 @@ struct LidarDecodedPacket
     uint16_t distances[kMaxPointsNumPerPacket];
     float azimuth[kMaxPointsNumPerPacket];
     float elevation[kMaxPointsNumPerPacket];
+    uint8_t chn_index[kMaxPointsNumPerPacket];
     uint16_t azimuths;
     uint16_t spin_speed;
     uint8_t lidar_state;

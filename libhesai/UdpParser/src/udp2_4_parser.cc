@@ -138,7 +138,7 @@ int Udp2_4Parser<T_Point>::LoadCorrectionString(char *data) {
           p += sizeof(int16_t) * channel_num;
           memcpy((void *)&m_ET_corrections.raw_elevations, p,
                  sizeof(int16_t) * channel_num);
-          p += sizeof(uint32_t) * channel_num;
+          p += sizeof(int16_t) * channel_num;
           m_ET_corrections.elevations[0] = ((float)(m_ET_corrections.apha)) / division;
           m_ET_corrections.elevations[1] = ((float)(m_ET_corrections.beta)) / division;
           m_ET_corrections.elevations[2] = ((float)(m_ET_corrections.gamma)) / division;
