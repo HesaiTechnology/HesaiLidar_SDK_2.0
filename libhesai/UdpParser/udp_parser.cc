@@ -334,9 +334,15 @@ int UdpParser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, const 
   if(pcap_saver_ == nullptr){
     pcap_saver_ = new PcapSaver;
   }
+  if (udpPacket.packet_len < 6) {   // sizeof(HS_LIDAR_PRE_HEADER)
+    output.scan_complete = false;
+    output.block_num = 0;
+    return -1;
+  }
   if (parser_ == nullptr) {
     // Udp raw_udp_packet
     this->CreatGeneralParser(udpPacket);
+    output.block_num = 0;
     return 0;
   } else {
     int res = parser_->DecodePacket(output, udpPacket);

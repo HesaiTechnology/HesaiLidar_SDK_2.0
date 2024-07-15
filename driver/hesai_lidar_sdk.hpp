@@ -187,10 +187,12 @@ public:
       }
       else {
         //new decoded packet of one frame, put it into decoded_packets_buffer_ and compute xyzi of points
-        decoded_packet.packet_index = packet_index;
-        lidar_ptr_->ComputeXYZI(decoded_packet);
-        udp_packet_frame.emplace_back(packet);
-        packet_index++;
+        if(decoded_packet.IsDecodedPacketValid()) {
+          decoded_packet.packet_index = packet_index;
+          lidar_ptr_->ComputeXYZI(decoded_packet);
+          udp_packet_frame.emplace_back(packet);
+          packet_index++;
+        } 
 
         //update status manually if start a new frame failedly
         if (packet_index >= kMaxPacketNumPerFrame) {
