@@ -65,20 +65,40 @@ link_directories(./libhesai/PtcClient/lib)
 #   log_lib
 #   ${OPENSSL_LIBRARIES}
 # )
+set(HESAI_HEADER_DEST /opt/nvidia/deepstream/deepstream)
+set(HESAI_HEADER_DEST_INCLUDE ${HESAI_HEADER_DEST}/sources/includes/Hesai_SDK_2.0)
+set(HESAI_HEADER_DEST_LIBS ${HESAI_HEADER_DEST}/lib/Hesai_SDK_2.0)
 
-add_library(HesaiSDK STATIC  
-  lidar_sdk.cpp
+set(Hesai_libs
+  build/libhesai/libcontainer_lib.a
+  build/libhesai/liblog_lib.a
+  build/libhesai/libptcClient_lib.a
+  build/libhesai/libsource_lib.a
+  build/libhesai/libptcParser_lib.a
+  build/libhesai/libplatutils_lib.a
 )
+foreach(file ${Hesai_libs})
+    install(FILES ${file} DESTINATION ${HESAI_HEADER_DEST_LIBS})
+endforeach()
 
-target_link_libraries(HesaiSDK
-  source_lib
-  container_lib
-  ptcClient_lib
-  ptcParser_lib
-  log_lib
-  ${OPENSSL_LIBRARIES}
+
+file(GLOB_RECURSE HEADER_FILES "*.h")
+install(FILES ${HEADER_FILES} DESTINATION  ${HESAI_HEADER_DEST_INCLUDE})
+
+file(GLOB_RECURSE HEADER_FILES "libhesai/UdpParser/*.cc")
+install(FILES ${HEADER_FILES} DESTINATION  ${HESAI_HEADER_DEST_INCLUDE})
+
+set(Hesai_headers
+  driver/hesai_lidar_sdk.hpp
+  libhesai/Container/src/ring.cc
+  libhesai/Container/src/blocking_ring.cc
+  ./libhesai/Lidar/lidar.cc
 )
-
+foreach(file ${Hesai_headers})
+    install(FILES ${file} DESTINATION ${HESAI_HEADER_DEST_INCLUDE})
+    endforeach()
+install(FILES ./libhesai/UdpParser/src/udp_p40_parser.cc DESTINATION ${HESAI_HEADER_DEST_INCLUDE})
+    
 # if install different cuda version, set the cuda path, like cuda-11.4
 # set(CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda-11.4/)
 # find_package(CUDA REQUIRED)
