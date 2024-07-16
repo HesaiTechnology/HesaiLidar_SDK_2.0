@@ -267,7 +267,7 @@ int Udp7_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     }
     pTail->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, 
         this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
-    return 0;
+    //return 0;
   }    
 
   output.maxPoints = pHeader->GetChannelNum();
