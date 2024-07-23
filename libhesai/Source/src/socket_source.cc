@@ -218,6 +218,10 @@ int SocketSource::Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags,
       len = recvfrom(udp_sock_, (char*)udpPacket.buffer, u16Len, flags,
                     (sockaddr*)&clientAddr, &addrLen);
       if(len == -1) {is_select_ = true;}
+      else{
+        udpPacket.ip = clientAddr.sin_addr.s_addr;
+        udpPacket.port = htons(clientAddr.sin_port);
+      }
     } else {
       int cnt = select(udp_sock_ + 1, &rfd, NULL, NULL, &timeout);
       if (cnt > 0) {
@@ -225,7 +229,9 @@ int SocketSource::Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags,
         sockaddr_in clientAddr;
         socklen_t addrLen = sizeof(sockaddr);
         len = recvfrom(udp_sock_, (char*)udpPacket.buffer, u16Len, flags,
-                     (sockaddr*)&clientAddr, &addrLen);        
+                     (sockaddr*)&clientAddr, &addrLen);      
+        udpPacket.ip = clientAddr.sin_addr.s_addr;
+        udpPacket.port = htons(clientAddr.sin_port);  
       } else if (cnt == 0) {
         len = 0;
         udpPacket.is_timeout = true;        

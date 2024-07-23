@@ -271,6 +271,8 @@ struct UdpPacket {
   int16_t packet_len;
   bool is_timeout = false;
   uint64_t recv_timestamp;
+  uint32_t ip;
+  uint16_t port;
   UdpPacket(const uint8_t* data = nullptr, uint32_t sz = 0)
   : packet_len(sz)
   {
