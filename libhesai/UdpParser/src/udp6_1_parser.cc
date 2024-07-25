@@ -58,9 +58,13 @@ int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       float distance = packet.distances[blockid * packet.laser_num + i] * packet.distance_unit;   
       int Azimuth = packet.azimuth[blockid * packet.laser_num + i];
       if (this->get_correction_file_) {
-        elevation = this->elevation_correction_[i] * kResolutionInt;
-        elevation = (CIRCLE + elevation) % CIRCLE;
-        azimuth = Azimuth + this->azimuth_collection_[i] * kResolutionInt;
+        int azimuth_coll = (int(this->azimuth_collection_[i] * kResolutionInt) + CIRCLE) % CIRCLE;
+        int elevation_corr = (int(this->elevation_correction_[i] * kResolutionInt) + CIRCLE) % CIRCLE;
+        if (this->enable_distance_correction_) {
+          GetDistanceCorrection(azimuth_coll, elevation_corr, distance, GeometricCenter);
+        }
+        elevation = elevation_corr;
+        azimuth = Azimuth + azimuth_coll;
         azimuth = (CIRCLE + azimuth) % CIRCLE;
       } 
       if (packet.config.fov_start != -1 && packet.config.fov_end != -1)
@@ -69,18 +73,11 @@ int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
         if (fov_transfer < packet.config.fov_start || fov_transfer > packet.config.fov_end){//不在fov范围continue
           continue;
         }
-      }       
-      float x = 0;
-      float y = 0;
-      float z = 0;
-      if (this->enable_distance_correction_) {
-        GetDistanceCorrection(Azimuth, this->azimuth_collection_[i] * kResolutionInt, elevation , distance, x, y, z);
-      } else {
-        float xyDistance = distance * this->cos_all_angle_[(elevation)];
-        x = xyDistance * this->sin_all_angle_[(azimuth)];
-        y = xyDistance * this->cos_all_angle_[(azimuth)];
-        z = distance * this->sin_all_angle_[(elevation)];
-      }    
+      }
+      float xyDistance = distance * this->cos_all_angle_[(elevation)];
+      float x = xyDistance * this->sin_all_angle_[(azimuth)];
+      float y = xyDistance * this->cos_all_angle_[(azimuth)];
+      float z = distance * this->sin_all_angle_[(elevation)];
       this->TransformPoint(x, y, z);
       setX(frame.points[point_index], x);
       setY(frame.points[point_index], y);
@@ -241,46 +238,6 @@ bool Udp6_1Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
     }
     return false;
   }
-}
-
-template<typename T_Point>
-void Udp6_1Parser<T_Point>::GetDistanceCorrection(int const& aziOrigin,
-                                                      int const& aziDelt,
-                                                      int const& elevation,
-                                                      float const& distance,
-                                                      float& x,
-                                                      float& y,
-                                                      float& z
-                                                      ) {
-    int aziCal = (aziOrigin + aziDelt) % CIRCLE;                                                    
-    if(distance <= 0.1) {
-      float xyDistance = distance * this->cos_all_angle_[(elevation)];
-      x = xyDistance * this->sin_all_angle_[(aziCal)];
-      y = xyDistance * this->cos_all_angle_[(aziCal)];
-      z = distance * this->sin_all_angle_[(elevation)];
-      return;
-    }
-    switch (block_num_) {
-        case 6: // XTM
-            distance_correction_b_ = 0.0130;
-            distance_correction_h_ = 0.0305;
-            break;
-        case 8: // XT
-            distance_correction_b_ = 0.0130;
-            distance_correction_h_ = 0.0315;
-            break;
-        default:
-            std::cout << __func__ << "default: never occur" << block_num_ << std::endl;
-            break;
-    }
-    int aziCorrection = aziDelt % CIRCLE;
-    float calDistance = distance
-                  - this->cos_all_angle_[elevation] * (distance_correction_h_ * this->cos_all_angle_[aziCorrection] - distance_correction_b_ * this->sin_all_angle_[aziCorrection]);
-    x = calDistance * this->cos_all_angle_[elevation] * this->sin_all_angle_[aziCal]
-                  - distance_correction_b_ * this->cos_all_angle_[aziOrigin] + distance_correction_h_ * this->sin_all_angle_[aziOrigin];
-    y = calDistance * this->cos_all_angle_[elevation] * this->cos_all_angle_[aziCal]
-                  + distance_correction_b_ * this->sin_all_angle_[aziOrigin] + distance_correction_h_ * this->cos_all_angle_[aziOrigin];
-    z = calDistance * this->sin_all_angle_[elevation];
 }
 
 template<typename T_Point>

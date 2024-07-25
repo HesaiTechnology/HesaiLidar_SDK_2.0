@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
   param.input_param.udp_port = 2368;
   param.input_param.host_ip_address = "";
   param.input_param.multicast_ip_address = "";
+  param.decoder_param.distance_correction_lidar_type = "";
 
   //init lidar with param
   sample.Init(param);

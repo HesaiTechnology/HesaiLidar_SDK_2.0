@@ -208,6 +208,42 @@ void GeneralParser<T_Point>::SetEnableDistanceCorrection(bool enable) {
   this->enable_distance_correction_ = enable;
 }
 template <typename T_Point>
+void GeneralParser<T_Point>::SetOpticalCenterCoordinates(std::string lidar_type) {
+  SetEnableDistanceCorrection(true);
+  if (lidar_type == "Pandar128E4X" || lidar_type == "OT") {
+    optical_center.x = -10.0 / 1000.0;
+    optical_center.y = 45.0 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else if(lidar_type == "Pandar128E3X" || lidar_type == "Pandar64E3X" || lidar_type == "Pandar40E3X" || lidar_type == "Pandar90E3X") {
+    optical_center.x = -12.0 / 1000.0;
+    optical_center.y = 43.56 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else if(lidar_type == "Pandar64E2X" || lidar_type == "Pandar40E2X") {
+    optical_center.x = -12.0 / 1000.0;
+    optical_center.y = 38.73 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else if(lidar_type == "PandarQT") {
+    optical_center.x = -7.2 / 1000.0;
+    optical_center.y = 29.8 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else if(lidar_type == "QT128C2X") {
+    optical_center.x = 7.2 / 1000.0;
+    optical_center.y = 35.4 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else if(lidar_type == "PandarXT32M1" || lidar_type == "PandarXT16M1") {
+    optical_center.x = -13.0 / 1000.0;
+    optical_center.y = 31.5 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else if(lidar_type == "PandarXT32M2X" || lidar_type == "XTM") {
+    optical_center.x = -13.0 / 1000.0;
+    optical_center.y = 30.5 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else {
+    SetEnableDistanceCorrection(false);
+    printf("Parameter(distance_correction_lidar_type) is set to null or error to not enable distance correction\n");
+  }
+}
+template <typename T_Point>
 int GeneralParser<T_Point>::LoadFiretimesString(char *correction_string) {
   printf("load firetimes string\n");
   return 0;
@@ -218,9 +254,36 @@ double GeneralParser<T_Point>::GetFiretimesCorrection(int laserId, double speed)
   return this->firetime_correction_[laserId] * speed * 6E-6;
 }
 template <typename T_Point>
-void GeneralParser<T_Point>::GetDistanceCorrection(double &azimuth, double &elevation,
-                                          double &distance) {
-  printf("get distance correction\n");
+void GeneralParser<T_Point>::GetDistanceCorrection(int &azimuth, int &elevation, float &distance, DistanceCorrectionType type) {
+  if (distance == 0) return;
+  azimuth = (azimuth + CIRCLE) % CIRCLE;
+  elevation = (elevation + CIRCLE) % CIRCLE;
+  float tx = this->cos_all_angle_[elevation] * this->sin_all_angle_[azimuth];
+  float ty = this->cos_all_angle_[elevation] * this->cos_all_angle_[azimuth];
+  float tz = this->sin_all_angle_[elevation];
+  float d   = std::sqrt(std::pow(tx * distance + optical_center.x, 2) + 
+              std::pow(ty * distance + optical_center.y, 2) + std::pow(tz*distance + optical_center.z, 2));
+  if (type == GeometricCenter) {
+    float B = 2 * tx * optical_center.x + 2 * ty * optical_center.y + 2 * tz * optical_center.z;
+    float C = optical_center.x * optical_center.x + optical_center.y * optical_center.y + optical_center.z * optical_center.z - d * d;
+    float d_opitcal = std::sqrt(B * B / 4 - C) - B / 2;
+    float x = d_opitcal * tx + optical_center.x;
+    float y = d_opitcal * ty + optical_center.y;
+    float z = d_opitcal * tz + optical_center.z;
+    azimuth = int(std::atan(x / y) * kHalfCircleFloat / M_PI + CIRCLE) % CIRCLE;
+    elevation = int(std::asin(z / d) * kHalfCircleFloat / M_PI + CIRCLE) % CIRCLE;
+    distance = d;
+  } else if (type == OpticalCenter) {
+    float x = d * tx + optical_center.x;
+    float y = d * ty + optical_center.y;
+    float z = d * tz + optical_center.z;
+    float d_geometric_center = std::sqrt(x * x + y * y + z * z);
+    azimuth = int(std::atan(x / y) * kHalfCircleFloat / M_PI + CIRCLE) % CIRCLE;
+    elevation = int(std::asin(z / d_geometric_center) * kHalfCircleFloat / M_PI + CIRCLE) % CIRCLE;
+    distance = d_geometric_center;
+  } else {
+    // It should never have been executed here.
+  }
 }
 
 template <typename T_Point>

@@ -172,6 +172,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     if (udp_parser_->GetParser() == nullptr) {
       return res;
     }
+    udp_parser_->GetParser()->SetOpticalCenterCoordinates(param.decoder_param.distance_correction_lidar_type);
     udp_parser_->SetTransformPara(param.decoder_param.transform_param.x, \
                                   param.decoder_param.transform_param.y, \
                                   param.decoder_param.transform_param.z, \
