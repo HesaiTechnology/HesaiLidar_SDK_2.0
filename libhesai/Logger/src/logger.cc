@@ -66,12 +66,14 @@ bool Logger::Start()
 }  
   
 void Logger::Stop()  
-{  
+{   
+    if (running_ != true) return;
     exit_ = true;  
     cv_.notify_one();  
   
     //等待时间线程结束  
     spthread_->join();  
+    running_ = false;
 }  
   
 void Logger::AddToQueue(LOGLEVEL loglevel, const char* pszFile, int lineNo, const char* pszFuncSig, char* pszFmt, ...)  
