@@ -300,8 +300,16 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       index++;
     }
 
-    if (this->use_angle_ && IsNeedFrameSplit(u16Azimuth, field)) {
-      output.scan_complete = true;
+    if (IsNeedFrameSplit(u16Azimuth, field)) {
+      //超时分帧的情况下，this->last_azimuth_肯定和u16Azimuth差值很大
+      //此时通过use_angle_来避免进行错误分帧的情况。
+      if(this->use_angle_ == false){
+        this->use_angle_ = true;
+      }
+      else{
+        //未设置true会一直显示loading,几秒后超时退出崩溃
+        output.scan_complete = true;
+      }
       // printf("IsNeedFrameSplit %d %d\n", u16Azimuth, this->last_azimuth_);
     }
     this->last_azimuth_ = u16Azimuth;
@@ -399,8 +407,17 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
       pChnUnit = pChnUnit + 1;
       index++;
     }
-    if (this->use_angle_ && IsNeedFrameSplit(u16Azimuth, field)) {
-      frame.scan_complete = true;
+    if (IsNeedFrameSplit(u16Azimuth, field)) {
+      //超时分帧的情况下，this->last_azimuth_肯定和u16Azimuth差值很大
+      //此时通过use_angle_来避免进行错误分帧的情况。
+      if(this->use_angle_ == false){
+        this->use_angle_ = true;
+      }
+      else{
+        //未设置true会一直显示loading,几秒后超时退出崩溃
+        frame.scan_complete = true;
+      }
+      // printf("IsNeedFrameSplit %d %d\n", u16Azimuth, this->last_azimuth_);
     }
     this->last_azimuth_ = u16Azimuth;
     // if(blockid  == 0 ) minAzimuth =  azimuth;
