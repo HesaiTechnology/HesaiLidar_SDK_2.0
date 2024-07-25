@@ -144,15 +144,19 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
     // T_Point point;
     int Azimuth = packet.azimuth[blockid * packet.laser_num];
     int elevation = 0;
-    auto azimuth = Azimuth;
+    int azimuth = Azimuth;
 
     for (int i = 0; i < packet.laser_num; i++) {
       int point_index = packet.packet_index * packet.points_num + blockid * packet.laser_num + i;
       float distance = packet.distances[blockid * packet.laser_num + i] * packet.distance_unit;  
       if (this->get_correction_file_) {
-        elevation = this->elevation_correction_[i] * kResolutionInt;
-        elevation = (CIRCLE + elevation) % CIRCLE;
-        azimuth = Azimuth + this->azimuth_collection_[i] * kResolutionInt;
+        int azimuth_coll = (int(this->azimuth_collection_[i] * kResolutionInt) + CIRCLE) % CIRCLE;
+        int elevation_corr = (int(this->elevation_correction_[i] * kResolutionInt) + CIRCLE) % CIRCLE;
+        if (this->enable_distance_correction_) {
+          GetDistanceCorrection(azimuth_coll, elevation_corr, distance, GeometricCenter);
+        }
+        elevation = elevation_corr;
+        azimuth = Azimuth + azimuth_coll;
         azimuth = (CIRCLE + azimuth) % CIRCLE;
       } 
       if (packet.config.fov_start != -1 && packet.config.fov_end != -1)
@@ -162,9 +166,6 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
           continue;
         }
       } 
-      if (this->enable_distance_correction_) {
-        GetDistanceCorrection(i, distance, azimuth, elevation);
-      }
       float xyDistance = distance * this->cos_all_angle_[(elevation)];
       float x = xyDistance * this->sin_all_angle_[(azimuth)];
       float y = xyDistance * this->cos_all_angle_[(azimuth)];
@@ -399,21 +400,6 @@ bool Udp1_4Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
       return true;
     }
     return false;
-  }
-}
-
-template<typename T_Point>
-void Udp1_4Parser<T_Point>::GetDistanceCorrection(int laser_id, float distance, int& azimuth, int& elevation) {    
-  double sin_delt_elevation = distance_correction_para_c_ / distance * this->sin_all_angle_[elevation];
-  if (sin_delt_elevation >= -1 && sin_delt_elevation <= 1) {
-      elevation -= distance_correction_para_a_ * std::asin(sin_delt_elevation) * kHalfCircleFloat / M_PI;
-      elevation = elevation % CIRCLE;
-  }
-  double sin_delt_azimuth = distance_correction_para_c_ / distance / this->cos_all_angle_[elevation] * \
-                        this->sin_all_angle_[int((distance_correction_para_d_ + this->azimuth_collection_[laser_id]) * kResolutionInt) % CIRCLE];
-  if (sin_delt_azimuth >= -1 && sin_delt_azimuth <= 1) {
-      azimuth -= distance_correction_para_a_ * std::asin(sin_delt_azimuth) * kHalfCircleFloat / M_PI;
-      azimuth = azimuth % CIRCLE;
   }
 }
 

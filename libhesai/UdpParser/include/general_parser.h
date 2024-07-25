@@ -165,6 +165,21 @@ struct Transform {
   float yaw;
 };
 
+enum DistanceCorrectionType {
+  OpticalCenter,
+  GeometricCenter,
+};
+
+struct LidarOpticalCenter {
+  float x;
+  float y;
+  float z;
+  LidarOpticalCenter() {
+    x = 0;
+    y = 0;
+    z = 0;
+  }
+};
 // class GeneralParser
 // the GenneralParser class is a base class for parsering packets and computing points
 // you can parser the upd or pcap packets using the DocodePacket fuction
@@ -186,10 +201,22 @@ class GeneralParser {
   // compute lidar firetime correciton
   virtual double GetFiretimesCorrection(int laserId, double speed);
 
-  // compute lidar distance correction
-  virtual void GetDistanceCorrection(double &azimuth, double &elevation, double &distance);
+  /*
+    输入参数：
+    distance:  udp数据中的原始距离值
+    azimuth：  角度修正文件中的水平角
+    elevation：角度修正文件中的俯仰角
+    type:      指udp里的距离的原点，目前有两种情况，一种是udp中的距离原点在光心（optical_center),如jt,
+               一种是udp的距离原点在几何中心（geometric_center)，一般是除JT外的其他雷达
+    输出参数：
+    distance:  对于d_center为几何中心的情况，直接输出原始的distance, 对于d_center为光心的情况，把修正后相对于几何中心的距离输出
+    azimuth:   光心修正的修正量，需要加到原来的azimuth里(代替原始的角度修正文件中的水平角)
+    elevation: 光心修正后的elevation
+  */
+  void GetDistanceCorrection(int &azimuth, int &elevation, float &distance, DistanceCorrectionType type);
   void SetEnableFireTimeCorrection(bool enable);
   void SetEnableDistanceCorrection(bool enable);
+  void SetOpticalCenterCoordinates(std::string lidar_type);
   // covert a origin udp packet to decoded packet, the decode function is in UdpParser module
   // udp_packet is the origin udp packet, output is the decoded packet
   virtual int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket); 
@@ -248,6 +275,7 @@ class GeneralParser {
   bool enable_packet_loss_tool_;
   Transform transform_;
   float frame_start_azimuth_;
+  LidarOpticalCenter optical_center;
 };
 }
 }

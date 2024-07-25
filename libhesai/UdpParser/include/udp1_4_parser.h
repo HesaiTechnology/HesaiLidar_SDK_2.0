@@ -79,8 +79,6 @@ class Udp1_4Parser : public GeneralParser<T_Point> {
   bool IsNeedFrameSplit(uint16_t azimuth); 
 
   using GeneralParser<T_Point>::GetDistanceCorrection;
-  // compute lidar distance correction
-  void GetDistanceCorrection(int laser_id, float distance, int& azimuth, int& elevation);
 //   virtual int ComputeXYZI(LidarDecodedFrame &frame, LidarDecodedPacket &packet);
 
  private:

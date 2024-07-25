@@ -55,10 +55,15 @@ int Udp3_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       int point_index = packet.packet_index * packet.points_num + blockid * packet.laser_num + i; 
       float distance = packet.distances[blockid * packet.laser_num + i] * packet.distance_unit; 
       int Azimuth = packet.azimuth[blockid * packet.laser_num + i];
+      azimuth = Azimuth;
       if (this->get_correction_file_) {
-        elevation = packet.elevation[blockid * packet.laser_num + i];
-        elevation = (CIRCLE + elevation) % CIRCLE;
-        azimuth = Azimuth;
+        int azimuth_coll = (int(this->azimuth_collection_[i] * kResolutionInt) + CIRCLE) % CIRCLE;
+        int elevation_corr = (int(this->elevation_correction_[i] * kResolutionInt) + CIRCLE) % CIRCLE;
+        if (this->enable_distance_correction_) {
+          GetDistanceCorrection(azimuth_coll, elevation_corr, distance, GeometricCenter);
+        }
+        elevation = elevation_corr;
+        azimuth = Azimuth + azimuth_coll;
         azimuth = (CIRCLE + azimuth) % CIRCLE;
       }     
       if (packet.config.fov_start != -1 && packet.config.fov_end != -1)
@@ -152,19 +157,13 @@ int Udp3_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     // point to next block fine azimuth addr
     // auto elevation = 0;
     for (int i = 0; i < pHeader->GetLaserNum(); i++) {
-      double elevationCorr = this->elevation_correction_[i];
-      double azimuthCorr = u16Azimuth / kResolutionFloat + this->azimuth_collection_[i];
-      double distance = static_cast<double>(pChnUnit->GetDistance()) * pHeader->GetDistUnit();
-      if (this->enable_distance_correction_) {
-        GetDistanceCorrection(azimuthCorr, elevationCorr, distance);
-      }
       if (this->enable_firetime_correction_ && this->get_firetime_file_) {
-        azimuthCorr += this->GetFiretimesCorrection(i, this->spin_speed_) * kResolutionInt;
+        output.azimuth[index] = u16Azimuth + this->GetFiretimesCorrection(i, this->spin_speed_) * kResolutionInt;
+      } else {
+        output.azimuth[index] = u16Azimuth;
       }
       output.reflectivities[index] = pChnUnit->GetReflectivity();  
       output.distances[index] = pChnUnit->GetDistance();
-      output.azimuth[index] = azimuthCorr * kResolutionFloat;
-      output.elevation[index] = elevationCorr * kResolutionFloat;
       pChnUnit = pChnUnit + 1;
       index++;
     }
@@ -235,104 +234,6 @@ bool Udp3_1Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
       return true;
     }
     return false;
-  }
-}
-
-template<typename T_Point>
-void Udp3_1Parser<T_Point>::GetDistanceCorrection(double &azi, double &ele,
-                                          double &distance) {
-  int aziIndex = int(azi * kResolutionFloat);
-  int eleIndex = int(ele * kResolutionFloat);
-  if (aziIndex >= CIRCLE) aziIndex -= CIRCLE;
-  if (aziIndex < 0) aziIndex += CIRCLE;
-  if (eleIndex >= CIRCLE) eleIndex -= CIRCLE;
-  if (eleIndex < 0) eleIndex += CIRCLE;
-  float point_x, point_y, point_z;
-  if (distance > 0.1) {
-    if (this->sin_all_angle_[eleIndex] != 0) {
-      // printf("%d  %f\n", eleIndex, this->sin_all_angle_[eleIndex]);
-      float c = (HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG *
-                     HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG +
-                 HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT *
-                     HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT -
-                 distance * distance) *
-                this->sin_all_angle_[eleIndex] * this->sin_all_angle_[eleIndex];
-      float b = 2 * this->sin_all_angle_[eleIndex] * this->cos_all_angle_[eleIndex] *
-                (HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG *
-                     this->cos_all_angle_[aziIndex] -
-                 HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT *
-                     this->sin_all_angle_[aziIndex]);
-      point_z = (-b + sqrt(b * b - 4 * c)) / 2;
-      point_x = point_z * this->sin_all_angle_[aziIndex] * this->cos_all_angle_[eleIndex] /
-                    this->sin_all_angle_[eleIndex] -
-                HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT;
-      point_y = point_z * this->cos_all_angle_[aziIndex] * this->cos_all_angle_[eleIndex] /
-                    this->sin_all_angle_[eleIndex] +
-                HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG;
-      if (((point_x + HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT) *
-               this->cos_all_angle_[eleIndex] * this->sin_all_angle_[aziIndex] +
-           (point_y - HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG) *
-               this->cos_all_angle_[eleIndex] * this->cos_all_angle_[aziIndex] +
-           point_z * this->sin_all_angle_[eleIndex]) <= 0) {
-        point_z = (-b - sqrt(b * b - 4 * c)) / 2;
-        point_x = point_z * this->sin_all_angle_[aziIndex] *
-                      this->cos_all_angle_[eleIndex] / this->sin_all_angle_[eleIndex] -
-                  HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT;
-        point_y = point_z * this->cos_all_angle_[aziIndex] *
-                      this->cos_all_angle_[eleIndex] / this->sin_all_angle_[eleIndex] +
-                  HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG;
-      }
-    } else if (this->cos_all_angle_[aziIndex] != 0) {
-      float tan_azimuth = this->sin_all_angle_[aziIndex] / this->cos_all_angle_[aziIndex];
-      float c = (HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG * tan_azimuth +
-                 HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT) *
-                    (HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG * tan_azimuth +
-                     HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT) -
-                distance * distance;
-      float a = 1 + tan_azimuth * tan_azimuth;
-      float b = -2 * tan_azimuth *
-                (HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG * tan_azimuth +
-                 HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT);
-      point_z = 0;
-      point_y = (-b + sqrt(b * b - 4 * a * c)) / (2 * a);
-      point_x =
-          (point_y - HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG) * tan_azimuth -
-          HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT;
-      if (((point_x + HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT) *
-               this->cos_all_angle_[eleIndex] * this->sin_all_angle_[aziIndex] +
-           (point_y - HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG) *
-               this->cos_all_angle_[eleIndex] * this->cos_all_angle_[aziIndex] +
-           point_z * this->sin_all_angle_[eleIndex]) <= 0) {
-        point_z = 0;
-        point_y = (-b - sqrt(b * b - 4 * a * c)) / (2 * a);
-        point_x = (point_y - HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG) *
-                      tan_azimuth -
-                  HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT;
-      }
-    } else {
-      point_x = sqrt(distance * distance -
-                     HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG *
-                         HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG);
-      point_y = HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG;
-      point_z = 0;
-      if (((point_x + HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT) *
-               this->cos_all_angle_[eleIndex] * this->sin_all_angle_[aziIndex] +
-           (point_y - HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG) *
-               this->cos_all_angle_[eleIndex] * this->cos_all_angle_[aziIndex] +
-           point_z * this->sin_all_angle_[eleIndex]) <= 0) {
-        point_x = -sqrt(distance * distance -
-                        HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG *
-                            HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG);
-        point_y = HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG;
-        point_z = 0;
-      }
-    }
-    azi = atan2(point_x, point_y) / M_PI * (kHalfCircleInt / kResolutionInt);
-    azi = azi < 0 ? azi + (kCircle / kResolutionFloat) : azi;
-    ele = atan2(point_z, sqrt(point_x * point_x + point_y * point_y)) / M_PI *
-          180;
-    ele = ele < 0 ? ele + (kCircle / kResolutionFloat) : ele;
-    distance = sqrt(point_x * point_x + point_y * point_y + point_z * point_z);
   }
 }
 
