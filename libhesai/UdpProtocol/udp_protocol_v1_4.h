@@ -179,8 +179,8 @@ struct HS_LIDAR_TAIL_ME_V4 {
   static const uint8_t kStrongestReturn = 0x37;
   static const uint8_t kLastReturn = 0x38;
   static const uint8_t kDualReturn = 0x39;
-  static const uint8_t kFirstSecondReturn = 0x3a;
-  static const uint8_t kStongestFirstReturn = 0x3b;
+  static const uint8_t kFirstLastReturn = 0x3b;
+  static const uint8_t kStongestFirstReturn = 0x3c;
 
   ReservedInfo1 m_reservedInfo1;
   ReservedInfo2 m_reservedInfo2;
