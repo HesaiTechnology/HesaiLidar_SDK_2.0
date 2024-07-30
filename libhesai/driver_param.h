@@ -163,7 +163,8 @@ typedef struct DriverParam
   ///< The frame id of LiDAR message    
   std::string frame_id = "hesai";  
   ///< Lidar type
-  std::string lidar_type = "AT128";  
+  //XT spot correction support: 6_1: PandarXT32M1, PandarXT16M1
+  std::string lidar_type = "";  
   int log_level = LOG_DEBUG | LOG_INFO; //
   int log_Target = LOG_TARGET_CONSOLE | LOG_TARGET_FILE;
   std::string log_path = "./log.log";

@@ -206,6 +206,11 @@ void GeneralParser<T_Point>::EnablePacketLossTool(bool enable) {
 }
 
 template <typename T_Point>
+void GeneralParser<T_Point>::SetLidarType(std::string type) {
+  this->lidar_type = type;
+}
+
+template <typename T_Point>
 void GeneralParser<T_Point>::SetEnableFireTimeCorrection(bool enable) {
   this->enable_firetime_correction_ = enable;
 }

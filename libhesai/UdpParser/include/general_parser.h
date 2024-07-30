@@ -220,6 +220,7 @@ class GeneralParser {
   void SetEnableFireTimeCorrection(bool enable);
   void SetEnableDistanceCorrection(bool enable);
   void SetOpticalCenterCoordinates(std::string lidar_type);
+  void SetLidarType(std::string lidar_type);
   // covert a origin udp packet to decoded packet, the decode function is in UdpParser module
   // udp_packet is the origin udp packet, output is the decoded packet
   virtual int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket); 
@@ -279,6 +280,7 @@ class GeneralParser {
   bool enable_firetime_correction_;
   bool enable_distance_correction_;
   bool enable_packet_loss_tool_;
+  std::string lidar_type;
   Transform transform_;
   float frame_start_azimuth_;
   LidarOpticalCenter optical_center;
