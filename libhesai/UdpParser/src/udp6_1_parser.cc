@@ -65,6 +65,13 @@ int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
         }
         elevation = elevation_corr;
         azimuth = Azimuth + azimuth_coll;
+        if ((this->lidar_type == "PandarXT32M1" || this->lidar_type == "PandarXT16M1") && 
+              (distance >= 0.25 && distance < 4.25)) 
+        {
+          int index = int((distance - 0.25) / 0.5);
+          index = std::min(7, index);
+          azimuth -= spot_correction_angle[index];
+        }
         azimuth = (CIRCLE + azimuth) % CIRCLE;
       } 
       if (packet.config.fov_start != -1 && packet.config.fov_end != -1)
@@ -87,8 +94,7 @@ int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       setRing(frame.points[point_index], i);
     }
   }
-  frame.points_num += packet.points_num;
-  frame.packet_num = packet.packet_index;
+  GeneralParser<T_Point>::FrameNumAdd(frame, packet.points_num);
   return 0;
 }
 

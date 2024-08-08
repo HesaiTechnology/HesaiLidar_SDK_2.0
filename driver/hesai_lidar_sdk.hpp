@@ -159,7 +159,7 @@ public:
       //one frame is receive completely, split frame
       if(decoded_packet.scan_complete) {
         //waiting for parser thread compute xyzi of points in the same frame
-        while(!lidar_ptr_->ComputeXYZIComplete(decoded_packet.packet_index)) std::this_thread::sleep_for(std::chrono::microseconds(100));
+        while(!lidar_ptr_->ComputeXYZIComplete(packet_index)) std::this_thread::sleep_for(std::chrono::microseconds(100));
         // uint32_t end =  GetMicroTickCount();
         //log info, display frame message
         if (lidar_ptr_->frame_.points_num > kMinPointsOfOneFrame) {
@@ -225,6 +225,8 @@ public:
         if (packet_index >= kMaxPacketNumPerFrame) {
           packet_index = 0;
           udp_packet_frame.clear();
+          lidar_ptr_->ClearPacketBuffer();
+          std::this_thread::sleep_for(std::chrono::microseconds(100));
           lidar_ptr_->frame_.Update();
           printf("fail to start a new frame\n");
         }

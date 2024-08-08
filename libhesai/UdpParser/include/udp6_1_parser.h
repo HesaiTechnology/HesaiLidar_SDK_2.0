@@ -71,6 +71,7 @@ class Udp6_1Parser : public GeneralParser<T_Point> {
   float distance_correction_b_;
   float distance_correction_h_;
   int block_num_;
+  uint32_t spot_correction_angle[8] = {3, 3, 25, 25, 20, 15, 8, 6};
 };
 }  // namespace lidar
 }  // namespace hesai

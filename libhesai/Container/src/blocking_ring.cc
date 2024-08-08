@@ -87,3 +87,17 @@ bool BlockingRing<T, N>::not_full()
     LockS lock(_mutex);
     return Super::not_full();
 }
+
+template <typename T, size_t N>
+void BlockingRing<T, N>::clear()
+{
+    LockS lock(_mutex);
+    Super::clear();
+}
+
+template <typename T, size_t N>
+void BlockingRing<T, N>::eff_clear()
+{
+    LockS lock(_mutex);
+    Super::eff_clear();
+}

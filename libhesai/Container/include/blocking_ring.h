@@ -34,6 +34,8 @@ public:
     bool not_empty();
     bool full();
     bool not_full();
+    void clear();
+    void eff_clear();
 };
 }  // namespace lidar
 }  // namespace hesai

@@ -124,6 +124,7 @@ public:
   void EnableRecordPcap(bool bRecord);
   // set the parser thread number
   void SetThreadNum(int thread_num);
+  void ClearPacketBuffer();
   void SetSource(Source **source);
   std::string GetLidarType();
   // get pcap status
