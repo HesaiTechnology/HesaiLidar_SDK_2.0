@@ -368,7 +368,7 @@ int Udp2_6Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
         azi_h = azi_h + corrections_.getAziAdjustV2(azi_h - 90, elv_h);
         elv_h = elv_h + corrections_.getEleAdjustV2(azi_h - 90, elv_h);
       }
-      int azimuth = (int)(azi_h * 100 + CIRCLE) % CIRCLE;
+      int azimuth = (int)(azi_h * kResolutionFloat * kFineResolutionFloat + CIRCLE) % CIRCLE;
       if (packet.config.fov_start != -1 && packet.config.fov_end != -1)
       {
         int fov_transfer = azimuth / 256 / 100;
@@ -376,7 +376,7 @@ int Udp2_6Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
           continue;
         }
       }       
-      int elevation = (int)(elv_h * 100 + CIRCLE) % CIRCLE;
+      int elevation = (int)(elv_h * kResolutionFloat * kFineResolutionFloat + CIRCLE) % CIRCLE;
       float xyDistance = distance * this->cos_all_angle_[elevation];
       float x = xyDistance * this->sin_all_angle_[azimuth];
       float y = xyDistance * this->cos_all_angle_[azimuth];

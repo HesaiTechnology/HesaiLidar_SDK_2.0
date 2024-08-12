@@ -55,11 +55,11 @@ int UdpP64Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
     for (int i = 0; i < packet.laser_num; i++) {
       int point_index = packet.packet_index * packet.points_num + blockid * packet.laser_num + i;
       float distance = packet.distances[blockid * packet.laser_num + i] * packet.distance_unit;
-      int Azimuth = packet.azimuth[blockid * packet.laser_num + i];
+      int Azimuth = packet.azimuth[blockid * packet.laser_num + i]  * kFineResolutionInt;
       if (this->get_correction_file_) {
-        elevation = this->elevation_correction_[i] * kResolutionInt;
+        elevation = this->elevation_correction_[i] * kResolutionFloat * kFineResolutionFloat;
         elevation = (CIRCLE + elevation) % CIRCLE;
-        azimuth = Azimuth + this->azimuth_collection_[i] * kResolutionInt;
+        azimuth = Azimuth + this->azimuth_collection_[i] * kResolutionFloat * kFineResolutionFloat;
         azimuth = (CIRCLE + azimuth) % CIRCLE;
       } 
       if (packet.config.fov_start != -1 && packet.config.fov_end != -1)
@@ -138,7 +138,7 @@ int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     auto elevation = 0;
     for (int i = 0; i < pHeader->GetLaserNum(); i++) {
       if(this->get_firetime_file_) {
-        output.azimuth[index] = u16Azimuth  + this->GetFiretimesCorrection(i, this->spin_speed_) * kResolutionInt;
+        output.azimuth[index] = u16Azimuth  + this->GetFiretimesCorrection(i, this->spin_speed_) * kResolutionFloat;
       }else {
         output.azimuth[index] = u16Azimuth;
       }

@@ -211,8 +211,8 @@ int Udp7_2Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
     int azimuth = 0;
     int elevation = 0;   
     if (this->get_correction_file_) {
-      azimuth = packet.azimuth[i];
-      elevation = packet.elevation[i];
+      azimuth = packet.azimuth[i] * kFineResolutionFloat;
+      elevation = packet.elevation[i] * kFineResolutionFloat;
       elevation = (CIRCLE + elevation) % CIRCLE;
       azimuth = (CIRCLE + azimuth) % CIRCLE;
     }

@@ -266,14 +266,13 @@ double GeneralParser<T_Point>::GetFiretimesCorrection(int laserId, double speed)
 }
 template <typename T_Point>
 void GeneralParser<T_Point>::GetDistanceCorrection(int &azimuth, int &elevation, float &distance, DistanceCorrectionType type) {
-  if (distance == 0) return;
+  if (distance <= 0) return;
   azimuth = (azimuth + CIRCLE) % CIRCLE;
   elevation = (elevation + CIRCLE) % CIRCLE;
   float tx = this->cos_all_angle_[elevation] * this->sin_all_angle_[azimuth];
   float ty = this->cos_all_angle_[elevation] * this->cos_all_angle_[azimuth];
   float tz = this->sin_all_angle_[elevation];
-  float d   = std::sqrt(std::pow(tx * distance + optical_center.x, 2) + 
-              std::pow(ty * distance + optical_center.y, 2) + std::pow(tz*distance + optical_center.z, 2));
+  float d  = distance;
   if (type == GeometricCenter) {
     float B = 2 * tx * optical_center.x + 2 * ty * optical_center.y + 2 * tz * optical_center.z;
     float C = optical_center.x * optical_center.x + optical_center.y * optical_center.y + optical_center.z * optical_center.z - d * d;
@@ -281,16 +280,16 @@ void GeneralParser<T_Point>::GetDistanceCorrection(int &azimuth, int &elevation,
     float x = d_opitcal * tx + optical_center.x;
     float y = d_opitcal * ty + optical_center.y;
     float z = d_opitcal * tz + optical_center.z;
-    azimuth = int(std::atan(x / y) * kHalfCircleFloat / M_PI + CIRCLE) % CIRCLE;
-    elevation = int(std::asin(z / d) * kHalfCircleFloat / M_PI + CIRCLE) % CIRCLE;
+    azimuth = int(std::atan(x / y) * kHalfCircleFloat * kFineResolutionFloat / M_PI + CIRCLE) % CIRCLE;
+    elevation = int(std::asin(z / d) * kHalfCircleFloat * kFineResolutionFloat / M_PI + CIRCLE) % CIRCLE;
     distance = d;
   } else if (type == OpticalCenter) {
     float x = d * tx + optical_center.x;
     float y = d * ty + optical_center.y;
     float z = d * tz + optical_center.z;
     float d_geometric_center = std::sqrt(x * x + y * y + z * z);
-    azimuth = int(std::atan(x / y) * kHalfCircleFloat / M_PI + CIRCLE) % CIRCLE;
-    elevation = int(std::asin(z / d_geometric_center) * kHalfCircleFloat / M_PI + CIRCLE) % CIRCLE;
+    azimuth = int(std::atan(x / y) * kHalfCircleFloat * kFineResolutionFloat / M_PI + CIRCLE) % CIRCLE;
+    elevation = int(std::asin(z / d_geometric_center) * kHalfCircleFloat * kFineResolutionFloat / M_PI + CIRCLE) % CIRCLE;
     distance = d_geometric_center;
   } else {
     // It should never have been executed here.

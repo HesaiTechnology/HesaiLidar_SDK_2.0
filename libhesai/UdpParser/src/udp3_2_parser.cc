@@ -206,11 +206,11 @@ int Udp3_2Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
     for (int i = 0; i < packet.laser_num; i++) {
       int point_index = packet.packet_index * packet.points_num + blockid * packet.laser_num + i;
       float distance = packet.distances[blockid * packet.laser_num + i] * packet.distance_unit;   
-      int Azimuth = packet.azimuth[blockid * packet.laser_num + i];
+      int Azimuth = packet.azimuth[blockid * packet.laser_num + i] * kFineResolutionFloat;
       azimuth = Azimuth;
       if (this->get_correction_file_) {
-        int azimuth_coll = (int(this->azimuth_collection_[i] * kResolutionInt) + CIRCLE) % CIRCLE;
-        int elevation_corr = (int(this->elevation_correction_[i] * kResolutionInt) + CIRCLE) % CIRCLE;
+        int azimuth_coll = (int(this->azimuth_collection_[i] * kResolutionFloat * kFineResolutionFloat) + CIRCLE) % CIRCLE;
+        int elevation_corr = (int(this->elevation_correction_[i] * kResolutionFloat * kFineResolutionFloat) + CIRCLE) % CIRCLE;
         if (this->enable_distance_correction_) {
           GetDistanceCorrection(azimuth_coll, elevation_corr, distance, GeometricCenter);
         }
@@ -335,7 +335,7 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
                   : j;
         if (this->enable_firetime_correction_) {
           output.azimuth[index] = u16Azimuth + GetFiretimesCorrection(
-                                    laserId, pTail->GetMotorSpeed(), loopIndex) * kResolutionInt;
+                                    laserId, pTail->GetMotorSpeed(), loopIndex) * kResolutionFloat;
         } else {
           output.azimuth[index] = u16Azimuth;
         }
@@ -404,7 +404,7 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
                   : j;
         if (this->enable_firetime_correction_) {
           output.azimuth[index] = u16Azimuth + GetFiretimesCorrection(
-                                    laserId, pTail->GetMotorSpeed(), loopIndex) * kResolutionInt;
+                                    laserId, pTail->GetMotorSpeed(), loopIndex) * kResolutionFloat;
         } else {
           output.azimuth[index] = u16Azimuth;
         }

@@ -142,7 +142,7 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
   frame.spin_speed = packet.spin_speed;
   for (int blockid = 0; blockid < packet.block_num; blockid++) {
     // T_Point point;
-    int Azimuth = packet.azimuth[blockid * packet.laser_num];
+    int Azimuth = packet.azimuth[blockid * packet.laser_num] * kFineResolutionFloat;
     int elevation = 0;
     int azimuth = Azimuth;
 
@@ -150,8 +150,8 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       int point_index = packet.packet_index * packet.points_num + blockid * packet.laser_num + i;
       float distance = packet.distances[blockid * packet.laser_num + i] * packet.distance_unit;  
       if (this->get_correction_file_) {
-        int azimuth_coll = (int(this->azimuth_collection_[i] * kResolutionInt) + CIRCLE) % CIRCLE;
-        int elevation_corr = (int(this->elevation_correction_[i] * kResolutionInt) + CIRCLE) % CIRCLE;
+        int azimuth_coll = (int(this->azimuth_collection_[i] * kResolutionFloat * kFineResolutionFloat) + CIRCLE) % CIRCLE;
+        int elevation_corr = (int(this->elevation_correction_[i] * kResolutionFloat * kFineResolutionFloat) + CIRCLE) % CIRCLE;
         if (this->enable_distance_correction_) {
           GetDistanceCorrection(azimuth_coll, elevation_corr, distance, GeometricCenter);
         }
@@ -296,7 +296,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       for (int j = 0; j < pHeader->GetLaserNum(); ++j) {
         if (this->get_firetime_file_) {
           float fireTimeCollection = GetFiretimesCorrection(i, this->spin_speed_, optMode, angleState, pChnUnit->GetDistance());
-          output.azimuth[index] = u16Azimuth + fireTimeCollection * kResolutionInt;
+          output.azimuth[index] = u16Azimuth + fireTimeCollection * kResolutionFloat;
         }else {
           output.azimuth[index] = u16Azimuth;
         }
@@ -322,7 +322,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       for (int j = 0; j < pHeader->GetLaserNum(); ++j) {
         if (this->get_firetime_file_) {
           float fireTimeCollection = GetFiretimesCorrection(i, this->spin_speed_, optMode, angleState, pChnUnitNoConf->GetDistance());
-          output.azimuth[index] = u16Azimuth + fireTimeCollection * kResolutionInt;
+          output.azimuth[index] = u16Azimuth + fireTimeCollection * kResolutionFloat;
         } else {
           output.azimuth[index] = u16Azimuth;
         }
