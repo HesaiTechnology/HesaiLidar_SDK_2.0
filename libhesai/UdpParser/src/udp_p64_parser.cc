@@ -57,9 +57,13 @@ int UdpP64Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       float distance = packet.distances[blockid * packet.laser_num + i] * packet.distance_unit;
       int Azimuth = packet.azimuth[blockid * packet.laser_num + i]  * kFineResolutionInt;
       if (this->get_correction_file_) {
-        elevation = this->elevation_correction_[i] * kResolutionFloat * kFineResolutionFloat;
-        elevation = (CIRCLE + elevation) % CIRCLE;
-        azimuth = Azimuth + this->azimuth_collection_[i] * kResolutionFloat * kFineResolutionFloat;
+        int azimuth_coll = (int(this->azimuth_collection_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
+        int elevation_corr = (int(this->elevation_correction_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
+        if (this->enable_distance_correction_) {
+          GetDistanceCorrection(azimuth_coll, elevation_corr, distance, GeometricCenter);
+        }
+        elevation = elevation_corr;
+        azimuth = Azimuth + azimuth_coll;
         azimuth = (CIRCLE + azimuth) % CIRCLE;
       } 
       if (packet.config.fov_start != -1 && packet.config.fov_end != -1)
@@ -80,6 +84,11 @@ int UdpP64Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       setIntensity(frame.points[point_index], packet.reflectivities[blockid * packet.laser_num + i]);
       setTimestamp(frame.points[point_index], double(packet.sensor_timestamp) / kMicrosecondToSecond);
       setRing(frame.points[point_index], i);  
+      frame.distances[point_index] = packet.distances[blockid * packet.laser_num + i];
+      frame.azimuths[point_index] = packet.azimuth[blockid * packet.laser_num + i];
+      frame.azimuth[point_index] = azimuth / kAllFineResolutionFloat;
+      frame.elevation[point_index] = elevation / kAllFineResolutionFloat;
+      frame.distance_unit = packet.distance_unit;
     }
   }
   GeneralParser<T_Point>::FrameNumAdd(frame, packet.points_num);
@@ -220,6 +229,62 @@ bool UdpP64Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
 template<typename T_Point>
 int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket)
 {
-  // TO DO
+  if (udpPacket.buffer[0] != 0xEE || udpPacket.buffer[1] != 0xFF ) {
+    return -1;
+  }
+  const HS_LIDAR_L64_Header *pHeader = 
+      reinterpret_cast<const HS_LIDAR_L64_Header *>(&(udpPacket.buffer[0]));
+  
+  const HS_LIDAR_BODY_AZIMUTH_L64 *pAzimuth = 
+      reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_L64 *>(
+          (const unsigned char *)pHeader + sizeof(HS_LIDAR_L64_Header));
+ 
+  const HS_LIDAR_BODY_CHN_UNIT_L64 *pChnUnit = 
+      reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_L64 *>(
+          (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_L64));
+
+  const HS_LIDAR_TAIL_L64 *pTail = 
+      reinterpret_cast<const HS_LIDAR_TAIL_L64 * >(
+          (const unsigned char *)pHeader + sizeof(HS_LIDAR_L64_Header) + 
+          (sizeof(HS_LIDAR_BODY_AZIMUTH_L64) + 
+            sizeof(HS_LIDAR_BODY_CHN_UNIT_L64) * pHeader->GetLaserNum()) * 
+              pHeader->GetBlockNum());
+  this->spin_speed_ = pTail->GetMotorSpeed();
+  frame.spin_speed = pTail->m_u16MotorSpeed;
+  frame.points_num += pHeader->GetBlockNum() * pHeader->GetLaserNum();
+  frame.scan_complete = false;
+  frame.sensor_timestamp[frame.packet_index] = pTail->GetMicroLidarTimeU64();
+  frame.distance_unit = pHeader->GetDistUnit();
+  frame.block_num = pHeader->GetBlockNum();
+  frame.laser_num = pHeader->GetLaserNum();
+
+  int index = frame.packet_index * pHeader->GetBlockNum() * pHeader->GetLaserNum();
+  uint16_t u16Azimuth = 0;
+  for (int blockid = 0; blockid < pHeader->GetBlockNum(); blockid++) {
+    u16Azimuth = pAzimuth->GetAzimuth();
+    pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_L64 *>(
+          (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_L64));
+
+    pAzimuth = reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_L64 *>(
+      (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_L64) + 
+      sizeof(HS_LIDAR_BODY_CHN_UNIT_L64) * pHeader->GetLaserNum());
+    
+    auto elevation = 0;
+    for (int i = 0; i < pHeader->GetLaserNum(); i++) {
+      frame.azimuths[index] = u16Azimuth;
+      frame.azimuth[index] = u16Azimuth / kResolutionFloat;
+      frame.distances[index] = pChnUnit->GetDistance();
+      frame.reflectivities[index] = pChnUnit->GetReflectivity();
+      frame.elevation[index] = elevation;
+      pChnUnit = pChnUnit + 1;
+      index++; 
+    }
+  }
+  if (IsNeedFrameSplit(u16Azimuth)) {
+    frame.scan_complete = true;
+  }
+  this->last_last_azimuth_ = this->last_azimuth_;
+  this->last_azimuth_ = u16Azimuth;
+  frame.packet_index++;
   return 0;
 }

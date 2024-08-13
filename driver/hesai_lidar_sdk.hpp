@@ -124,7 +124,9 @@ public:
       }
 
       //get distance azimuth reflection, etc.and put them into decode_packet
-      lidar_ptr_->DecodePacket(decoded_packet, packet);
+      if(lidar_ptr_->DecodePacket(decoded_packet, packet) != 0) {
+        continue;
+      }
 
       //do not compute xyzi of points if enable packet_loss_tool_
       // if(packet_loss_tool_ == true) continue;

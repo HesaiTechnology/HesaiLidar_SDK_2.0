@@ -35,18 +35,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef UDP4_3_PARSER_H_
 #define UDP4_3_PARSER_H_
 
-#define MAX_AZI_LEN (36000 * 256)
-#define CIRCLE_ANGLE (36000)
 #define CORRECTION_AZIMUTH_STEP (200)
 #define CORRECTION_AZIMUTH_NUM (180)
-#define FINE_AZIMUTH_UNIT (256)
-#define AZIMUTH_UNIT (25600.0f)
 #define AT128_LASER_NUM (128)
-#define FAULTMESSAGE_LENTH (99)
 #define ANGULAR_RESOLUTION (256)
 #define MARGINAL_ANGLE (7625) 
 #define ACCEPTANCE_ANGLE (200)
-#define RESOLUTION (256 * 100)
 
 #include <cmath>
 #include "general_parser.h"
@@ -72,8 +66,8 @@ struct PandarATFrameInfo {
   uint32_t end_frame[8];
   int32_t azimuth[AT128_LASER_NUM];
   int32_t elevation[AT128_LASER_NUM];
-  std::array<float, MAX_AZI_LEN> sin_map;
-  std::array<float, MAX_AZI_LEN> cos_map;
+  std::array<float, CIRCLE> sin_map;
+  std::array<float, CIRCLE> cos_map;
 };
 
 struct PandarATCorrections {
@@ -87,16 +81,16 @@ struct PandarATCorrections {
   int8_t elevation_offset[CIRCLE_ANGLE];
   uint8_t SHA256[32];
   PandarATFrameInfo l;  // V1.5
-  std::array<float, MAX_AZI_LEN> sin_map;
-  std::array<float, MAX_AZI_LEN> cos_map;
+  std::array<float, CIRCLE> sin_map;
+  std::array<float, CIRCLE> cos_map;
   PandarATCorrections() {
-    for (int i = 0; i < MAX_AZI_LEN; ++i) {
-      sin_map[i] = float(std::sin(2 * i * M_PI / MAX_AZI_LEN));
-      cos_map[i] = float(std::cos(2 * i * M_PI / MAX_AZI_LEN));
+    for (int i = 0; i < CIRCLE; ++i) {
+      sin_map[i] = float(std::sin(2 * i * M_PI / CIRCLE));
+      cos_map[i] = float(std::cos(2 * i * M_PI / CIRCLE));
     }
   }
 
-  static const int STEP3 = CORRECTION_AZIMUTH_STEP * FINE_AZIMUTH_UNIT;
+  static const int STEP3 = CORRECTION_AZIMUTH_STEP * kFineResolutionInt;
   float GetAzimuthAdjustV3(uint8_t ch, uint32_t azi) const {
     int i = int(std::floor(1.f * azi / STEP3));
     int l = azi - i * STEP3;

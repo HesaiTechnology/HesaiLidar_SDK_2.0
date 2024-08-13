@@ -72,8 +72,10 @@ static constexpr int kMicrosecondToSecondInt = 1000000;
 static constexpr uint16_t kSplitFrameMinAngle = 300;
 //laser fine azimuth resolution, 1 LSB represents 0.01 / 256 degree, float type
 static constexpr float kFineResolutionFloat = 256.0f;
+static constexpr float kAllFineResolutionFloat = kResolutionFloat * kFineResolutionFloat;
 //laser fine azimuth resolution, 1 LSB represents 0.01 / 256 degree, int type
 static constexpr int kFineResolutionInt = 256;
+static constexpr int kAllFineResolutionInt = kResolutionInt * kFineResolutionInt;
 //synchronize host time with sensor time per kPcapPlaySynchronizationCount packets
 static constexpr int kPcapPlaySynchronizationCount = 100;
 //min points of one frame for displaying frame message
@@ -129,9 +131,7 @@ struct LidarDecodedPacket
 {
     uint64_t host_timestamp;   
     uint64_t sensor_timestamp; 
-    float duration;
     double distance_unit;        
-    uint32_t maxPoints; 
     uint32_t points_num;   
     uint16_t block_num;
     uint16_t laser_num;
@@ -158,11 +158,9 @@ class LidarDecodedFrame
 {
     public:
     LidarDecodedFrame() {
-        points_num = 0;
-        packet_index = 0;
-        distance_unit = 0.0;
         total_memory = new uint8_t[sizeof(PointT) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + 
-                                   sizeof(uint64_t) * kMaxPacketNumPerFrame + sizeof(uint16_t) * kMaxPacketNumPerFrame +
+                                   sizeof(uint64_t) * kMaxPacketNumPerFrame + 
+                                   sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket +
                                    sizeof(float) * 2 * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket +
                                    sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + 
                                    sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket
@@ -173,7 +171,7 @@ class LidarDecodedFrame
         sensor_timestamp = reinterpret_cast<uint64_t* >(total_memory + offset);
         offset = sizeof(uint64_t) * kMaxPacketNumPerFrame + offset;
         azimuths = reinterpret_cast<uint16_t* >(total_memory + offset);
-        offset = sizeof(uint16_t) * kMaxPacketNumPerFrame + offset;
+        offset = sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
         azimuth = reinterpret_cast<float* >(total_memory + offset);
         offset = sizeof(float) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
         elevation = reinterpret_cast<float* >(total_memory + offset);
@@ -193,7 +191,7 @@ class LidarDecodedFrame
         laser_num = 0; 
         packet_index = 0;
         scan_complete = false;
-        distance_unit = 0;
+        distance_unit = 0.0;
         frame_index = 0;
     };
     ~LidarDecodedFrame() {

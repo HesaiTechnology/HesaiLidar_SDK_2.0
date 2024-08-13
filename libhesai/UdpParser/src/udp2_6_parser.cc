@@ -203,7 +203,6 @@ template<typename T_Point>
 int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket) {
   // verify  buffer[0] and buffer[1]
   if (udpPacket.buffer[0] != 0xEE || udpPacket.buffer[1] != 0xFF ) {
-    output.block_num = 0;
     return -1;
   }
 
@@ -263,10 +262,8 @@ int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     for (int unitId = 0; unitId < (pHeader->GetLaserNum()/pHeader->GetSeqNum()); unitId++){
       int16_t distance = pUnit1->GetDistance();
       int8_t reflectivity = pUnit1->GetReflectivity();
-      // int8_t confidence = pUnit->GetConfidence();
       output.reflectivities[index_unit] = reflectivity;
       output.distances[index_unit] = distance;
-      // get the degrees
       output.azimuth[index_unit] = horizontalAngle/512.0f;
       output.elevation[index_unit] = verticalAngle/512.0f;
       output.chn_index[index_unit] = index_unit;
@@ -276,10 +273,8 @@ int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     for (int unitId = 0; unitId < pHeader->GetSecRetNum(); unitId++){
       int16_t distance = pUnit2->GetDistance();
       int8_t reflectivity = pUnit2->GetReflectivity();
-      // int8_t confidence = pUnit->GetConfidence();
       output.reflectivities[index_unit2] = reflectivity;
       output.distances[index_unit2] = distance;
-      // get the degrees
       output.azimuth[index_unit2] = horizontalAngle/512.0f;
       output.elevation[index_unit2] = verticalAngle/512.0f;
       output.chn_index[index_unit2] = pUnit2->GetChnIndex();
@@ -306,7 +301,6 @@ int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   } 
 
   uint16_t nowid = pTail->GetFrameID();
-  //printf("%d\n", nowid);
   if (this->use_angle_ && IsNeedFrameSplit(nowid)) {
     output.scan_complete = true;
   }
@@ -368,7 +362,7 @@ int Udp2_6Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
         azi_h = azi_h + corrections_.getAziAdjustV2(azi_h - 90, elv_h);
         elv_h = elv_h + corrections_.getEleAdjustV2(azi_h - 90, elv_h);
       }
-      int azimuth = (int)(azi_h * kResolutionFloat * kFineResolutionFloat + CIRCLE) % CIRCLE;
+      int azimuth = (int)(azi_h * kAllFineResolutionFloat + CIRCLE) % CIRCLE;
       if (packet.config.fov_start != -1 && packet.config.fov_end != -1)
       {
         int fov_transfer = azimuth / 256 / 100;
@@ -376,7 +370,7 @@ int Udp2_6Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
           continue;
         }
       }       
-      int elevation = (int)(elv_h * kResolutionFloat * kFineResolutionFloat + CIRCLE) % CIRCLE;
+      int elevation = (int)(elv_h * kAllFineResolutionFloat + CIRCLE) % CIRCLE;
       float xyDistance = distance * this->cos_all_angle_[elevation];
       float x = xyDistance * this->sin_all_angle_[azimuth];
       float y = xyDistance * this->cos_all_angle_[azimuth];
@@ -387,6 +381,11 @@ int Udp2_6Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       setIntensity(frame.points[point_index], packet.reflectivities[blockId * packet.points_num + i]);
       setTimestamp(frame.points[point_index], double(packet.sensor_timestamp) / kMicrosecondToSecond);
       setRing(frame.points[point_index], packet.chn_index[i + blockId*points_num]);
+      frame.distances[point_index] = packet.distances[blockId * packet.laser_num + i];
+      frame.azimuths[point_index] = packet.azimuth[blockId * packet.laser_num + i];
+      frame.azimuth[point_index] = azimuth / kAllFineResolutionFloat;
+      frame.elevation[point_index] = elevation / kAllFineResolutionFloat;
+      frame.distance_unit = packet.distance_unit;
     }
   // }
   GeneralParser<T_Point>::FrameNumAdd(frame, packet.points_num);
@@ -396,6 +395,99 @@ int Udp2_6Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
 template<typename T_Point>
 int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket)
 {
-  // TO DO
+  if (udpPacket.buffer[0] != 0xEE || udpPacket.buffer[1] != 0xFF ) {
+    return -1;
+  }
+
+  const HS_LIDAR_HEADER_ET_V6* pHeader =
+    reinterpret_cast<const HS_LIDAR_HEADER_ET_V6 *>(
+      &(udpPacket.buffer[0]) + sizeof(HS_LIDAR_PRE_HEADER));
+  const HS_LIDAR_TAIL_ET_V6 *pTail =
+    reinterpret_cast<const HS_LIDAR_TAIL_ET_V6 *>(
+      &(udpPacket.buffer[0]) +  pHeader->GetPacketSize() - 
+      sizeof(HS_LIDAR_CYBER_SECURITY_ET_V6) - 
+      sizeof(HS_LIDAR_TAIL_SEQ_NUM_ET_V6) - 
+      sizeof(HS_LIDAR_TAIL_ET_V6)
+      );
+  // if (pHeader->HasSeqNum()){
+  //   const HS_LIDAR_TAIL_SEQ_NUM_ET_V6 *pTailSeqNum =
+  //     reinterpret_cast<const HS_LIDAR_TAIL_SEQ_NUM_ET_V6 *>(
+  //     &(udpPacket.buffer[0]) + pHeader->GetPacketSize() - 
+  //     sizeof(HS_LIDAR_CYBER_SECURITY_ET_V6) - 
+  //     sizeof(HS_LIDAR_TAIL_SEQ_NUM_ET_V6)
+  //     );
+  // }
+  const HS_LIDAR_BODY_SEQ2_ET_V6* pSeq2 = 
+    reinterpret_cast<const HS_LIDAR_BODY_SEQ2_ET_V6 *>(
+      (const unsigned char *)pHeader + 
+      sizeof(HS_LIDAR_HEADER_ET_V6) + sizeof(HS_LIDAR_BODY_POINT_ID_ET_V6)
+    );
+  const HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6* pUnit1 = 
+    reinterpret_cast<const HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6 *>(
+      (const unsigned char *)pSeq2 + 
+      sizeof(HS_LIDAR_BODY_SEQ2_ET_V6)
+    );
+  const HS_LIDAR_BODY_LASTER_UNIT_2_ET_V6* pUnit2 = 
+    reinterpret_cast<const HS_LIDAR_BODY_LASTER_UNIT_2_ET_V6 *>(
+      (const unsigned char *)pUnit1 + 
+      sizeof(HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6) * (pHeader->GetLaserNum() / pHeader->GetSeqNum())
+    );
+
+  frame.sensor_timestamp[frame.packet_index] = pTail->GetMicroLidarTimeU64();
+  frame.distance_unit = pHeader->GetDistUnit();
+  frame.points_num += (pHeader->GetLaserNum() + pHeader->GetSecRetNum() * pHeader->GetSeqNum()) * pHeader->GetBlockNum();
+  frame.scan_complete = false;
+  frame.block_num = pHeader->GetBlockNum();
+  frame.laser_num = pHeader->GetLaserNum();
+  
+  int index = frame.packet_index * (pHeader->GetLaserNum() + pHeader->GetSecRetNum() * pHeader->GetSeqNum()) * pHeader->GetBlockNum();
+  int index_unit = index;
+  int index_unit2 = index + pHeader->GetLaserNum();
+  for (int seqId = 0; seqId < pHeader->GetSeqNum(); seqId++) {
+    int16_t horizontalAngle = pSeq2->GetHorizontalAngle();
+    int16_t verticalAngle = pSeq2->GetVerticalAngle();
+    for (int unitId = 0; unitId < (pHeader->GetLaserNum()/pHeader->GetSeqNum()); unitId++){
+      frame.reflectivities[index_unit] = pUnit1->GetReflectivity();
+      frame.distances[index_unit] = pUnit1->GetDistance();
+      frame.azimuths[index_unit] = horizontalAngle;
+      frame.azimuth[index_unit] = horizontalAngle/512.0f;
+      frame.elevation[index_unit] = verticalAngle/512.0f;
+      index_unit++;
+      pUnit1 += 1;
+    }
+    for (int unitId = 0; unitId < pHeader->GetSecRetNum(); unitId++){
+      frame.reflectivities[index_unit2] = pUnit2->GetReflectivity();
+      frame.distances[index_unit2] = pUnit2->GetDistance();
+      frame.azimuths[index_unit2] = horizontalAngle;
+      frame.azimuth[index_unit2] = horizontalAngle/512.0f;
+      frame.elevation[index_unit2] = verticalAngle/512.0f;
+      index_unit2++;
+      pUnit2 += 1;
+    }
+    // pSeq2 next
+    pSeq2 = reinterpret_cast<const HS_LIDAR_BODY_SEQ2_ET_V6 *>(
+      (const unsigned char *)pSeq2 + 
+      sizeof(HS_LIDAR_BODY_SEQ2_ET_V6) + 
+      sizeof(HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6)*(pHeader->GetLaserNum()/pHeader->GetSeqNum()) +
+      sizeof(HS_LIDAR_BODY_LASTER_UNIT_2_ET_V6)*(pHeader->GetSecRetNum())
+      );
+      
+    // pUnit next
+    pUnit1 = reinterpret_cast<const HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6 *>(
+      (const unsigned char *)pSeq2 + 
+      sizeof(HS_LIDAR_BODY_SEQ2_ET_V6)
+    ); 
+    pUnit2 = reinterpret_cast<const HS_LIDAR_BODY_LASTER_UNIT_2_ET_V6 *>(
+    (const unsigned char *)pUnit1 + 
+    sizeof(HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6) * (pHeader->GetLaserNum() / pHeader->GetSeqNum())
+    );
+  } 
+
+  uint16_t nowid = pTail->GetFrameID();
+  if (this->use_angle_ && IsNeedFrameSplit(nowid)) {
+    frame.scan_complete = true;
+  }
+  this->last_frameid_  = pTail->GetFrameID();
+  frame.packet_index++;
   return 0;
 }

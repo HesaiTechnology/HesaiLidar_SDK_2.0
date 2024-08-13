@@ -313,8 +313,7 @@ int Lidar<T_Point>::ComputeXYZI(LidarDecodedPacket<T_Point> &packet) {
 template <typename T_Point>
 int Lidar<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udp_packet) {
   if (udp_parser_) {
-    udp_parser_->DecodePacket(output,udp_packet);
-    return 0;
+    return udp_parser_->DecodePacket(output,udp_packet);
   } else
     std::cout << __func__ << "udp_parser_ nullptr\n";
 
@@ -324,8 +323,7 @@ int Lidar<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpP
 template <typename T_Point>
 int Lidar<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udp_packet) {
   if (udp_parser_) {
-    udp_parser_->DecodePacket(frame,udp_packet);
-    return 0;
+    return udp_parser_->DecodePacket(frame,udp_packet);
   } else
     std::cout << __func__ << "udp_parser_ nullptr\n";
 
