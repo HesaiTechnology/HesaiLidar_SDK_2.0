@@ -120,12 +120,12 @@ template<typename T_Point>
 int Udp2_6Parser<T_Point>::LoadCorrectionDatData(char *data) {
   try {
     char *p = data;
-    struct ETCorrectionsHeader_V6 ETheader = *((struct ETCorrectionsHeader_V6* )p);
+    struct ETCorrectionsHeader ETheader = *((struct ETCorrectionsHeader* )p);
     if (0xee == ETheader.delimiter[0] && 0xff == ETheader.delimiter[1]) {
       switch (ETheader.min_version) {
         case 1: {
-          memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader_V6));
-          p += sizeof(ETCorrectionsHeader_V6);
+          memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
+          p += sizeof(ETCorrectionsHeader);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
           memcpy((void *)&corrections_.raw_azimuths, p,
@@ -150,8 +150,8 @@ int Udp2_6Parser<T_Point>::LoadCorrectionDatData(char *data) {
           return 0;
         } break;
         case 2: {
-          memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader_V6));
-          p += sizeof(ETCorrectionsHeader_V6);
+          memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
+          p += sizeof(ETCorrectionsHeader);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
           memcpy((void *)&corrections_.raw_azimuths, p,
@@ -242,6 +242,7 @@ int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       sizeof(HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6) * (pHeader->GetLaserNum() / pHeader->GetSeqNum())
     );
   // write the value to output
+  output.lidar_state = pTail->HasShutdown();
   output.host_timestamp = GetMicroTickCountU64();
   output.distance_unit = pHeader->GetDistUnit();
   if (output.use_timestamp_type == 0) {
@@ -432,7 +433,7 @@ int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
       (const unsigned char *)pUnit1 + 
       sizeof(HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6) * (pHeader->GetLaserNum() / pHeader->GetSeqNum())
     );
-
+  frame.lidar_state = pTail->HasShutdown();
   frame.sensor_timestamp[frame.packet_index] = pTail->GetMicroLidarTimeU64();
   frame.distance_unit = pHeader->GetDistUnit();
   frame.points_num += (pHeader->GetLaserNum() + pHeader->GetSecRetNum() * pHeader->GetSeqNum()) * pHeader->GetBlockNum();

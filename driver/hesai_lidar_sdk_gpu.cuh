@@ -172,10 +172,9 @@ public:
       }
 
       //get distance azimuth reflection, etc.and put them into decode_packet
-      int res = lidar_ptr_->DecodePacket(decoded_packet, packet);
-
-      //do not compute xyzi of points if enable packet_loss_tool_
-      // if(packet_loss_tool_ == true) continue;
+      if(lidar_ptr_->DecodePacket(decoded_packet, packet) != 0) {
+        continue;
+      }
 
       //one frame is receive completely, split frame
       if (decoded_packet.scan_complete)
@@ -233,13 +232,13 @@ public:
           decoded_packet.packet_index = packet_index;
           udp_packet_frame.emplace_back(packet);
           //copy distances, reflection, azimuth, elevation from decoded packet to frame container
-          memcpy((frame.distances + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.distances), decoded_packet.block_num * decoded_packet.laser_num * sizeof(uint16_t));
-          memcpy((frame.reflectivities + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.reflectivities), decoded_packet.block_num * decoded_packet.laser_num * sizeof(uint8_t));
-          memcpy((frame.azimuth + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.azimuth), decoded_packet.block_num * decoded_packet.laser_num * sizeof(float));
-          memcpy((frame.elevation + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.elevation), decoded_packet.block_num * decoded_packet.laser_num * sizeof(float));
+          memcpy((frame.distances + packet_index * decoded_packet.points_num), (decoded_packet.distances), decoded_packet.points_num * sizeof(uint16_t));
+          memcpy((frame.reflectivities + packet_index * decoded_packet.points_num), (decoded_packet.reflectivities), decoded_packet.points_num * sizeof(uint8_t));
+          memcpy((frame.azimuth + packet_index * decoded_packet.points_num), (decoded_packet.azimuth), decoded_packet.points_num * sizeof(float));
+          memcpy((frame.elevation + packet_index * decoded_packet.points_num), (decoded_packet.elevation), decoded_packet.points_num * sizeof(float));
           frame.distance_unit = decoded_packet.distance_unit;
           frame.sensor_timestamp[packet_index] = decoded_packet.sensor_timestamp;
-          frame.points_num = frame.points_num + decoded_packet.block_num * decoded_packet.laser_num;
+          frame.points_num = frame.points_num + decoded_packet.points_num;
           frame.lidar_state = decoded_packet.lidar_state;
           frame.work_mode = decoded_packet.work_mode;
           packet_index++;
@@ -248,22 +247,24 @@ public:
       }
       else
       {
-        //new decoded packet of one frame, put it into frame container
-        decoded_packet.packet_index = packet_index;
-        udp_packet_frame.emplace_back(packet);
-        //copy distances, reflection, azimuth, elevation from decoded packet to frame container
-        memcpy((frame.distances + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.distances), decoded_packet.block_num * decoded_packet.laser_num * sizeof(uint16_t));
-        memcpy((frame.reflectivities + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.reflectivities), decoded_packet.block_num * decoded_packet.laser_num * sizeof(uint8_t));
-        memcpy((frame.azimuth + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.azimuth), decoded_packet.block_num * decoded_packet.laser_num * sizeof(float));
-        memcpy((frame.elevation + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.elevation), decoded_packet.block_num * decoded_packet.laser_num * sizeof(float));
-        frame.distance_unit = decoded_packet.distance_unit;
-        frame.sensor_timestamp[packet_index] = decoded_packet.sensor_timestamp;
-        frame.points_num = frame.points_num + decoded_packet.block_num * decoded_packet.laser_num;
-        if (decoded_packet.block_num != 0 && decoded_packet.laser_num != 0) {
-            frame.laser_num = decoded_packet.laser_num;
-            frame.block_num = decoded_packet.block_num;
+        if(decoded_packet.IsDecodedPacketValid()) {
+          //new decoded packet of one frame, put it into frame container
+          decoded_packet.packet_index = packet_index;
+          udp_packet_frame.emplace_back(packet);
+          //copy distances, reflection, azimuth, elevation from decoded packet to frame container
+          memcpy((frame.distances + packet_index * decoded_packet.points_num), (decoded_packet.distances), decoded_packet.points_num * sizeof(uint16_t));
+          memcpy((frame.reflectivities + packet_index * decoded_packet.points_num), (decoded_packet.reflectivities), decoded_packet.points_num * sizeof(uint8_t));
+          memcpy((frame.azimuth + packet_index * decoded_packet.points_num), (decoded_packet.azimuth), decoded_packet.points_num * sizeof(float));
+          memcpy((frame.elevation + packet_index * decoded_packet.points_num), (decoded_packet.elevation), decoded_packet.points_num * sizeof(float));
+          frame.distance_unit = decoded_packet.distance_unit;
+          frame.sensor_timestamp[packet_index] = decoded_packet.sensor_timestamp;
+          frame.points_num = frame.points_num + decoded_packet.points_num;
+          if (decoded_packet.block_num != 0 && decoded_packet.laser_num != 0) {
+              frame.laser_num = decoded_packet.laser_num;
+              frame.block_num = decoded_packet.block_num;
+          }
+          packet_index++;
         }
-        packet_index++;
 
         //update status manually if start a new frame failedly
         if (packet_index >= kMaxPacketNumPerFrame) {

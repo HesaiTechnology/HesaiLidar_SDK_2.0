@@ -115,6 +115,7 @@ int UdpP40Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
 
   this->spin_speed_ = pTail->GetMotorSpeed();
   output.spin_speed = pTail->m_u16MotorSpeed;
+  output.lidar_state = pTail->m_u8Shutdown;
 
   output.points_num = BLOCKNUM * LASERNUM;
   output.scan_complete = false;
@@ -243,6 +244,7 @@ int UdpP40Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
 
   this->spin_speed_ = pTail->GetMotorSpeed();
   frame.spin_speed = pTail->m_u16MotorSpeed;
+  frame.lidar_state = pTail->m_u8Shutdown;
 
   frame.points_num += BLOCKNUM * LASERNUM;
   frame.scan_complete = false;

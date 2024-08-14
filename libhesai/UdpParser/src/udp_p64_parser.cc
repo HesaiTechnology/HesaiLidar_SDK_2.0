@@ -119,6 +119,7 @@ int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
               pHeader->GetBlockNum());
   this->spin_speed_ = pTail->GetMotorSpeed();
   output.spin_speed = pTail->m_u16MotorSpeed;
+  output.lidar_state = pTail->m_u8Shutdown;
   output.host_timestamp = GetMicroTickCountU64();
   output.points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
   output.scan_complete = false;
@@ -251,6 +252,7 @@ int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
               pHeader->GetBlockNum());
   this->spin_speed_ = pTail->GetMotorSpeed();
   frame.spin_speed = pTail->m_u16MotorSpeed;
+  frame.lidar_state = pTail->m_u8Shutdown;
   frame.points_num += pHeader->GetBlockNum() * pHeader->GetLaserNum();
   frame.scan_complete = false;
   frame.sensor_timestamp[frame.packet_index] = pTail->GetMicroLidarTimeU64();

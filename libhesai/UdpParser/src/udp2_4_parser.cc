@@ -205,6 +205,7 @@ int Udp2_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
       sizeof(HS_LIDAR_BODY_SEQ2_ET_V4)
     );
   // write the value to output
+  output.lidar_state = pTail->HasShutdown();
   output.distance_unit = pHeader->GetDistUnit();
   if (output.use_timestamp_type == 0) {
     output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
@@ -379,7 +380,7 @@ int Udp2_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
       (const unsigned char *)pSeq2 + 
       sizeof(HS_LIDAR_BODY_SEQ2_ET_V4)
     );
-
+  frame.lidar_state = pTail->HasShutdown();
   frame.sensor_timestamp[frame.packet_index] = pTail->GetMicroLidarTimeU64();
   frame.distance_unit = pHeader->GetDistUnit();
   frame.points_num += pHeader->GetBlockNum() * pHeader->GetLaserNum();

@@ -129,6 +129,7 @@ int Udp3_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   this->is_dual_return_= pTail->IsDualReturn();
   output.spin_speed = pTail->m_u16MotorSpeed;
   output.distance_unit = pHeader->GetDistUnit();
+  output.lidar_state = pTail->HasShutdown();
 
   output.points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
   output.scan_complete = false;
@@ -263,7 +264,7 @@ int Udp3_1Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     }
     pTail->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
   }
-
+  frame.lidar_state = pTail->HasShutdown();
   frame.sensor_timestamp[frame.packet_index] = pTail->GetMicroLidarTimeU64();
   this->spin_speed_ = pTail->m_u16MotorSpeed;
   this->is_dual_return_= pTail->IsDualReturn();

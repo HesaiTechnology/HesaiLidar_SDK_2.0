@@ -141,7 +141,7 @@ int Udp4_3ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
 compute_xyzs_v4_3_impl<<<kMaxPacketNumPerFrame, kMaxPointsNumPerPacket>>>(
     this->frame_.gpu()->points, (const int32_t*)channel_azimuths_cu_,
     (const int32_t*)channel_elevations_cu_, (const int8_t*)dazis_cu, deles_cu,
-    mirror_azi_begins_cu, mirror_azi_ends_cu, corrections_header.resolution,
+    mirror_azi_begins_cu, mirror_azi_ends_cu, m_PandarAT_corrections.header.resolution,
     raw_azimuths_cu_, raw_distances_cu_, raw_reflectivities_cu_, raw_sensor_timestamp_cu_, frame.distance_unit, 
     this->transform_, frame.block_num, frame.laser_num);
   cudaSafeCall(cudaGetLastError(), ReturnCode::CudaXYZComputingError);
@@ -151,95 +151,71 @@ compute_xyzs_v4_3_impl<<<kMaxPacketNumPerFrame, kMaxPointsNumPerPacket>>>(
 }
 template <typename T_Point>
 int Udp4_3ParserGpu<T_Point>::LoadCorrectionString(char *p) {
-  corrections_header = *(Corrections::Header *)p;
-  if ( 0xee != corrections_header.delimiter[0] || 0xff != corrections_header.delimiter[1]) {
-    std::cerr << "Correction Header delimiter not right" << std::endl;
+  try {
+    char *p = data;
+    PandarATCorrectionsHeader header = *(PandarATCorrectionsHeader *)p;
+    if (0xee == header.delimiter[0] && 0xff == header.delimiter[1]) {
+      switch (header.version[1]) {
+        case 5: {
+          m_PandarAT_corrections.header = header;
+          auto frame_num = m_PandarAT_corrections.header.frame_number;
+          auto channel_num = m_PandarAT_corrections.header.channel_number;
+          p += sizeof(PandarATCorrectionsHeader);
+          memcpy((void *)&m_PandarAT_corrections.l.start_frame, p,
+                 sizeof(uint32_t) * frame_num);
+          p += sizeof(uint32_t) * frame_num;
+          memcpy((void *)&m_PandarAT_corrections.l.end_frame, p,
+                 sizeof(uint32_t) * frame_num);
+          p += sizeof(uint32_t) * frame_num;
+          memcpy((void *)&m_PandarAT_corrections.l.azimuth, p,
+                 sizeof(int32_t) * channel_num);
+          p += sizeof(int32_t) * channel_num;
+          memcpy((void *)&m_PandarAT_corrections.l.elevation, p,
+                 sizeof(int32_t) * channel_num);
+          p += sizeof(int32_t) * channel_num;
+          auto adjust_length = channel_num * CORRECTION_AZIMUTH_NUM;
+          memcpy((void *)&m_PandarAT_corrections.azimuth_offset, p,
+                 sizeof(int8_t) * adjust_length);
+          p += sizeof(int8_t) * adjust_length;
+          memcpy((void *)&m_PandarAT_corrections.elevation_offset, p,
+                 sizeof(int8_t) * adjust_length);
+          p += sizeof(int8_t) * adjust_length;
+          memcpy((void *)&m_PandarAT_corrections.SHA256, p,
+                 sizeof(uint8_t) * 32);
+          p += sizeof(uint8_t) * 32;
+          for (int i = 0; i < frame_num; ++i) {
+            m_PandarAT_corrections.l.start_frame[i] =
+                m_PandarAT_corrections.l.start_frame[i] *
+                m_PandarAT_corrections.header.resolution;
+            m_PandarAT_corrections.l.end_frame[i] =
+                m_PandarAT_corrections.l.end_frame[i] *
+                m_PandarAT_corrections.header.resolution;
+          }
+          CUDACheck(cudaMalloc(&channel_azimuths_cu_, sizeof(m_PandarAT_corrections.l.azimuth)));
+          CUDACheck(cudaMalloc(&channel_elevations_cu_, sizeof(m_PandarAT_corrections.l.elevation)));
+          CUDACheck(cudaMalloc(&dazis_cu, sizeof(m_PandarAT_corrections.azimuth_offset)));
+          CUDACheck(cudaMalloc(&deles_cu, sizeof(m_PandarAT_corrections.elevation_offset)));
+          CUDACheck(cudaMalloc(&mirror_azi_begins_cu, sizeof(m_PandarAT_corrections.l.start_frame)));
+          CUDACheck(cudaMalloc(&mirror_azi_ends_cu, sizeof(m_PandarAT_corrections.l.end_frame)));
+          CUDACheck(cudaMemcpy(channel_azimuths_cu_, m_PandarAT_corrections.l.azimuth, sizeof(m_PandarAT_corrections.l.azimuth), cudaMemcpyHostToDevice));
+          CUDACheck(cudaMemcpy(channel_elevations_cu_, m_PandarAT_corrections.l.elevation, sizeof(m_PandarAT_corrections.l.elevation), cudaMemcpyHostToDevice));
+          CUDACheck(cudaMemcpy(dazis_cu, m_PandarAT_corrections.azimuth_offset, sizeof(m_PandarAT_corrections.azimuth_offset), cudaMemcpyHostToDevice));
+          CUDACheck(cudaMemcpy(deles_cu, m_PandarAT_corrections.elevation_offset, sizeof(m_PandarAT_corrections.elevation_offset), cudaMemcpyHostToDevice));
+          CUDACheck(cudaMemcpy(mirror_azi_begins_cu, m_PandarAT_corrections.l.start_frame, sizeof(m_PandarAT_corrections.l.start_frame), cudaMemcpyHostToDevice));
+          CUDACheck(cudaMemcpy(mirror_azi_ends_cu, m_PandarAT_corrections.l.end_frame, sizeof(m_PandarAT_corrections.l.end_frame), cudaMemcpyHostToDevice));
+          this->get_correction_file_ = true;
+          return 0;
+        } break;
+        default:
+          break;
+      }
+    }
+    return -1;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << '\n';
     return -1;
   }
-  // printf("mirror_num: %d,\t channel_num=%d,\tversion=%d\n",
-  //        corrections_header.nframes, corrections_header.max_channel_num,
-  //        corrections_header.version[1]);
-  // printf("resolution: %d\n",
-  //        corrections_header.resolution);
-  if (corrections_loaded_) {
-    return 0;
-    if (deles_cu) cudaFree(deles_cu);
-    if (dazis_cu) cudaFree(dazis_cu);
-    if (channel_elevations_cu_) cudaFree(channel_elevations_cu_);
-    if (channel_azimuths_cu_) cudaFree(channel_azimuths_cu_);
-    if (mirror_azi_begins_cu) cudaFree(mirror_azi_begins_cu);
-    if (mirror_azi_ends_cu) cudaFree(mirror_azi_ends_cu);
-    corrections_loaded_ = false;
-  }
-  // float channel_azimuths[kMaxPointsNumPerPacket];
-  switch (corrections_header.version[1]) {
-    case 3: {
-      // HCHECK_GE(size, sizeof(CorrectionsV1_3));
-      auto& corrections = *(CorrectionsV1_3*)p;
-      mirror_azi_begins[0] = corrections.mirror_azi_begins[0];
-      mirror_azi_begins[1] = corrections.mirror_azi_begins[1];
-      mirror_azi_begins[2] = corrections.mirror_azi_begins[2];
-      mirror_azi_ends[0] = corrections.mirror_azi_ends[0];
-      mirror_azi_ends[1] = corrections.mirror_azi_ends[1];
-      mirror_azi_ends[2] = corrections.mirror_azi_ends[2];
-      CUDACheck(cudaMalloc(&channel_azimuths_cu_, sizeof(CorrectionsV1_3::channel_azimuths)));
-      CUDACheck(cudaMalloc(&channel_elevations_cu_, sizeof(CorrectionsV1_3::channel_elevations)));
-      CUDACheck(cudaMalloc(&dazis_cu, sizeof(CorrectionsV1_3::dazis)));
-      CUDACheck(cudaMalloc(&deles_cu, sizeof(CorrectionsV1_3::deles)));
-     
-      CUDACheck(cudaMemcpy(channel_azimuths_cu_, corrections.channel_azimuths, sizeof(corrections.channel_azimuths), cudaMemcpyHostToDevice));
-      CUDACheck(cudaMemcpy(channel_elevations_cu_, corrections.channel_elevations, sizeof(corrections.channel_elevations), cudaMemcpyHostToDevice));
-      CUDACheck(cudaMemcpy(dazis_cu, corrections.dazis, sizeof(corrections.dazis), cudaMemcpyHostToDevice));
-      CUDACheck(cudaMemcpy(deles_cu, corrections.deles, sizeof(corrections.deles), cudaMemcpyHostToDevice));
-      // for (auto i = 0; i < kMaxPointsNumPerPacket; ++i) {
-      //     channel_azimuths[i] = corrections.channel_azimuths[i];
-      // }
-      break;
-    }
-    case 5: {
-      // HCHECK_GE(size, sizeof(CorrectionsV1_5));
-      auto& corrections = *(CorrectionsV1_5*)(p);
-      mirror_azi_begins[0] = corrections.mirror_azi_begins[0] / kFineResolutionFloat * corrections.header.resolution;
-      mirror_azi_begins[1] = corrections.mirror_azi_begins[1] / kFineResolutionFloat * corrections.header.resolution;
-      mirror_azi_begins[2] = corrections.mirror_azi_begins[2] / kFineResolutionFloat * corrections.header.resolution;
-      mirror_azi_ends[0] = corrections.mirror_azi_ends[0] / kFineResolutionFloat * corrections.header.resolution;
-      mirror_azi_ends[1] = corrections.mirror_azi_ends[1] / kFineResolutionFloat * corrections.header.resolution;
-      mirror_azi_ends[2] = corrections.mirror_azi_ends[2] / kFineResolutionFloat * corrections.header.resolution;
-      for (int i = 0; i < corrections_header.nframes; ++i) {
-            corrections.mirror_azi_begins[i] =
-                corrections.mirror_azi_begins[i] *
-                corrections.header.resolution;
-            corrections.mirror_azi_ends[i] =
-                corrections.mirror_azi_ends[i] *
-                corrections.header.resolution;
-            // printf("%lf,   %lf\n",
-            //        corrections.mirror_azi_begins[i] / (kFineResolutionFloat * kResolutionFloat),
-            //        corrections.mirror_azi_ends[i] / (kFineResolutionFloat * kResolutionFloat));
-          }
-      CUDACheck(cudaMalloc(&channel_azimuths_cu_, sizeof(CorrectionsV1_5::channel_azimuths)));
-      CUDACheck(cudaMalloc(&channel_elevations_cu_, sizeof(CorrectionsV1_5::channel_elevations)));
-      CUDACheck(cudaMalloc(&dazis_cu, sizeof(CorrectionsV1_5::dazis)));
-      CUDACheck(cudaMalloc(&deles_cu, sizeof(CorrectionsV1_5::deles)));
-      CUDACheck(cudaMalloc(&mirror_azi_begins_cu, sizeof(CorrectionsV1_5::mirror_azi_begins)));
-      CUDACheck(cudaMalloc(&mirror_azi_ends_cu, sizeof(CorrectionsV1_5::mirror_azi_ends)));
-      CUDACheck(cudaMemcpy(channel_azimuths_cu_, corrections.channel_azimuths, sizeof(corrections.channel_azimuths), cudaMemcpyHostToDevice));
-      CUDACheck(cudaMemcpy(channel_elevations_cu_, corrections.channel_elevations, sizeof(corrections.channel_elevations), cudaMemcpyHostToDevice));
-      CUDACheck(cudaMemcpy(dazis_cu, corrections.dazis, sizeof(corrections.dazis), cudaMemcpyHostToDevice));
-      CUDACheck(cudaMemcpy(deles_cu, corrections.deles, sizeof(corrections.deles), cudaMemcpyHostToDevice));
-      CUDACheck(cudaMemcpy(mirror_azi_begins_cu, corrections.mirror_azi_begins, sizeof(corrections.mirror_azi_begins), cudaMemcpyHostToDevice));
-      CUDACheck(cudaMemcpy(mirror_azi_ends_cu, corrections.mirror_azi_ends, sizeof(corrections.mirror_azi_ends), cudaMemcpyHostToDevice));
-      // for (auto i = 0; i < 128; ++i) {
-      //     channel_azimuths[i] = corrections.channel_azimuths[i] * corrections.header.resolution / kFineResolutionFloat;
-      //     // std::cout << corrections.channel_azimuths[i] * corrections.header.resolution / kFineResolutionFloat << std::endl;
-      // }
-      break;
-    }
-    default:
-      std::cout << "Unknown Corrections Version !!!" << std::endl;
-      return -1;
-  }
-  corrections_loaded_ = true;
-  return 0;
+  return -1;
 }
 template <typename T_Point>
 int Udp4_3ParserGpu<T_Point>::LoadCorrectionFile(std::string lidar_correction_file) {

@@ -83,36 +83,6 @@ int Udp4_3Parser<T_Point>::LoadCorrectionString(char *data) {
     PandarATCorrectionsHeader header = *(PandarATCorrectionsHeader *)p;
     if (0xee == header.delimiter[0] && 0xff == header.delimiter[1]) {
       switch (header.version[1]) {
-        case 3: {
-          m_PandarAT_corrections.header = header;
-          auto frame_num = m_PandarAT_corrections.header.frame_number;
-          auto channel_num = m_PandarAT_corrections.header.channel_number;
-          p += sizeof(PandarATCorrectionsHeader);
-          memcpy((void *)&m_PandarAT_corrections.start_frame, p,
-                 sizeof(uint16_t) * frame_num);
-          p += sizeof(uint16_t) * frame_num;
-          memcpy((void *)&m_PandarAT_corrections.end_frame, p,
-                 sizeof(uint16_t) * frame_num);
-          p += sizeof(uint16_t) * frame_num;
-          for (int i = 0; i < frame_num; ++i)
-          memcpy((void *)&m_PandarAT_corrections.azimuth, p,
-                 sizeof(int16_t) * channel_num);
-          p += sizeof(int16_t) * channel_num;
-          memcpy((void *)&m_PandarAT_corrections.elevation, p,
-                 sizeof(int16_t) * channel_num);
-          p += sizeof(int16_t) * channel_num;
-          memcpy((void *)&m_PandarAT_corrections.azimuth_offset, p,
-                 sizeof(int8_t) * CIRCLE_ANGLE);
-          p += sizeof(int8_t) * CIRCLE_ANGLE;
-          memcpy((void *)&m_PandarAT_corrections.elevation_offset, p,
-                 sizeof(int8_t) * CIRCLE_ANGLE);
-          p += sizeof(int8_t) * CIRCLE_ANGLE;
-          memcpy((void *)&m_PandarAT_corrections.SHA256, p,
-                 sizeof(uint8_t) * 32);
-          p += sizeof(uint8_t) * 32;
-          this->get_correction_file_ = true;
-          return 0;
-        } break;
         case 5: {
           m_PandarAT_corrections.header = header;
           auto frame_num = m_PandarAT_corrections.header.frame_number;
@@ -148,7 +118,7 @@ int Udp4_3Parser<T_Point>::LoadCorrectionString(char *data) {
                 m_PandarAT_corrections.l.end_frame[i] *
                 m_PandarAT_corrections.header.resolution;
           }
-          for (int i = 0; i < AT128_LASER_NUM; i++) {
+          for (int i = 0; i < channel_num; i++) {
             m_PandarAT_corrections.l.azimuth[i] =
                 m_PandarAT_corrections.l.azimuth[i] *
                 m_PandarAT_corrections.header.resolution;
