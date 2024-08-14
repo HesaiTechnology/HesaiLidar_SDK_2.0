@@ -102,6 +102,7 @@ typedef struct DecoderParam
   //          6_1: PandarXT32M1, PandarXT16M1, PandarXT32M2X / XTM;
   //          special: Pandar64E2X, Pandar40E2X,
   std::string distance_correction_lidar_type = "";
+  uint32_t socket_buffer_size = 0;
 } DecoderParam;
 
 ///< The LiDAR input parameter
@@ -119,7 +120,7 @@ typedef struct InputParam
   ///< udp packet port number       
   uint16_t udp_port = 2368;   
   ///< ptc packet port number                
-  uint16_t ptc_port = 9347;                 
+  uint16_t ptc_port = 9347;            
   bool read_pcap = true;          ///< true: The driver will process the pcap through pcap_path. false: The driver will
                                    ///< Get data from online LiDAR
   std::string pcap_path = "Your pcap file path";  ///< Absolute path of pcap file

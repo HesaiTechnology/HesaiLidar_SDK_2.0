@@ -137,14 +137,13 @@ class Udp4_3Parser : public GeneralParser<T_Point> {
   // compute xyzi of points from decoded packet
   // param packet is the decoded packet; xyzi of points after computed is puted in frame    
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
+
+  virtual void ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info);
   PandarATCorrections m_PandarAT_corrections;
 
  protected:
   int view_mode_;
-  std::string pcap_file_;
-  std::string lidar_correction_file_;
   bool get_correction_file_;
-  // void *m_pTcpCommandClient;
 };
 }  // namespace lidar
 }  // namespace hesai

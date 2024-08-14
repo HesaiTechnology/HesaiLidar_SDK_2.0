@@ -103,6 +103,7 @@ void Udp3_2Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
     fin.read(buffer, length);
     fin.close();
     ret = LoadFiretimesString(buffer);
+    delete[] buffer;
     if (ret != 0) {
       std::cout << "Parse local firetimes file Error\n";
     }
@@ -182,6 +183,7 @@ void Udp3_2Parser<T_Point>::LoadChannelConfigFile(std::string channel_config_pat
     fin.read(buffer, length);
     fin.close();
     ret = LoadChannelConfigString(buffer);
+    delete[] buffer;
     if (ret != 0) {
       std::cout << "Parse local channel congfig file Error" << std::endl;
     }

@@ -36,6 +36,8 @@ namespace lidar
 template <typename T_Point>
 class HesaiLidarSdk 
 {
+public:
+  using chrono_time = std::chrono::_V2::system_clock::time_point;
 private:
   std::thread *runing_thread_ptr_;
   std::function<void(const UdpFrame_t&, double)> pkt_cb_;
@@ -43,6 +45,7 @@ private:
   std::function<void(const u8Array_t&)> correction_cb_;
   std::function<void(const uint32_t &, const uint32_t &)> pkt_loss_cb_;
   std::function<void(const uint8_t&, const u8Array_t&)> ptp_cb_;
+  std::function<void(const FaultMessageInfo&)> fault_message_cb_;
   bool is_thread_runing_;
   bool packet_loss_tool_;
 public:
@@ -52,12 +55,27 @@ public:
     lidar_ptr_ = nullptr;
     is_thread_runing_ = false;
     packet_loss_tool_ = false;
+    source_type_ = DATA_FROM_PCAP;
   }
 
   ~HesaiLidarSdk() {
     Stop();
   }
   Lidar<T_Point> *lidar_ptr_;
+  DriverParam param_;
+  std::thread *init_thread_ptr_;
+  SourceType source_type_;
+
+  void Init_thread()
+  {
+    packet_loss_tool_ = param_.decoder_param.enable_packet_loss_tool;
+    //init lidar with param
+    if (nullptr != lidar_ptr_) {
+      lidar_ptr_->Init(param_);
+      lidar_ptr_->init_finish_[AllInitFinish] = true;
+      std::cout << "finish 3: Initialisation all complete !!!" << std::endl;
+    }
+  }
 
   //init lidar with param. init logger, udp parser, source, ptc client, start receive/parser thread
   bool Init(const DriverParam& param) 
@@ -68,10 +86,9 @@ public:
       std::cout << "create Lidar fail" << std::endl;
       return false;
     }
-    //init lidar with param
-    lidar_ptr_->Init(param);
-    //set packet_loss_tool
-    packet_loss_tool_ = param.decoder_param.enable_packet_loss_tool;
+    source_type_ = param.input_param.source_type;
+    param_ = param;
+    init_thread_ptr_ = new std::thread(std::bind(&HesaiLidarSdk::Init_thread, this));
     /***********************************************************************************/ 
     return true;
   }
@@ -88,16 +105,39 @@ public:
     if (nullptr != lidar_ptr_) {
       delete lidar_ptr_;
       lidar_ptr_ = nullptr;
-    }  
+    } 
+
+    if (nullptr != init_thread_ptr_) {
+      runing_thread_ptr_->join();
+      delete init_thread_ptr_;
+      init_thread_ptr_ = nullptr;
+    } 
   }
+
+  void onRelease() { is_thread_runing_ = false; }
+
   // start process thread
   void Start() {
-    runing_thread_ptr_ = new std::thread(std::bind(&HesaiLidarSdk::Run, this));  
+    // runing_thread_ptr_ = new std::thread(std::bind(&HesaiLidarSdk::Run, this));  
+    while(1) {
+      if ((source_type_ == DATA_FROM_LIDAR && lidar_ptr_->init_finish_[FaultMessParse]) || lidar_ptr_->init_finish_[AllInitFinish]) {
+        Run();
+        break;
+      }
+      usleep(50000);
+    }
+  }
+
+  double Chrono_to_double(chrono_time t)
+  {
+    std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>(t.time_since_epoch());
+    return static_cast<double>(duration.count()) / 1000.0;
   }
 
   // process thread
   void Run()
   {
+    printf("------begin to prase udp package------\n");
     is_thread_runing_ = true;
     UdpFrame_t udp_packet_frame;
     LidarDecodedPacket<T_Point> decoded_packet;
@@ -119,10 +159,16 @@ public:
       if (ret == -1) continue;
       //get fault message
       if (packet.packet_len == kFaultMessageLength) {
-        FaultMessageCallback(packet, fault_message_info);
+        ret = lidar_ptr_->ParserFaultMessage(packet, fault_message_info);
+        if (ret == 0) {
+          if (fault_message_cb_)
+            fault_message_cb_(fault_message_info);
+        }
         continue;
       }
 
+      // Wait for initialization to complete before starting to parse the point cloud
+      if(!lidar_ptr_->init_finish_[PointCloudParse]) continue;
       //get distance azimuth reflection, etc.and put them into decode_packet
       if(lidar_ptr_->DecodePacket(decoded_packet, packet) != 0) {
         continue;
@@ -229,12 +275,8 @@ public:
   void RegRecvCallback(const std::function<void (const uint8_t&, const u8Array_t&)>& callback) {
     ptp_cb_ = callback;
   }
-  //parsar fault message
-  void FaultMessageCallback(UdpPacket& udp_packet, FaultMessageInfo& fault_message_info) {
-     FaultMessageVersion3 *fault_message_ptr = 
-      reinterpret_cast< FaultMessageVersion3*> (&(udp_packet.buffer[0]));
-    fault_message_ptr->ParserFaultMessage(fault_message_info);
-    return;
+  void RegRecvCallback(const std::function<void (const FaultMessageInfo&)>& callback) {
+    fault_message_cb_ = callback;
   }
 };
 

@@ -53,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include "lidar_types.h"
 #include "plat_utils.h"
+#include "fault_message.h"
 namespace hesai
 {
 namespace lidar
@@ -76,6 +77,7 @@ DEFINE_MEMBER_CHECKER(z)
 DEFINE_MEMBER_CHECKER(intensity)
 DEFINE_MEMBER_CHECKER(ring)
 DEFINE_MEMBER_CHECKER(timestamp)
+DEFINE_MEMBER_CHECKER(confidence)
 
 template <typename T_Point>
 inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, x)>::type setX(T_Point& point, const float& value)
@@ -145,6 +147,19 @@ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, timestamp)>::type setT
                                                                                      const double& value)
 {
   point.timestamp = value;
+}
+
+template <typename T_Point>
+inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, confidence)>::type setConfidence(T_Point& point,
+                                                                                      const uint8_t& value)
+{
+}
+
+template <typename T_Point>
+inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, confidence)>::type setConfidence(T_Point& point,
+                                                                                     const uint8_t& value)
+{
+  point.confidence = value;
 }
 
 inline float deg2Rad(float deg)
@@ -234,6 +249,9 @@ class GeneralParser {
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
   // Under thread safety, increase the points_num in the frame
   void FrameNumAdd(LidarDecodedFrame<T_Point> &frame, uint32_t points_num);
+
+  // parse the detailed content of the fault message message
+  virtual void ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info);
 
   //set frame azimuth
   virtual void SetFrameAzimuth(float frame_start_azimuth);

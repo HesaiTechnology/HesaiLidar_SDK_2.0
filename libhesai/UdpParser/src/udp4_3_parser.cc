@@ -65,6 +65,7 @@ void Udp4_3Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
     fin.close();
     str_lidar_calibration = buffer;
     ret = LoadCorrectionString(buffer);
+    delete[] buffer;
     if (ret != 0) {
       printf("Parse local Correction file Error\n");
     } else {
@@ -455,4 +456,12 @@ bool Udp4_3Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth, int field) {
       return true;
     }
   return false;
+}
+
+template<typename T_Point>
+void Udp4_3Parser<T_Point>::ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info) {
+  FaultMessageVersion4_3 *fault_message_ptr =  
+      reinterpret_cast< FaultMessageVersion4_3*> (&(udp_packet.buffer[0]));
+  fault_message_ptr->ParserFaultMessage(fault_message_info);
+  return;
 }

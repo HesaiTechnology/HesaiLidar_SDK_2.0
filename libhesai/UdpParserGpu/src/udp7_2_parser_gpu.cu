@@ -212,6 +212,8 @@ int Udp7_2ParserGpu<T_Point>::LoadCorrectionDatData(char *correction_string) {
           CUDACheck(cudaMemcpy(channel_azimuths_cu_, azimuths, sizeof(azimuths), cudaMemcpyHostToDevice));
           CUDACheck(cudaMemcpy(channel_elevations_cu_, elevations, sizeof(elevations), cudaMemcpyHostToDevice));
           corrections_loaded_ = true;
+          delete[] angles;
+          delete[] hashValue;
           return 0;
         } break;
         case 1: {
@@ -245,6 +247,8 @@ int Udp7_2ParserGpu<T_Point>::LoadCorrectionDatData(char *correction_string) {
           CUDACheck(cudaMemcpy(channel_azimuths_cu_, azimuths, sizeof(azimuths), cudaMemcpyHostToDevice));
           CUDACheck(cudaMemcpy(channel_elevations_cu_, elevations, sizeof(elevations), cudaMemcpyHostToDevice));
           corrections_loaded_ = true;
+          delete[] angles;
+          delete[] hashValue;
           return 0;
         } break;
         default:
@@ -278,6 +282,7 @@ int Udp7_2ParserGpu<T_Point>::LoadCorrectionFile(std::string lidar_correction_fi
     fin.close();
     str_lidar_calibration = buffer;
     ret = LoadCorrectionString(buffer);
+    delete[] buffer;
     if (ret != 0) {
       printf("Parse local Correction file Error\n");
     } else {

@@ -50,6 +50,7 @@ include_directories(
   ../libhesai/include
   ../driver
   ../third_party
+  ./
   ${OPENSSL_INCLUDE_DIR}
 )
 link_directories(../libhesai/PtcClient/lib)

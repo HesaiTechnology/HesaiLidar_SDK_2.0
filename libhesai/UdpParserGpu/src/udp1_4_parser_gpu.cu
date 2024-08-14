@@ -209,6 +209,7 @@ int Udp1_4ParserGpu<T_Point>::LoadCorrectionFile(std::string lidar_correction_fi
     fin.close();
     str_lidar_calibration = buffer;
     ret = LoadCorrectionString(buffer);
+    delete[] buffer;
     if (ret != 0) {
       printf("Parse local Correction file Error\n");
     } else {

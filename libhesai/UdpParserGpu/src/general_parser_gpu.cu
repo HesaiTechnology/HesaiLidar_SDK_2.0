@@ -50,6 +50,7 @@ int GeneralParserGpu<T_Point>::LoadCorrectionFile(std::string correction_path) {
     fin.read(buffer, length);
     fin.close();
     ret = LoadCorrectionString(buffer);
+    delete[] buffer;
     if (ret != 0) {
       std::cout << "Parse local correction file Error" << std::endl;
       return -1;

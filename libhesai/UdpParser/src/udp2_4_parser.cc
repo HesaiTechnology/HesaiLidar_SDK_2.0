@@ -54,6 +54,7 @@ void Udp2_4Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
       fin.read(buffer, length);
       fin.close();
       ret = LoadCorrectionString(buffer);
+      delete[] buffer;
       if (ret != 0) {
         printf("Parse local Correction file Error!\n");
       } else {

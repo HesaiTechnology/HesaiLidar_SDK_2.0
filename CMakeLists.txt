@@ -27,6 +27,8 @@ include_directories("${PROJECT_BINARY_DIR}")
 find_package(OpenSSL REQUIRED)
 add_definitions(-DQT_MESSAGELOGCONTEXT)
 add_subdirectory(libhesai)
+find_package(Eigen3 REQUIRED)
+include_directories(EIGEN3 INCLUDE_DIR)
 
 include_directories(
   libhesai

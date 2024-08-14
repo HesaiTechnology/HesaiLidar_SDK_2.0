@@ -68,6 +68,15 @@ namespace hesai
 namespace lidar
 {
 
+enum LidarInitFinishStatus {
+  FaultMessParse = 0,
+  PtcInitFinish = 1,
+  PointCloudParse = 2,
+  AllInitFinish = 3,
+
+  TotalStatus
+};
+
 // class Lidar
 // the Lidar class will start a udp data recieve thread and parser thread when init()
 // udp packet data will be recived in udp data recieve thread and put into origin_packets_buffer_
@@ -110,6 +119,8 @@ public:
   int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udp_packet);
   // Determine whether all pointxyzi info is parsed in this frame
   bool ComputeXYZIComplete(int index);
+  // parse the detailed content of the fault message message
+  int ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info);
   // save lidar correction file from ptc
   int SaveCorrectionFile(std::string correction_save_path);
   // get lidar correction file from ptc,and pass to udp parser
@@ -141,9 +152,10 @@ public:
   LidarDecodedFrame<T_Point> frame_;
   BlockingRing<UdpPacket, kPacketBufferSize> origin_packets_buffer_;
   uint16_t use_timestamp_type_ = 0;
-  int fov_start_ = 0;
-  int fov_end_ = 0;
+  int fov_start_ = -1;
+  int fov_end_ = -1;
   u8Array_t correction_string_;
+  bool init_finish_[TotalStatus];           // 0: 基本初始化完成， 1：ptc初始化完成， 2：角度校准文件加载完成， 3：全部初始化完成
 
 private:
   uint16_t ptc_port_;

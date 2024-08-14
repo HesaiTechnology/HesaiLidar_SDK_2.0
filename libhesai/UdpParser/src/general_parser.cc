@@ -74,6 +74,10 @@ template <typename T_Point>
 int GeneralParser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket) {
   return 0;
 } 
+template <typename T_Point>
+void GeneralParser<T_Point>::ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info) {
+  return;
+}
 
 template <typename T_Point>
 GeneralParser<T_Point>::~GeneralParser() { printf("release general Parser\n"); }
@@ -109,6 +113,7 @@ void GeneralParser<T_Point>::LoadCorrectionFile(std::string correction_path) {
     fin.read(buffer, length);
     fin.close();
     ret = LoadCorrectionString(buffer);
+    delete[] buffer;
     if (ret != 0) {
       std::cout << "Parse local correction file Error\n";
     } else {

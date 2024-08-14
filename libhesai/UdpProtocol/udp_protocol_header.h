@@ -50,18 +50,35 @@ static bool IsLittleEndian() {
   return *p == 1 ? true : false;
 }
 
+template<typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>  
+T reverseBytes(T value) {  
+    static_assert(sizeof(T) <= 8, "Type must be no larger than 8 bytes");  
+    T reversed = 0;  
+    for (size_t i = 0; i < sizeof(T); ++i) {  
+        reversed = (reversed << 8) | (static_cast<unsigned char>(value) & 0xFF);  
+        value >>= 8;  
+    }  
+    return reversed;  
+}  
+
 template <typename T>
 T little_to_native(T data) {
   T out = 0;
   if (IsLittleEndian()) {
     out = data;
   } else {
-    unsigned char *pSrc = reinterpret_cast<unsigned char *>(&data +
-                                                            sizeof(data) - 1),
-                  *pDst = reinterpret_cast<unsigned char *>(&out);
-    for (size_t i = 0; i < sizeof(data); i++) {
-      *pDst++ = *pSrc--;
-    }
+    out = reverseBytes(data);
+  }
+  return out;
+}
+
+template <typename T>
+T big_to_native(T data) {
+  T out = 0;
+  if (!IsLittleEndian()) {
+    out = data;
+  } else {
+    out = reverseBytes(data);
   }
   return out;
 }

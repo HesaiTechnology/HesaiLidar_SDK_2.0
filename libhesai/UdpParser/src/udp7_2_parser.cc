@@ -63,6 +63,7 @@ void Udp7_2Parser<T_Point>::LoadCorrectionFile(std::string correction_path) {
     fin.close();
     str_lidar_calibration = buffer;
     ret = LoadCorrectionString(buffer);
+    delete[] buffer;
     if (ret != 0) {
       printf("Parse local Correction file Error\n");
     } else {
@@ -156,6 +157,8 @@ int Udp7_2Parser<T_Point>::LoadCorrectionDatData(char *correction_string) {
               }
           }
           this->get_correction_file_ = true;
+          delete[] angles;
+          delete[] hashValue;
           return 0;
         } break;
         case 1: {
@@ -185,6 +188,8 @@ int Udp7_2Parser<T_Point>::LoadCorrectionDatData(char *correction_string) {
               }
           }
           this->get_correction_file_ = true;
+          delete[] angles;
+          delete[] hashValue;
           return 0;
         } break;
         default:
