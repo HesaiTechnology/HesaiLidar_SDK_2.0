@@ -178,12 +178,14 @@ class GeneralParserGpu {
   // param packet is the decoded packet; xyzi of points after computed is puted in frame  
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
   void SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
+  int SetXtSpotCorrecion(std::string lidar_type);
   Transform transform_;
   bool corrections_loaded_ = false;
   protected:
   double firetime_correction_[kMaxPointsNumPerPacket];
   MemBufferClass<PointCloudStruct<T_Point>> frame_;
   LidarOpticalCenter optical_center;
+  bool xt_spot_correction = false;
 };
 }
 }

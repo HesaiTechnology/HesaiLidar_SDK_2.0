@@ -248,3 +248,10 @@ int UdpParserGpu<T_Point>::SetOpticalCenterCoordinates(std::string lidar_type) {
   return -1;
 }
 
+template<typename T_Point>
+int UdpParserGpu<T_Point>::SetXtSpotCorrecion(std::string lidar_type) {
+  if (m_generalParserGpu != nullptr) {
+    return m_generalParserGpu->SetXtSpotCorrecion(lidar_type);
+  }
+  return -1;
+}

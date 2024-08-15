@@ -192,3 +192,12 @@ void GeneralParserGpu<T_Point>::SetOpticalCenterCoordinates(std::string lidar_ty
   }
 }
 
+template <typename T_Point>
+int GeneralParserGpu<T_Point>::SetXtSpotCorrecion(std::string lidar_type) {
+  if (lidar_type == "PandarXT32M1" || lidar_type == "PandarXT16M1" ) {
+    xt_spot_correction = true;
+  } else {
+    return -1;
+  }
+  return 0;
+}
