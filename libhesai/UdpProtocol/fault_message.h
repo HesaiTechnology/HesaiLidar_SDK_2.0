@@ -78,7 +78,7 @@ struct FaultMessageInfo4_7 {
   void Print() const {
     printf("tdm_data_indicate: %d\n", tdm_data_indicate);
     printf("tdm_data:");
-    for (int i = 0; i < 27; i++) {
+    for (int i = 0; i < 14; i++) {
       printf(" 0x%02x", time_division_multiplexing[i]);
     }
     printf("\n");

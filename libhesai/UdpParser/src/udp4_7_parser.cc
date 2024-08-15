@@ -343,10 +343,10 @@ int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       if (this->get_correction_file_) {
         azimuth = (CIRCLE + Azimuth) % CIRCLE;
         if(m_ATX_corrections.header.version[1] == 1 || m_ATX_corrections.header.version[1] == 2) {
-          elevation = m_ATX_corrections.elevation[i] * 25600;
+          elevation = m_ATX_corrections.elevation[i] * kAllFineResolutionInt;
         } 
         else if (m_ATX_corrections.header.version[1] == 3) {
-          elevation = m_ATX_corrections.elevation[i] * 25600 + m_ATX_corrections.ElevationAdjust(azimuth) * 25600;
+          elevation = m_ATX_corrections.elevation[i] * kAllFineResolutionInt + m_ATX_corrections.ElevationAdjust(azimuth) * kAllFineResolutionInt;
         }
         elevation = (CIRCLE + elevation) % CIRCLE;
       }      
@@ -364,8 +364,7 @@ int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       setRing(frame.points[point_index], i);
     }
   }
-  frame.points_num += packet.points_num;
-  frame.packet_num = packet.packet_index;
+  GeneralParser<T_Point>::FrameNumAdd(frame, packet.points_num);
   return 0;
 }
 

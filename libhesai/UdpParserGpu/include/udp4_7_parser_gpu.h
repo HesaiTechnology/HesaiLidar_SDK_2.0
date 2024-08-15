@@ -25,8 +25,8 @@ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT
 TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
-#ifndef Udp2_6_PARSER_GPU_H_
-#define Udp2_6_PARSER_GPU_H_
+#ifndef UDP4_7_PARSER_GPU_H_
+#define UDP4_7_PARSER_GPU_H_
 #pragma once
 #include <array>
 #include <atomic>
@@ -36,49 +36,43 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <memory>
 #include <mutex>
-
 #include "general_parser_gpu.h"
-
-#ifndef M_PI
-#define M_PI 3.1415926535898
-#endif
 
 namespace hesai
 {
 namespace lidar
 {
-// class Udp2_6ParserGpu
-// computes points for ET25
+
+// class Udp4_7ParserGpu
+// computes points for PandarAT128
 // you can compute xyzi of points using the ComputeXYZI fuction, which uses gpu to compute
 template <typename T_Point>
-class Udp2_6ParserGpu: public GeneralParserGpu<T_Point>{
+class Udp4_7ParserGpu: public GeneralParserGpu<T_Point>{
+
  private:
-  float* channel_azimuths_cu_;
+  // corrections
+  bool corrections_loaded_;
   float* channel_elevations_cu_;
-  int16_t* channel_azimuths_adjust_cu_;
-  int16_t* channel_elevations_adjust_cu_;
+  float* deles_cu;
   float* raw_azimuths_cu_;
-  float* raw_elevations_cu_;
   uint16_t* raw_distances_cu_;
   uint8_t* raw_reflectivities_cu_;
   uint64_t* raw_sensor_timestamp_cu_;
-  uint8_t* chn_index_cu_;
+
  public:
-  Udp2_6ParserGpu();
-  ~Udp2_6ParserGpu();
+  Udp4_7ParserGpu();
+  ~Udp4_7ParserGpu();
 
   // compute xyzi of points from decoded packet， use gpu device
   // param packet is the decoded packet; xyzi of points after computed is puted in frame  
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
   virtual int LoadCorrectionFile(std::string correction_path);
   virtual int LoadCorrectionString(char *correction_string);
-  int LoadCorrectionDatData(char *correction_string);
-  int LoadCorrectionCsvData(char *correction_string);
-  ETCorrectionsHeader_V6 corrections_;
-  bool corrections_loaded_;
+  ATXCorrections m_ATX_corrections;
   
 };
 }
 }
-#include "udp2_6_parser_gpu.cu"
-#endif  // Udp2_6_PARSER_GPU_H_
+
+#include "udp4_7_parser_gpu.cu"
+#endif  // UDP4_7_PARSER_GPU_H_

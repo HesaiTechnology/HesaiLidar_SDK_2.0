@@ -236,11 +236,13 @@ public:
           memcpy((frame.reflectivities + packet_index * decoded_packet.points_num), (decoded_packet.reflectivities), decoded_packet.points_num * sizeof(uint8_t));
           memcpy((frame.azimuth + packet_index * decoded_packet.points_num), (decoded_packet.azimuth), decoded_packet.points_num * sizeof(float));
           memcpy((frame.elevation + packet_index * decoded_packet.points_num), (decoded_packet.elevation), decoded_packet.points_num * sizeof(float));
+          memcpy((frame.chn_index + packet_index * decoded_packet.points_num), (decoded_packet.chn_index), decoded_packet.points_num * sizeof(uint8_t));
           frame.distance_unit = decoded_packet.distance_unit;
           frame.sensor_timestamp[packet_index] = decoded_packet.sensor_timestamp;
           frame.points_num = frame.points_num + decoded_packet.points_num;
           frame.lidar_state = decoded_packet.lidar_state;
           frame.work_mode = decoded_packet.work_mode;
+          frame.packet_index = packet_index + 1;
           packet_index++;
         }
         
@@ -256,12 +258,15 @@ public:
           memcpy((frame.reflectivities + packet_index * decoded_packet.points_num), (decoded_packet.reflectivities), decoded_packet.points_num * sizeof(uint8_t));
           memcpy((frame.azimuth + packet_index * decoded_packet.points_num), (decoded_packet.azimuth), decoded_packet.points_num * sizeof(float));
           memcpy((frame.elevation + packet_index * decoded_packet.points_num), (decoded_packet.elevation), decoded_packet.points_num * sizeof(float));
+          memcpy((frame.chn_index + packet_index * decoded_packet.points_num), (decoded_packet.chn_index), decoded_packet.points_num * sizeof(uint8_t));
           frame.distance_unit = decoded_packet.distance_unit;
           frame.sensor_timestamp[packet_index] = decoded_packet.sensor_timestamp;
           frame.points_num = frame.points_num + decoded_packet.points_num;
+          frame.packet_index = packet_index + 1;
           if (decoded_packet.block_num != 0 && decoded_packet.laser_num != 0) {
               frame.laser_num = decoded_packet.laser_num;
               frame.block_num = decoded_packet.block_num;
+              frame.per_points_num = decoded_packet.points_num;
           }
           packet_index++;
         }

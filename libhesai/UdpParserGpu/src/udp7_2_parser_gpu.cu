@@ -49,6 +49,7 @@ Udp7_2ParserGpu<T_Point>::~Udp7_2ParserGpu() {
   cudaSafeFree(raw_elevations_cu);
   cudaSafeFree(raw_distances_cu_);
   cudaSafeFree(raw_reflectivities_cu_);
+  cudaSafeFree(raw_sensor_timestamp_cu_);
   if (corrections_loaded_) {
     cudaSafeFree(channel_elevations_cu_);
     cudaSafeFree(channel_azimuths_cu_);
@@ -59,9 +60,10 @@ template <typename T_Point>
 __global__ void compute_xyzs_7_2_impl(T_Point *xyzs, const float* channel_azimuths, const float* channel_elevations, 
     float* raw_azimuths, float* raw_elevations, const uint16_t *raw_distances, const uint8_t *raw_reflectivities, 
     const uint64_t *raw_sensor_timestamp, const double raw_distance_unit, Transform transform, 
-    int blocknum, int lasernum) {
+    int blocknum, int lasernum, uint16_t packet_index) {
   auto iscan = blockIdx.x;
   auto ichannel = threadIdx.x;
+  if (iscan >= packet_index || ichannel >= blocknum * lasernum) return;
   float azimuth = raw_azimuths[iscan * blocknum * lasernum + ichannel] / HALF_CIRCLE * M_PI;
   float elevation = raw_elevations[iscan * blocknum * lasernum + ichannel] / HALF_CIRCLE * M_PI;
 
@@ -114,7 +116,8 @@ int Udp7_2ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
    
 
 compute_xyzs_7_2_impl<<<kMaxPacketNumPerFrame, kMaxPointsNumPerPacket>>>(this->frame_.gpu()->points, channel_azimuths_cu_, channel_elevations_cu_, 
-   raw_azimuths_cu_, raw_elevations_cu, raw_distances_cu_, raw_reflectivities_cu_, raw_sensor_timestamp_cu_, frame.distance_unit, this->transform_, frame.block_num, frame.laser_num);
+   raw_azimuths_cu_, raw_elevations_cu, raw_distances_cu_, raw_reflectivities_cu_, raw_sensor_timestamp_cu_, frame.distance_unit, 
+   this->transform_, frame.block_num, frame.laser_num, frame.packet_index);
   cudaSafeCall(cudaGetLastError(), ReturnCode::CudaXYZComputingError);
   this->frame_.DeviceToHost();
   std::memcpy(frame.points, this->frame_.cpu()->points, sizeof(T_Point) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket);

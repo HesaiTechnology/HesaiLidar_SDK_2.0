@@ -128,6 +128,7 @@ struct PointCloudStruct  {
   float azimuths[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
   uint16_t distances[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
   uint8_t reflectivities[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
+  uint8_t chn_index_cu_[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
   uint16_t spin_speed[kMaxPacketNumPerFrame];
   float firetimes[kMaxPointsNumPerPacket];
   PointT points[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];

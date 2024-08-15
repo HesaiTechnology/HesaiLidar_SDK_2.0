@@ -48,6 +48,7 @@ Udp4_3ParserGpu<T_Point>::~Udp4_3ParserGpu() {
   cudaSafeFree(raw_azimuths_cu_);
   cudaSafeFree(raw_distances_cu_);
   cudaSafeFree(raw_reflectivities_cu_);
+  cudaSafeFree(raw_sensor_timestamp_cu_);
   if (corrections_loaded_) {
     cudaSafeFree(deles_cu);
     cudaSafeFree(dazis_cu);
@@ -64,10 +65,10 @@ __global__ void compute_xyzs_v4_3_impl(
     const int32_t* channel_elevations, const int8_t* dazis, const int8_t* deles,
     const uint32_t* raw_azimuth_begin, const uint32_t* raw_azimuth_end, const uint8_t raw_correction_resolution,
     const float* raw_azimuths, const uint16_t *raw_distances, const uint8_t *raw_reflectivities, 
-    const uint64_t *raw_sensor_timestamp, const double raw_distance_unit, Transform transform, const uint16_t blocknum, const uint16_t lasernum) {
+    const uint64_t *raw_sensor_timestamp, const double raw_distance_unit, Transform transform, const uint16_t blocknum, const uint16_t lasernum, uint16_t packet_index) {
   auto iscan = blockIdx.x;
   auto ichannel = threadIdx.x;
-  if (ichannel >= blocknum * lasernum) return;
+  if (iscan >= packet_index || ichannel >= blocknum * lasernum) return;
   float azimuth = raw_azimuths[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] / kFineResolutionInt;
   int Azimuth = raw_azimuths[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))];
   int count = 0, field = 0;
@@ -143,7 +144,7 @@ compute_xyzs_v4_3_impl<<<kMaxPacketNumPerFrame, kMaxPointsNumPerPacket>>>(
     (const int32_t*)channel_elevations_cu_, (const int8_t*)dazis_cu, deles_cu,
     mirror_azi_begins_cu, mirror_azi_ends_cu, m_PandarAT_corrections.header.resolution,
     raw_azimuths_cu_, raw_distances_cu_, raw_reflectivities_cu_, raw_sensor_timestamp_cu_, frame.distance_unit, 
-    this->transform_, frame.block_num, frame.laser_num);
+    this->transform_, frame.block_num, frame.laser_num, frame.packet_index);
   cudaSafeCall(cudaGetLastError(), ReturnCode::CudaXYZComputingError);
   this->frame_.DeviceToHost();
   std::memcpy(frame.points, this->frame_.cpu()->points, sizeof(T_Point) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket);
