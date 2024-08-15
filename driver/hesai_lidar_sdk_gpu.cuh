@@ -43,6 +43,7 @@ private:
   std::function<void(const u8Array_t&)> correction_cb_;
   std::function<void(const uint32_t &, const uint32_t &)> pkt_loss_cb_;
   std::function<void(const uint8_t&, const u8Array_t&)> ptp_cb_;
+  std::function<void(const FaultMessageInfo&)> fault_message_cb_;
   bool is_thread_runing_;
   bool packet_loss_tool_; 
 
@@ -102,6 +103,7 @@ public:
 
     //init gpu parser with lidar type
     gpu_parser_ptr_->SetLidarType(lidar_type_from_parser);
+    gpu_parser_ptr_->SetOpticalCenterCoordinates(param.decoder_param.distance_correction_lidar_type);
 
     //set transform param
     gpu_parser_ptr_->SetTransformPara(param.decoder_param.transform_param.x,
@@ -167,7 +169,11 @@ public:
 
       //get fault message
       if (packet.packet_len == kFaultMessageLength) {
-        FaultMessageCallback(packet, fault_message_info);
+        ret = lidar_ptr_->ParserFaultMessage(packet, fault_message_info);
+        if (ret == 0) {
+          if (fault_message_cb_)
+            fault_message_cb_(fault_message_info);
+        }
         continue;
       }
 
@@ -237,6 +243,7 @@ public:
           memcpy((frame.azimuth + packet_index * decoded_packet.points_num), (decoded_packet.azimuth), decoded_packet.points_num * sizeof(float));
           memcpy((frame.elevation + packet_index * decoded_packet.points_num), (decoded_packet.elevation), decoded_packet.points_num * sizeof(float));
           memcpy((frame.chn_index + packet_index * decoded_packet.points_num), (decoded_packet.chn_index), decoded_packet.points_num * sizeof(uint8_t));
+          memcpy((frame.confidence + packet_index * decoded_packet.points_num), (decoded_packet.confidenceLevel), decoded_packet.points_num * sizeof(uint8_t));
           frame.distance_unit = decoded_packet.distance_unit;
           frame.sensor_timestamp[packet_index] = decoded_packet.sensor_timestamp;
           frame.points_num = frame.points_num + decoded_packet.points_num;
@@ -259,6 +266,7 @@ public:
           memcpy((frame.azimuth + packet_index * decoded_packet.points_num), (decoded_packet.azimuth), decoded_packet.points_num * sizeof(float));
           memcpy((frame.elevation + packet_index * decoded_packet.points_num), (decoded_packet.elevation), decoded_packet.points_num * sizeof(float));
           memcpy((frame.chn_index + packet_index * decoded_packet.points_num), (decoded_packet.chn_index), decoded_packet.points_num * sizeof(uint8_t));
+          memcpy((frame.confidence + packet_index * decoded_packet.points_num), (decoded_packet.confidenceLevel), decoded_packet.points_num * sizeof(uint8_t));
           frame.distance_unit = decoded_packet.distance_unit;
           frame.sensor_timestamp[packet_index] = decoded_packet.sensor_timestamp;
           frame.points_num = frame.points_num + decoded_packet.points_num;
@@ -306,11 +314,8 @@ public:
     ptp_cb_ = callback;
   }
 
-  void FaultMessageCallback(UdpPacket& udp_packet, FaultMessageInfo& fault_message_info) {
-     FaultMessageVersion3 *fault_message_ptr = 
-      reinterpret_cast< FaultMessageVersion3*> (&(udp_packet.buffer[0]));
-    fault_message_ptr->ParserFaultMessage(fault_message_info);
-    return;
+  void RegRecvCallback(const std::function<void (const FaultMessageInfo&)>& callback) {
+    fault_message_cb_ = callback;
   }
 };
 

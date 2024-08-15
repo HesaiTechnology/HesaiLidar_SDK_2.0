@@ -90,6 +90,7 @@ __global__ void compute_xyzs_7_2_impl(T_Point *xyzs, const float* channel_azimut
   gpu::setZ(xyzs[iscan * blocknum * lasernum + ichannel], z_);
   gpu::setIntensity(xyzs[iscan * blocknum * lasernum + ichannel], raw_reflectivities[iscan * blocknum * lasernum + ichannel]);
   gpu::setTimestamp(xyzs[iscan * blocknum * lasernum + ichannel], double(raw_sensor_timestamp[iscan]) / kMicrosecondToSecond);
+  gpu::setRing(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], ichannel % lasernum);
 }
 
 template <typename T_Point>

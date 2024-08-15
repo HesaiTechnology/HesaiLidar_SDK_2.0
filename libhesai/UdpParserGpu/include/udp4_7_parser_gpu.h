@@ -58,6 +58,7 @@ class Udp4_7ParserGpu: public GeneralParserGpu<T_Point>{
   uint16_t* raw_distances_cu_;
   uint8_t* raw_reflectivities_cu_;
   uint64_t* raw_sensor_timestamp_cu_;
+  uint8_t* confidence_cu_;
 
  public:
   Udp4_7ParserGpu();
@@ -69,7 +70,7 @@ class Udp4_7ParserGpu: public GeneralParserGpu<T_Point>{
   virtual int LoadCorrectionFile(std::string correction_path);
   virtual int LoadCorrectionString(char *correction_string);
   ATXCorrections m_ATX_corrections;
-  
+
 };
 }
 }

@@ -164,8 +164,8 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
                                                   , param.input_param.certFile
                                                   , param.input_param.privateKeyFile
                                                   , param.input_param.caFile
-                                                  , 1000
-                                                  , 1000);
+                                                  , 2000
+                                                  , 2000);
       init_finish_[PtcInitFinish] = true;
       std::cout << "finish 1: ptc connection successfully" << std::endl;
       if (param.input_param.standby_mode != -1) {
@@ -457,6 +457,8 @@ void Lidar<T_Point>::RecieveUdpThread() {
       case 0:
         if (is_timeout_ == false) {
           udp_packet.packet_len = AT128E2X_PACKET_LEN; 
+          udp_packet.buffer[0] = 0;
+          udp_packet.buffer[1] = 0;
           origin_packets_buffer_.emplace_back(udp_packet);
           is_timeout_ = true;
         } 

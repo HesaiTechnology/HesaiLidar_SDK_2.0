@@ -118,6 +118,32 @@ namespace gpu
     point.timestamp = value;
   }
 
+  template <typename T_Point>
+  __device__ inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, ring)>::type setRing(T_Point& point,
+                                                                                        const uint16_t& value)
+  {
+  }
+
+  template <typename T_Point>
+  __device__ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, ring)>::type setRing(T_Point& point,
+                                                                                      const uint16_t& value)
+  {
+    point.ring = value;
+  }
+
+  template <typename T_Point>
+  __device__ inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, confidence)>::type setConfidence(T_Point& point,
+                                                                                        const uint8_t& value)
+  {
+  }
+
+  template <typename T_Point>
+  __device__ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, confidence)>::type setConfidence(T_Point& point,
+                                                                                      const uint8_t& value)
+  {
+    point.confidence = value;
+  }
+
 } // namespace gpu
 
 template <typename PointT>
@@ -129,6 +155,7 @@ struct PointCloudStruct  {
   uint16_t distances[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
   uint8_t reflectivities[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
   uint8_t chn_index_cu_[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
+  uint8_t confidence[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
   uint16_t spin_speed[kMaxPacketNumPerFrame];
   float firetimes[kMaxPointsNumPerPacket];
   PointT points[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
@@ -145,6 +172,7 @@ class GeneralParserGpu {
   virtual int LoadCorrectionString(char *correction_string);
   virtual void LoadFiretimesFile(std::string firetimes_path);
   virtual int LoadFiretimesString(char *firetimes_string);
+  void SetOpticalCenterCoordinates(std::string lidar_type);
   
   // compute xyzi of points from decoded packet， use gpu device
   // param packet is the decoded packet; xyzi of points after computed is puted in frame  
@@ -155,6 +183,7 @@ class GeneralParserGpu {
   protected:
   double firetime_correction_[kMaxPointsNumPerPacket];
   MemBufferClass<PointCloudStruct<T_Point>> frame_;
+  LidarOpticalCenter optical_center;
 };
 }
 }

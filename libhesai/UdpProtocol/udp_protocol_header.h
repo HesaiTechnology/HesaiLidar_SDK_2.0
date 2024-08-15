@@ -52,7 +52,7 @@ static bool IsLittleEndian() {
 
 template<typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>  
 T reverseBytes(T value) {  
-    static_assert(sizeof(T) <= 8, "Type must be no larger than 8 bytes");  
+    if (sizeof(T) == 1) return value;
     T reversed = 0;  
     for (size_t i = 0; i < sizeof(T); ++i) {  
         reversed = (reversed << 8) | (static_cast<unsigned char>(value) & 0xFF);  

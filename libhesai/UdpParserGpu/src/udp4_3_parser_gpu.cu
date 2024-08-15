@@ -120,6 +120,7 @@ __global__ void compute_xyzs_v4_3_impl(
   gpu::setZ(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], z_);
   gpu::setIntensity(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], raw_reflectivities[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))]);
   gpu::setTimestamp(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], double(raw_sensor_timestamp[iscan]) / kMicrosecondToSecond);
+  gpu::setRing(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], ichannel % lasernum);
 }
 template <typename T_Point>
 int Udp4_3ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
@@ -151,7 +152,7 @@ compute_xyzs_v4_3_impl<<<kMaxPacketNumPerFrame, kMaxPointsNumPerPacket>>>(
   return 0;
 }
 template <typename T_Point>
-int Udp4_3ParserGpu<T_Point>::LoadCorrectionString(char *p) {
+int Udp4_3ParserGpu<T_Point>::LoadCorrectionString(char *data) {
   try {
     char *p = data;
     PandarATCorrectionsHeader header = *(PandarATCorrectionsHeader *)p;
@@ -204,7 +205,7 @@ int Udp4_3ParserGpu<T_Point>::LoadCorrectionString(char *p) {
           CUDACheck(cudaMemcpy(deles_cu, m_PandarAT_corrections.elevation_offset, sizeof(m_PandarAT_corrections.elevation_offset), cudaMemcpyHostToDevice));
           CUDACheck(cudaMemcpy(mirror_azi_begins_cu, m_PandarAT_corrections.l.start_frame, sizeof(m_PandarAT_corrections.l.start_frame), cudaMemcpyHostToDevice));
           CUDACheck(cudaMemcpy(mirror_azi_ends_cu, m_PandarAT_corrections.l.end_frame, sizeof(m_PandarAT_corrections.l.end_frame), cudaMemcpyHostToDevice));
-          this->get_correction_file_ = true;
+          corrections_loaded_ = true;
           return 0;
         } break;
         default:

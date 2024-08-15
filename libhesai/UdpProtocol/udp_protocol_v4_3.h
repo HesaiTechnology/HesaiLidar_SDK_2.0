@@ -54,7 +54,7 @@ struct HS_LIDAR_BODY_AZIMUTH_ST_V3 {
 struct HS_LIDAR_BODY_FINE_AZIMUTH_ST_V3 {
   uint8_t m_u8FineAzimuth;
 
-  uint8_t GetFineAzimuth() const { return little_to_native(m_u8FineAzimuth); }
+  uint8_t GetFineAzimuth() const { return m_u8FineAzimuth; }
 
   void Print() const {
     printf("HS_LIDAR_BODY_FINE_AZIMUTH_ST_V3: FineAzimuth:%u\n",

@@ -42,6 +42,7 @@ Udp4_7ParserGpu<T_Point>::Udp4_7ParserGpu() {
   cudaSafeMalloc(raw_distances_cu_, sizeof(PointCloudStruct<T_Point>::distances));
   cudaSafeMalloc(raw_reflectivities_cu_, sizeof(PointCloudStruct<T_Point>::reflectivities));
   cudaSafeMalloc(raw_sensor_timestamp_cu_, sizeof(PointCloudStruct<T_Point>::sensor_timestamp));
+  cudaSafeMalloc(confidence_cu_, sizeof(PointCloudStruct<T_Point>::confidence));
 }
 template <typename T_Point>
 Udp4_7ParserGpu<T_Point>::~Udp4_7ParserGpu() {
@@ -49,6 +50,7 @@ Udp4_7ParserGpu<T_Point>::~Udp4_7ParserGpu() {
   cudaSafeFree(raw_distances_cu_);
   cudaSafeFree(raw_reflectivities_cu_);
   cudaSafeFree(raw_sensor_timestamp_cu_);
+  cudaSafeFree(confidence_cu_);
   if (corrections_loaded_) {
     cudaSafeFree(deles_cu);
     cudaSafeFree(channel_elevations_cu_);
@@ -57,14 +59,15 @@ Udp4_7ParserGpu<T_Point>::~Udp4_7ParserGpu() {
 }
 template <typename T_Point>
 __global__ void compute_xyzs_v4_7_impl(
-    T_Point *xyzs, const float* channel_elevations, const float* deles,
+    T_Point *xyzs, const float* channel_elevations, const float* elevation_adjust,
     const float* raw_azimuths, const uint16_t *raw_distances, const uint8_t *raw_reflectivities, const uint64_t *raw_sensor_timestamp, 
-    const double raw_distance_unit, Transform transform, const uint16_t blocknum, const uint16_t lasernum, const uint8_t version, const uint16_t packet_index) {
+    const uint8_t *confidence, const double raw_distance_unit, Transform transform, const uint16_t blocknum, const uint16_t lasernum, 
+    const uint8_t version, const uint16_t packet_index) {
   auto iscan = blockIdx.x;
   auto ichannel = threadIdx.x;
   if (iscan >= packet_index || ichannel >= blocknum * lasernum) return;
   float azimuth = raw_azimuths[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] / kAllFineResolutionFloat;
-  float elevation = channel_elevations[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))];
+  float elevation = channel_elevations[ichannel % lasernum];
   
   if (version == 3) {
     const float BegElevationAdjust = 20.0;
@@ -103,6 +106,8 @@ __global__ void compute_xyzs_v4_7_impl(
   gpu::setZ(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], z_);
   gpu::setIntensity(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], raw_reflectivities[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))]);
   gpu::setTimestamp(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], double(raw_sensor_timestamp[iscan]) / kMicrosecondToSecond);
+  gpu::setRing(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], ichannel % lasernum);
+  gpu::setConfidence(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], confidence[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))]);
 }
 template <typename T_Point>
 int Udp4_7ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
@@ -121,10 +126,14 @@ int Udp4_7ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
   cudaSafeCall(cudaMemcpy(raw_sensor_timestamp_cu_, frame.sensor_timestamp,
                           kMaxPacketNumPerFrame * sizeof(uint64_t),
                           cudaMemcpyHostToDevice),
+               ReturnCode::CudaMemcpyHostToDeviceError);  
+  cudaSafeCall(cudaMemcpy(confidence_cu_, frame.confidence,
+                          kMaxPacketNumPerFrame * kMaxPointsNumPerPacket * sizeof(uint8_t),
+                          cudaMemcpyHostToDevice),
                ReturnCode::CudaMemcpyHostToDeviceError);                                       
 compute_xyzs_v4_7_impl<<<kMaxPacketNumPerFrame, kMaxPointsNumPerPacket>>>(
     this->frame_.gpu()->points, channel_elevations_cu_, deles_cu,
-    raw_azimuths_cu_, raw_distances_cu_, raw_reflectivities_cu_, raw_sensor_timestamp_cu_, 
+    raw_azimuths_cu_, raw_distances_cu_, raw_reflectivities_cu_, raw_sensor_timestamp_cu_, confidence_cu_,
     frame.distance_unit, this->transform_, frame.block_num, frame.laser_num, m_ATX_corrections.header.version[1], frame.packet_index);
   cudaSafeCall(cudaGetLastError(), ReturnCode::CudaXYZComputingError);
   this->frame_.DeviceToHost();
@@ -132,7 +141,7 @@ compute_xyzs_v4_7_impl<<<kMaxPacketNumPerFrame, kMaxPointsNumPerPacket>>>(
   return 0;
 }
 template <typename T_Point>
-int Udp4_7ParserGpu<T_Point>::LoadCorrectionString(char *p) {
+int Udp4_7ParserGpu<T_Point>::LoadCorrectionString(char *data) {
   try {
     char *p = data;
     ATXCorrectionsHeader header = *(ATXCorrectionsHeader *)p;
@@ -158,7 +167,7 @@ int Udp4_7ParserGpu<T_Point>::LoadCorrectionString(char *p) {
           memcpy((void*)&m_ATX_corrections.SHA_value, p, 32);
           CUDACheck(cudaMalloc(&channel_elevations_cu_, sizeof(m_ATX_corrections.elevation)));
           CUDACheck(cudaMemcpy(channel_elevations_cu_, m_ATX_corrections.elevation, sizeof(m_ATX_corrections.elevation), cudaMemcpyHostToDevice));
-          this->get_correction_file_ = true;
+          corrections_loaded_ = true;
           return 0;
         } break;
         case 2: {
@@ -185,7 +194,7 @@ int Udp4_7ParserGpu<T_Point>::LoadCorrectionString(char *p) {
           memcpy((void*)&m_ATX_corrections.SHA_value, p, 32);
           CUDACheck(cudaMalloc(&channel_elevations_cu_, sizeof(m_ATX_corrections.elevation)));
           CUDACheck(cudaMemcpy(channel_elevations_cu_, m_ATX_corrections.elevation, sizeof(m_ATX_corrections.elevation), cudaMemcpyHostToDevice));
-          this->get_correction_file_ = true;
+          corrections_loaded_ = true;
           return 0;
         } break;
         case 3: {
@@ -220,7 +229,7 @@ int Udp4_7ParserGpu<T_Point>::LoadCorrectionString(char *p) {
           CUDACheck(cudaMalloc(&deles_cu, sizeof(m_ATX_corrections.elevation_adjust)));
           CUDACheck(cudaMemcpy(channel_elevations_cu_, m_ATX_corrections.elevation, sizeof(m_ATX_corrections.elevation), cudaMemcpyHostToDevice));
           CUDACheck(cudaMemcpy(deles_cu, m_ATX_corrections.elevation_adjust, sizeof(m_ATX_corrections.elevation_adjust), cudaMemcpyHostToDevice));
-          this->get_correction_file_ = true;
+          corrections_loaded_ = true;
           return 0;
         }
         default:

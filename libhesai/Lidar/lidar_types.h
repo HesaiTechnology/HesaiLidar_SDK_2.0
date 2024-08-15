@@ -196,7 +196,7 @@ class LidarDecodedFrame
                                    sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket +
                                    sizeof(float) * 2 * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket +
                                    sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + 
-                                   sizeof(uint8_t) * 2 * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket
+                                   sizeof(uint8_t) * 3 * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket
                                   ];
         int offset = 0;
         points = reinterpret_cast <PointT* >(total_memory + offset);
@@ -214,6 +214,8 @@ class LidarDecodedFrame
         reflectivities = reinterpret_cast<uint8_t* >(total_memory + offset);
         offset = sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
         chn_index = reinterpret_cast<uint8_t* >(total_memory + offset);
+        offset = sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
+        confidence = reinterpret_cast<uint8_t* >(total_memory + offset);
 
         host_timestamp = 0;
         major_version = 0;
@@ -255,6 +257,8 @@ class LidarDecodedFrame
           azimuth = nullptr;
           elevation = nullptr;
           distances = nullptr;
+          chn_index = nullptr;
+          confidence = nullptr;
         }
     }
     void Update(){
@@ -291,6 +295,7 @@ class LidarDecodedFrame
     float* elevation = nullptr;
     uint16_t* distances = nullptr;
     uint8_t* chn_index = nullptr;
+    uint8_t* confidence = nullptr;
     uint16_t block_num;
     uint16_t laser_num;
     uint32_t per_points_num; 

@@ -223,7 +223,7 @@ void UdpParser<T_Point>::CreatGeneralParser(const UdpPacket& packet) {
     lidar_type_decoded_ = "Pandar64";
     return;
   }
-  if (packet.buffer[0] != 0xEE && packet.buffer[1] != 0xFF) {
+  if (packet.buffer[0] != 0xEE || packet.buffer[1] != 0xFF) {
     printf("Packet with invaild delimiter\n");
     return;
   }

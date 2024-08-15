@@ -57,54 +57,36 @@ Udp6_1ParserGpu<T_Point>::~Udp6_1ParserGpu() {
 template <typename T_Point>
 __global__ void compute_xyzs_6_1_impl(T_Point *xyzs, const float* channel_azimuths, const float* channel_elevations,
     const float* raw_azimuths, const uint16_t *raw_distances, const uint8_t *raw_reflectivities, 
-    const uint64_t *raw_sensor_timestamp, const double raw_distance_unit, Transform transform, 
+    const uint64_t *raw_sensor_timestamp, const double raw_distance_unit, Transform transform, LidarOpticalCenter optical_center,
     int blocknum, int lasernum, uint16_t packet_index) {
   auto iscan = blockIdx.x;
   auto ichannel = threadIdx.x;
-  if (iscan >= packet_index || ichannel >= blocknum * lasernum) return;
-  float azimuth = raw_azimuths[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))];
-  auto theta = ((azimuth + channel_azimuths[(ichannel % lasernum)] * kResolutionInt)) / HALF_CIRCLE * M_PI;
-  float aziDelt = channel_azimuths[(ichannel % lasernum)] * kResolutionInt / HALF_CIRCLE * M_PI;
-  auto phi = (channel_elevations[(ichannel % lasernum)] * kResolutionInt) / HALF_CIRCLE * M_PI;
-  auto rho = raw_distances[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] * raw_distance_unit;
-  
-  float x = 0.0f, y = 0.0f, z = 0.0f, r = 0.0f;
-  float b_, h_;
-  float aziCal = (int((azimuth + aziDelt) * HALF_CIRCLE / M_PI) % CIRCLE) / HALF_CIRCLE * M_PI;
-  if (rho <= 0.1) {
-    r = rho * cos(phi);
-    x = r * sin(aziCal);
-    y = r * cos(aziCal);
-    z = rho * sin(phi);
-  } else {
-    switch (blocknum)
-    {
-    //XTM
-    case 6: 
-      b_ = 0.0130;
-      h_ = 0.0305;
-      break;
-    //XT
-    case 8: 
-      b_ = 0.0130;
-      h_ = 0.0315;
-      break;
+  if (iscan >= packet_index || ichannel >= blocknum * lasernum) return;  
+  float azimuth = raw_azimuths[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] / kHalfCircleFloat * M_PI;
+  float theta = (channel_azimuths[(ichannel % lasernum)] * kResolutionFloat) / kHalfCircleFloat * M_PI;
+  float phi = (channel_elevations[(ichannel % lasernum)] * kResolutionFloat) / kHalfCircleFloat * M_PI;
+  float rho = raw_distances[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] * raw_distance_unit;
 
-    default:
-       printf("default: never occur%d\n", blocknum);
-      break;
-    }
-    float aziCorrection = (int(aziDelt * HALF_CIRCLE / M_PI) % CIRCLE) / HALF_CIRCLE * M_PI;
-    float calDistance = rho - cos(phi) * (h_ * cos(aziCorrection) - b_ * sin(aziCorrection));
-    x = calDistance * cos(phi) * sin(aziCal) - b_ * cos(azimuth) + h_ * sin(azimuth);
-    y = calDistance * cos(phi) * cos(aziCal) + b_ * sin(azimuth) + h_ * cos(azimuth);
-    z = calDistance * sin(phi);
+  if(rho > 0 && optical_center.x != 0) {
+    float tx = std::cos(phi) * std::sin(theta);
+    float ty = std::cos(phi) * std::cos(theta);
+    float tz = std::sin(phi);
+    float B = 2 * tx * optical_center.x + 2 * ty * optical_center.y + 2 * tz * optical_center.z;
+    float C = optical_center.x * optical_center.x + optical_center.y * optical_center.y + optical_center.z * optical_center.z - rho * rho;
+    float d_opitcal = std::sqrt(B * B / 4 - C) - B / 2;
+    float x = d_opitcal * tx + optical_center.x;
+    float y = d_opitcal * ty + optical_center.y;
+    float z = d_opitcal * tz + optical_center.z;
+    theta = azimuth + std::atan(x / y);
+    phi = std::asin(z / rho);
+  } else {
+    theta += azimuth;
   }
   
-  z = rho * sin(phi);
-  r = rho * cosf(phi);
-  x = r * sin(theta);
-  y = r * cos(theta);
+  float z = rho * sin(phi);
+  float r = rho * cosf(phi);
+  float x = r * sin(theta);
+  float y = r * cos(theta);
 
   float cosa = std::cos(transform.roll);
   float sina = std::sin(transform.roll);
@@ -123,6 +105,7 @@ __global__ void compute_xyzs_6_1_impl(T_Point *xyzs, const float* channel_azimut
   gpu::setZ(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], z_);
   gpu::setIntensity(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], raw_reflectivities[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))]);
   gpu::setTimestamp(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], double(raw_sensor_timestamp[iscan]) / kMicrosecondToSecond);
+  gpu::setRing(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], ichannel % lasernum);
 }
 template <typename T_Point>
 int Udp6_1ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
@@ -142,7 +125,8 @@ int Udp6_1ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
                           cudaMemcpyHostToDevice),
                ReturnCode::CudaMemcpyHostToDeviceError);    
 compute_xyzs_6_1_impl<<<kMaxPacketNumPerFrame, kMaxPointsNumPerPacket>>>(this->frame_.gpu()->points, channel_azimuths_cu_, channel_elevations_cu_, 
-  raw_azimuths_cu_, raw_distances_cu_, raw_reflectivities_cu_, raw_sensor_timestamp_cu_, frame.distance_unit, this->transform_, frame.block_num, frame.laser_num, frame.packet_index);
+  raw_azimuths_cu_, raw_distances_cu_, raw_reflectivities_cu_, raw_sensor_timestamp_cu_, frame.distance_unit, this->transform_, this->optical_center,
+  frame.block_num, frame.laser_num, frame.packet_index);
   cudaSafeCall(cudaGetLastError(), ReturnCode::CudaXYZComputingError);
   this->frame_.DeviceToHost();
   std::memcpy(frame.points, this->frame_.cpu()->points, sizeof(T_Point) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket);

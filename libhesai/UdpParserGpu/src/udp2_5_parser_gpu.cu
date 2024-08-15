@@ -61,7 +61,7 @@ Udp2_5ParserGpu<T_Point>::~Udp2_5ParserGpu() {
 }
 template <typename T_Point>
 __global__ void compute_xyzs_2_5_impl(T_Point *xyzs, const float* channel_azimuths, const float* channel_elevations,
-    const uint16_t* azimuth_adjust, const uint16_t* elevation_adjust, const uint8_t azimuth_adjust_interval, const uint8_t elevation_adjust_interval,
+    const float* azimuth_adjust, const float* elevation_adjust, const uint8_t azimuth_adjust_interval, const uint8_t elevation_adjust_interval,
     const float* raw_azimuths, const float* raw_elevations, const uint16_t *raw_distances, const uint8_t *raw_reflectivities, 
     const uint64_t *raw_sensor_timestamp, const double raw_distance_unit, Transform transform, const uint16_t blocknum, uint16_t lasernum, uint16_t packet_index) {
   auto iscan = blockIdx.x;
@@ -97,7 +97,7 @@ __global__ void compute_xyzs_2_5_impl(T_Point *xyzs, const float* channel_azimut
       float coefficient2 = ((offset_index2 + 1) * (elevation_adjust_interval * adjust_interval_resolution)  - elv_h - elevation_fov / 2) / (elevation_adjust_interval * adjust_interval_resolution);
       float offset1 = coefficient1 * azimuth_adjust[offset_index1  + offset_index2 * azimuth_offset_num] + (1 - coefficient1) * azimuth_adjust[offset_index1 + 1 + offset_index2 * azimuth_offset_num];
       float offset2 = coefficient1 * azimuth_adjust[offset_index1 + (offset_index2 + 1) * azimuth_offset_num] + (1 - coefficient1) * azimuth_adjust[offset_index1 + 1 + (offset_index2 + 1) * azimuth_offset_num];
-      azi_h += (coefficient2 * offset1 + (1 - coefficient2) * offset2) / header.angle_division;
+      azi_h += (coefficient2 * offset1 + (1 - coefficient2) * offset2);
     }
     azi_a = azi_h - 90;
     offset_index1 = int((azi_a + azimuth_fov / 2) /  (azimuth_adjust_interval * adjust_interval_resolution));
@@ -106,7 +106,7 @@ __global__ void compute_xyzs_2_5_impl(T_Point *xyzs, const float* channel_azimut
       float coefficient2 = ((offset_index2 + 1) * (elevation_adjust_interval * adjust_interval_resolution)  - elv_h - elevation_fov / 2) / (elevation_adjust_interval * adjust_interval_resolution);
       float offset1 = coefficient1 * elevation_adjust[offset_index1  + offset_index2 * azimuth_offset_num] + (1 - coefficient1) * elevation_adjust[offset_index1 + 1 + offset_index2 * azimuth_offset_num];
       float offset2 = coefficient1 * elevation_adjust[offset_index1 + (offset_index2 + 1) * azimuth_offset_num] + (1 - coefficient1) * elevation_adjust[offset_index1 + 1 + (offset_index2 + 1) * azimuth_offset_num];
-      elv_h += (coefficient2 * offset1 + (1 - coefficient2) * offset2) / header.angle_division;
+      elv_h += (coefficient2 * offset1 + (1 - coefficient2) * offset2);
     }
   }
 
@@ -133,6 +133,7 @@ __global__ void compute_xyzs_2_5_impl(T_Point *xyzs, const float* channel_azimut
   gpu::setZ(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], z_);
   gpu::setIntensity(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], raw_reflectivities[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))]);
   gpu::setTimestamp(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], double(raw_sensor_timestamp[iscan]) / kMicrosecondToSecond);
+  gpu::setRing(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], ichannel % lasernum);
 }
 template <typename T_Point>
 int Udp2_5ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
@@ -306,18 +307,22 @@ int Udp2_5ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
           p = p + sizeof(int16_t) * angle_offset_len;
           memcpy((void*)corrections_.elevation_adjust, p, sizeof(int16_t) * angle_offset_len); 
           p = p + sizeof(int16_t) * angle_offset_len;
+          for (int i = 0; i < angle_offset_len; i++) {
+            corrections_.azimuth_adjust_f[i] = 1.f * corrections_.azimuth_adjust[i] / corrections_.header.angle_division;
+            corrections_.elevation_adjust_f[i] = 1.f * corrections_.elevation_adjust[i] / corrections_.header.angle_division;
+          }
           // int adjustNum = channel_num;
           memcpy((void*)&corrections_.SHA_value, p, 32);
           // successed
           CUDACheck(cudaMalloc(&channel_azimuths_cu_, sizeof(corrections_.azimuths)));
           CUDACheck(cudaMalloc(&channel_elevations_cu_, sizeof(corrections_.elevations)));
-          CUDACheck(cudaMalloc(&channel_azimuths_adjust_cu_, sizeof(corrections_.azimuth_adjust)));
-          CUDACheck(cudaMalloc(&channel_elevations_adjust_cu_, sizeof(corrections_.elevation_adjust)));
-          CUDACheck(cudaMemcpy(channel_azimuths_adjust_cu_, corrections_.azimuth_adjust, sizeof(corrections_.azimuth_adjust), cudaMemcpyHostToDevice));
-          CUDACheck(cudaMemcpy(channel_elevations_adjust_cu_, corrections_.elevation_adjust, sizeof(corrections_.elevation_adjust), cudaMemcpyHostToDevice));
+          CUDACheck(cudaMalloc(&channel_azimuths_adjust_cu_, sizeof(corrections_.azimuth_adjust_f)));
+          CUDACheck(cudaMalloc(&channel_elevations_adjust_cu_, sizeof(corrections_.elevation_adjust_f)));
+          CUDACheck(cudaMemcpy(channel_azimuths_adjust_cu_, corrections_.azimuth_adjust_f, sizeof(corrections_.azimuth_adjust_f), cudaMemcpyHostToDevice));
+          CUDACheck(cudaMemcpy(channel_elevations_adjust_cu_, corrections_.elevation_adjust_f, sizeof(corrections_.elevation_adjust_f), cudaMemcpyHostToDevice));
           CUDACheck(cudaMemcpy(channel_azimuths_cu_, corrections_.azimuths, sizeof(corrections_.azimuths), cudaMemcpyHostToDevice));
           CUDACheck(cudaMemcpy(channel_elevations_cu_, corrections_.elevations, sizeof(corrections_.elevations), cudaMemcpyHostToDevice));
-          this->get_correction_file_ = true;
+          corrections_loaded_ = true;
           return 0;
         } break;
         default:

@@ -194,12 +194,6 @@ void Udp4_7Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
 
 template<typename T_Point>
 int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket) {
-  if (get_correction_file_ == false) {
-    return -1;
-  }
-  if(udpPacket.is_timeout == true) {
-    return -1;
-  }
   if (udpPacket.buffer[0] != 0xEE || udpPacket.buffer[1] != 0xFF ) {
     output.scan_complete = false;
     output.points_num = 0;
@@ -295,18 +289,18 @@ int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     // pFineAzimuth = reinterpret_cast<const HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7 *>(
     //     (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7));
 
-    int azimuth = (u32Azimuth) * (25600  / m_ATX_corrections.header.angle_division);
+    int azimuth = (u32Azimuth) * (kAllFineResolutionFloat  / m_ATX_corrections.header.angle_division);
     auto elevation = 0;
     for (int i = 0; i < pHeader->GetLaserNum(); i++) {
       if (m_ATX_corrections.header.version[1] == 1) {
-        output.azimuth[index] =  azimuth + m_ATX_corrections.azimuth[i] * 25600;
+        output.azimuth[index] =  azimuth + m_ATX_corrections.azimuth[i] * kAllFineResolutionFloat;
       }
       else if (m_ATX_corrections.header.version[1] == 2 || m_ATX_corrections.header.version[1] == 3) {
-        output.azimuth[index] =  azimuth + ((pTail->GetFrameID() % 2 == 0) ? m_ATX_corrections.raw_azimuths_even[i] : m_ATX_corrections.raw_azimuths_odd[i] ) * 25600 / m_ATX_corrections.header.angle_division;
+        output.azimuth[index] =  azimuth + ((pTail->GetFrameID() % 2 == 0) ? m_ATX_corrections.raw_azimuths_even[i] : m_ATX_corrections.raw_azimuths_odd[i] ) * kAllFineResolutionFloat / m_ATX_corrections.header.angle_division;
       }
       // printf("%d  %f\n", m_ATX_corrections.header.version[1], output.azimuth[index] / 256);
       if (this->get_firetime_file_) {
-        output.azimuth[index] =  output.azimuth[index] + ((pTail->GetFrameID() % 2 == 0) ? even_firetime_correction_[i] : -odd_firetime_correction_[i] ) * (abs(pTail->GetMotorSpeed()) * 1E-9 / 8) * 25600;
+        output.azimuth[index] =  output.azimuth[index] + ((pTail->GetFrameID() % 2 == 0) ? even_firetime_correction_[i] : -odd_firetime_correction_[i] ) * (abs(pTail->GetMotorSpeed()) * 1E-9 / 8) * kAllFineResolutionFloat;
       }
       output.reflectivities[index] = pChnUnit->GetReflectivity();  
       output.distances[index] = pChnUnit->GetDistance();
@@ -325,7 +319,6 @@ int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     this->last_azimuth_ = u32Azimuth;
   }
   return 0;
-
 }
 
 template<typename T_Point>
@@ -365,6 +358,119 @@ int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
     }
   }
   GeneralParser<T_Point>::FrameNumAdd(frame, packet.points_num);
+  return 0;
+}
+
+template<typename T_Point>
+int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket) {
+  if (udpPacket.buffer[0] != 0xEE || udpPacket.buffer[1] != 0xFF ) {
+    return -1;
+  }
+  
+
+  const HS_LIDAR_HEADER_ST_V7 *pHeader =
+      reinterpret_cast<const HS_LIDAR_HEADER_ST_V7 *>(
+          &(udpPacket.buffer[0]) + sizeof(HS_LIDAR_PRE_HEADER));
+  
+  const HS_LIDAR_TAIL_ST_V7 *pTail =
+      reinterpret_cast<const HS_LIDAR_TAIL_ST_V7 *>(
+          (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ST_V7) +
+          (sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7) +
+           sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7) +
+           sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V7) * pHeader->GetLaserNum()) *
+              pHeader->GetBlockNum() +
+          sizeof(HS_LIDAR_BODY_CRC_ST_V7));
+
+  if (pHeader->HasSeqNum()) {
+    const HS_LIDAR_TAIL_SEQ_NUM_ST_V7 *pTailSeqNum =
+        reinterpret_cast<const HS_LIDAR_TAIL_SEQ_NUM_ST_V7 *>(
+            (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ST_V7) +
+            (sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7) +
+             sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7) +
+             sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V7) * pHeader->GetLaserNum()) *
+                pHeader->GetBlockNum() +
+            sizeof(HS_LIDAR_BODY_CRC_ST_V7) + sizeof(HS_LIDAR_TAIL_ST_V7));
+    if(this->enable_packet_loss_tool_ == true) {
+      this->current_seqnum_ = pTailSeqNum->m_u32SeqNum;
+      if (this->current_seqnum_ > this->last_seqnum_ && this->last_seqnum_ != 0) {
+        this->total_packet_count_ += this->current_seqnum_ - this->last_seqnum_;
+      }
+      pTailSeqNum->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, 
+        this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
+    }
+  }
+
+  // const HS_LIDAR_E2E_HEADER_ST_V7 *pE2EHeader = 
+  //     reinterpret_cast<const HS_LIDAR_E2E_HEADER_ST_V7 *>(
+  //           (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ST_V7) +
+  //           (sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7) +
+  //            sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7) +
+  //            sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V7) * pHeader->GetLaserNum()) *
+  //               pHeader->GetBlockNum() +
+  //           sizeof(HS_LIDAR_BODY_CRC_ST_V7) + sizeof(HS_LIDAR_TAIL_ST_V7)
+  //           + (pHeader->HasSeqNum() ? sizeof(HS_LIDAR_TAIL_SEQ_NUM_ST_V7) : 0));
+                            
+  frame.sensor_timestamp[frame.packet_index] = pTail->GetMicroLidarTimeU64();
+  this->spin_speed_ = pTail->GetMotorSpeed();
+  this->is_dual_return_= pTail->IsDualReturn();
+  this->return_mode_ = pTail->GetReturnMode();
+  frame.spin_speed = pTail->m_i16MotorSpeed;
+  frame.points_num += pHeader->GetBlockNum() * pHeader->GetLaserNum();
+  frame.scan_complete = false;
+  frame.distance_unit = pHeader->GetDistUnit();
+  int index = frame.packet_index * pHeader->GetBlockNum() * pHeader->GetLaserNum();
+  frame.block_num = pHeader->GetBlockNum();
+  frame.laser_num = pHeader->GetLaserNum();
+  const HS_LIDAR_BODY_AZIMUTH_ST_V7 *pAzimuth =
+      reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_ST_V7 *>(
+          (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ST_V7));
+  /* The following comment fields are not used */
+  // const HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7 *pFineAzimuth =
+  //     reinterpret_cast<const HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7 *>(
+  //         (const unsigned char *)pAzimuth +
+  //         sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7));
+  const HS_LIDAR_BODY_CHN_NNIT_ST_V7 *pChnUnit =
+      reinterpret_cast<const HS_LIDAR_BODY_CHN_NNIT_ST_V7 *>(
+          (const unsigned char *)pAzimuth +
+          sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7) +
+          sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7));
+
+
+
+  for (int blockid = 0; blockid < pHeader->GetBlockNum(); blockid++) {
+    int32_t u32Azimuth = pAzimuth->GetAzimuth();
+    // uint8_t u8FineAzimuth = pFineAzimuth->GetFineAzimuth();
+    pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_NNIT_ST_V7 *>(
+        (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7) +
+        sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7));
+
+    pAzimuth = reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_ST_V7 *>(
+        (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7) +
+        sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7) +
+        sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V7) * pHeader->GetLaserNum());
+    // pFineAzimuth = reinterpret_cast<const HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7 *>(
+    //     (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7));
+
+    int azimuth = (u32Azimuth) * (kAllFineResolutionFloat  / m_ATX_corrections.header.angle_division);
+    for (int i = 0; i < pHeader->GetLaserNum(); i++) {
+      frame.azimuth[index] =  azimuth / kAllFineResolutionFloat;
+      frame.azimuths[index] = pAzimuth->GetAzimuth();
+      frame.reflectivities[index] = pChnUnit->GetReflectivity();  
+      frame.distances[index] = pChnUnit->GetDistance();
+      frame.confidence[index] = pChnUnit->GetConfidenceLevel();
+      pChnUnit = pChnUnit + 1;
+      index++;
+    }
+    // 分帧标记位为该字节的最后一个bit
+    uint8_t frameID = pTail->GetFrameID() % 2;
+    if (this->use_angle_ && IsNeedFrameSplit(frameID)) {
+      frame.scan_complete = true;
+    }
+    this->use_angle_ = true;
+    this->last_frameid_ = frameID;
+    this->last_azimuth_ = u32Azimuth;
+  }
+  frame.packet_index++;
   return 0;
 }
 
