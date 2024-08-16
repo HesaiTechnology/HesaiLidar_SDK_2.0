@@ -48,6 +48,9 @@ private:
   std::function<void(const FaultMessageInfo&)> fault_message_cb_;
   bool is_thread_runing_;
   bool packet_loss_tool_;
+  uint32_t device_ip_address_;
+  uint16_t device_udp_port_;
+  uint16_t device_fault_port_;
 public:
   HesaiLidarSdk() {
     std::cout << "-------- Hesai Lidar SDK V" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_TINY << " --------" << std::endl;
@@ -89,6 +92,19 @@ public:
     source_type_ = param.input_param.source_type;
     param_ = param;
     init_thread_ptr_ = new std::thread(std::bind(&HesaiLidarSdk::Init_thread, this));
+    device_ip_address_ = inet_addr(param.input_param.device_ip_address.c_str());
+    if(param.input_param.device_fault_port >= 1024 && param.input_param.device_fault_port <= 65535 && device_ip_address_ != INADDR_NONE){
+      device_fault_port_ = param.input_param.device_fault_port;
+    }
+    else{
+      device_fault_port_ = 0;
+    }
+    if(param.input_param.device_udp_src_port >= 1024 && param.input_param.device_udp_src_port <= 65535 && device_ip_address_ != INADDR_NONE){
+      device_udp_port_ = param.input_param.device_udp_src_port;
+    }
+    else{
+      device_udp_port_ = 0;
+    }
     /***********************************************************************************/ 
     return true;
   }
@@ -159,6 +175,11 @@ public:
       if (ret == -1) continue;
       //get fault message
       if (packet.packet_len == kFaultMessageLength) {
+        if(device_fault_port_ != 0){
+          if(device_ip_address_ != packet.ip || device_fault_port_ != packet.port){
+            continue;
+          }
+        }
         ret = lidar_ptr_->ParserFaultMessage(packet, fault_message_info);
         if (ret == 0) {
           if (fault_message_cb_)
@@ -169,6 +190,13 @@ public:
 
       // Wait for initialization to complete before starting to parse the point cloud
       if(!lidar_ptr_->init_finish_[PointCloudParse]) continue;
+
+      if(device_udp_port_ != 0 && (packet.is_timeout == false || packet_index == 0)){
+        if(device_ip_address_ != packet.ip || device_udp_port_ != packet.port){
+          //printf("%u %u %u %u\n",device_ip_address_, packet.ip, device_udp_port_, packet.port);
+          continue;
+        }
+      }
       //get distance azimuth reflection, etc.and put them into decode_packet
       if(lidar_ptr_->DecodePacket(decoded_packet, packet) != 0) {
         continue;

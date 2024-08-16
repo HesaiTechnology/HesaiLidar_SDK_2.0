@@ -117,6 +117,9 @@ typedef struct InputParam
   std::string multicast_ip_address = "";  
   ///< Address of host
   std::string host_ip_address = "Your host ip"; 
+  ///< port filter
+  uint16_t device_udp_src_port = 0;
+  uint16_t device_fault_port = 0;
   ///< udp packet port number       
   uint16_t udp_port = 2368;   
   ///< ptc packet port number                
