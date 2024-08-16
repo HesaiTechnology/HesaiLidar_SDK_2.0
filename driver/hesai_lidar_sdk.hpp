@@ -193,7 +193,6 @@ public:
 
       if(device_udp_port_ != 0 && (packet.is_timeout == false || packet_index == 0)){
         if(device_ip_address_ != packet.ip || device_udp_port_ != packet.port){
-          //printf("%u %u %u %u\n",device_ip_address_, packet.ip, device_udp_port_, packet.port);
           continue;
         }
       }
