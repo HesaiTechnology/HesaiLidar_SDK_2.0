@@ -59,7 +59,7 @@ class UdpP64Parser : public GeneralParser<T_Point> {
   // compute xyzi of points from decoded packet
   // param packet is the decoded packet; xyzi of points after computed is puted in frame     
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
-  
+  using GeneralParser<T_Point>::GetDistanceCorrection;
 //   virtual int ComputeXYZI(LidarDecodedFrame &frame, LidarDecodedPacket &packet);
 
   // determine whether frame splitting is needed

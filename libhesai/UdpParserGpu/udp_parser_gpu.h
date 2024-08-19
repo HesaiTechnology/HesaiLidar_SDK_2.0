@@ -61,6 +61,8 @@ class UdpParserGpu {
   int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
   void SetLidarType(std::string lidar_type);
   int SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
+  int SetOpticalCenterCoordinates(std::string lidar_type);
+  int SetXtSpotCorrecion(std::string lidar_type);
  private:
   GeneralParserGpu<T_Point> * m_generalParserGpu;
 

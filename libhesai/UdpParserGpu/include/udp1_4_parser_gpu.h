@@ -69,7 +69,6 @@ class Udp1_4ParserGpu: public GeneralParserGpu<T_Point>{
   virtual int LoadCorrectionFile(std::string correction_path);
   virtual int LoadCorrectionString(char *correction_string);
   bool corrections_loaded_;
-  
 };
 }
 }

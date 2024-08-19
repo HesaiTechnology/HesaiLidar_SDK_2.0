@@ -54,7 +54,7 @@ struct HS_LIDAR_BODY_AZIMUTH_ST_V3 {
 struct HS_LIDAR_BODY_FINE_AZIMUTH_ST_V3 {
   uint8_t m_u8FineAzimuth;
 
-  uint8_t GetFineAzimuth() const { return little_to_native(m_u8FineAzimuth); }
+  uint8_t GetFineAzimuth() const { return m_u8FineAzimuth; }
 
   void Print() const {
     printf("HS_LIDAR_BODY_FINE_AZIMUTH_ST_V3: FineAzimuth:%u\n",
@@ -337,6 +337,124 @@ struct HS_LIDAR_HEADER_ST_V3 {
         GetLaserNum(), GetBlockNum(), GetDistUnit(), GetEchoCount(),
         GetEchoNum(), HasSeqNum(), HasIMU(), HasFuncSafety(),
         HasCyberSecurity(), HasConfidenceLevel());
+  }
+} PACKED;
+
+
+struct FaultMessageVersion4_3 {
+ public:
+  uint16_t sob;
+  uint8_t version_info;
+  uint8_t utc_time[6];
+  uint32_t time_stamp;
+  uint8_t operate_state;
+  uint8_t fault_state;
+  uint8_t fault_code_type;
+  uint8_t rolling_counter;
+  uint8_t total_fault_code_num;
+  uint8_t fault_code_id;
+  uint32_t fault_code;
+  uint8_t time_division_multiplexing[27];
+  uint8_t software_version[8];
+  uint8_t heating_state;
+  uint8_t lidar_high_temp_state;
+  uint8_t reversed[3];
+  uint32_t crc;
+  uint8_t cycber_security[32];
+  uint32_t GetTimestamp() const { return big_to_native(time_stamp); }
+  uint32_t GetCrc() const { return little_to_native(crc); }
+  uint32_t GetFaultCode() const { return big_to_native(fault_code); }
+  int64_t GetMicroLidarTimeU64() const {
+    if (utc_time[0] != 0) {
+			struct tm t = {0};
+			t.tm_year = utc_time[0];
+			if (t.tm_year >= 200) {
+				t.tm_year -= 100;
+			}
+			t.tm_mon = utc_time[1] - 1;
+			t.tm_mday = utc_time[2] + 1;
+			t.tm_hour = utc_time[3];
+			t.tm_min = utc_time[4];
+			t.tm_sec = utc_time[5];
+			t.tm_isdst = 0;
+#ifdef _MSC_VER
+  TIME_ZONE_INFORMATION tzi;
+  GetTimeZoneInformation(&tzi);
+  long int timezone =  tzi.Bias * 60;
+#endif
+      return (mktime(&t) - timezone - 86400) * 1000000 + GetTimestamp() ;
+		}
+		else {
+      uint32_t utc_time_big = *(uint32_t*)(&utc_time[0] + 2);
+      int64_t unix_second = ((utc_time_big >> 24) & 0xff) |
+              ((utc_time_big >> 8) & 0xff00) |
+              ((utc_time_big << 8) & 0xff0000) |
+              ((utc_time_big << 24));
+      return unix_second * 1000000 + GetTimestamp();
+		}
+  }
+  void ParserLensDirtyState(
+      LensDirtyState lens_dirty_state[LENS_AZIMUTH_AREA_NUM]
+                                   [LENS_ELEVATION_AREA_NUM]) {
+    for (int i = 0; i < LENS_AZIMUTH_AREA_NUM; i++) {
+      uint16_t rawdata =
+          (*((uint16_t *)(&time_division_multiplexing[3 + i * 2])));
+      for (int j = 0; j < LENS_ELEVATION_AREA_NUM; j++) {
+        uint16_t lens_dirty_state_temp =
+            (rawdata << ((LENS_ELEVATION_AREA_NUM - j - 1) * 2));
+        uint16_t lens_dirty_state_temp1 =
+            (lens_dirty_state_temp >> ((LENS_ELEVATION_AREA_NUM - 1) * 2));
+        if (time_division_multiplexing[0] == 1) {
+          switch (lens_dirty_state_temp1) {
+            case 0: {
+              lens_dirty_state[i][j] = kLensNormal;
+              break;
+            }
+            case 1: {
+              lens_dirty_state[i][j] = kPassable;
+              break;
+            }
+            case 3: {
+              lens_dirty_state[i][j] = kUnPassable;
+              break;
+            }
+            default:
+              lens_dirty_state[i][j] = kUndefineData;
+              break;
+          }
+
+        } else
+          lens_dirty_state[i][j] = kUndefineData;
+      }
+    }
+  }
+  double ParserTemperature() {
+    double temp =
+        ((double)(*((uint16_t *)(&time_division_multiplexing[1])))) * 0.1f;
+    return temp;
+  }
+  void ParserFaultMessage(FaultMessageInfo &fault_message_info) {
+    fault_message_info.fault_prase_version = 0x43;
+    fault_message_info.version = version_info;
+    memcpy(fault_message_info.utc_time, utc_time, sizeof(utc_time));
+    fault_message_info.timestamp = GetTimestamp();
+    fault_message_info.total_time = static_cast<double>(GetMicroLidarTimeU64()) / 1000000.0;
+    fault_message_info.operate_state = operate_state;
+    fault_message_info.fault_state = fault_state;
+    fault_message_info.total_faultcode_num = total_fault_code_num;
+    fault_message_info.faultcode_id = fault_code_id;
+    fault_message_info.faultcode = GetFaultCode();
+    fault_message_info.union_info.fault4_3.fault_code_type = fault_code_type;
+    fault_message_info.union_info.fault4_3.rolling_counter = rolling_counter;
+    fault_message_info.union_info.fault4_3.tdm_data_indicate = time_division_multiplexing[0];
+    memcpy(fault_message_info.union_info.fault4_3.time_division_multiplexing, time_division_multiplexing, sizeof(time_division_multiplexing));
+    fault_message_info.union_info.fault4_3.software_id = *((uint16_t *)(&software_version[0]));
+    fault_message_info.union_info.fault4_3.software_version = *((uint16_t *)(&software_version[2]));
+    fault_message_info.union_info.fault4_3.hardware_version = *((uint16_t *)(&software_version[4]));
+    fault_message_info.union_info.fault4_3.bt_version = *((uint16_t *)(&software_version[6]));
+    fault_message_info.union_info.fault4_3.heating_state = heating_state;
+    fault_message_info.union_info.fault4_3.high_temperture_shutdown_state = lidar_high_temp_state;
+    memcpy(fault_message_info.union_info.fault4_3.reversed, reversed, sizeof(reversed));
   }
 } PACKED;
 #ifdef _MSC_VER

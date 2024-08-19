@@ -42,37 +42,6 @@ namespace hesai
 {
 namespace lidar
 {
-struct Corrections {
-  struct Header {
-    uint8_t delimiter[2];
-    uint8_t version[2];
-    uint8_t max_channel_num;
-    uint8_t nmirrors;
-    uint8_t nframes;
-    uint8_t frame_config[8];
-    uint8_t resolution;
-  } header;
-};
-
-struct CorrectionsV1_3 : Corrections {
-  uint16_t mirror_azi_begins[3];
-  uint16_t mirror_azi_ends[3];
-  int16_t channel_azimuths[kMaxPointsNumPerPacket];
-  int16_t channel_elevations[kMaxPointsNumPerPacket];
-  int8_t dazis[36000];
-  int8_t deles[36000];
-  uint8_t SHA256[32];
-};
-
-struct CorrectionsV1_5 : Corrections {
-  uint32_t mirror_azi_begins[3];
-  uint32_t mirror_azi_ends[3];
-  int32_t channel_azimuths[128];
-  int32_t channel_elevations[128];
-  int8_t dazis[128 * 180];
-  int8_t deles[128 * 180];
-  uint8_t SHA256[32];
-};
 
 // class Udp4_3ParserGpu
 // computes points for PandarAT128
@@ -83,15 +52,10 @@ class Udp4_3ParserGpu: public GeneralParserGpu<T_Point>{
  private:
   // corrections
   bool corrections_loaded_;
-  Corrections::Header corrections_header;
-  float raw_azimuth_begin;
-  float mirror_azi_begins[3];
-  float mirror_azi_ends[3];
   int32_t* channel_azimuths_cu_;
   int32_t* channel_elevations_cu_;
   int8_t* dazis_cu;
   int8_t* deles_cu;
-  uint8_t* raw_fine_azimuths_cu;
   float* raw_azimuths_cu_;
   uint16_t* raw_distances_cu_;
   uint8_t* raw_reflectivities_cu_;
@@ -108,7 +72,8 @@ class Udp4_3ParserGpu: public GeneralParserGpu<T_Point>{
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
   virtual int LoadCorrectionFile(std::string correction_path);
   virtual int LoadCorrectionString(char *correction_string);
-  
+  PandarATCorrections m_PandarAT_corrections;
+
 };
 }
 }

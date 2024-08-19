@@ -56,6 +56,7 @@ class Udp6_1ParserGpu: public GeneralParserGpu<T_Point>{
   uint16_t* raw_distances_cu_;
   uint8_t* raw_reflectivities_cu_;
   uint64_t* raw_sensor_timestamp_cu_;
+  float* spot_correction_angle_cu_;
  public:
   Udp6_1ParserGpu();
   ~Udp6_1ParserGpu();

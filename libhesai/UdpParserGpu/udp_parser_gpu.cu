@@ -29,6 +29,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "udp_p40_parser_gpu.h"
 #include "udp_p64_parser_gpu.h"
 #include "udp4_3_parser_gpu.h"
+#include "udp4_7_parser_gpu.h"
 #include "udp1_4_parser_gpu.h"
 #include "udp3_1_parser_gpu.h"
 #include "udp3_2_parser_gpu.h"
@@ -191,6 +192,9 @@ void UdpParserGpu<T_Point>::SetLidarType(std::string lidar_type) {
   if (lidar_type == "AT128" || lidar_type == "AT128E2X" || lidar_type == "AT128E3X") {
     m_generalParserGpu = new Udp4_3ParserGpu<T_Point>();
   }
+  if (lidar_type == "ATX") {
+    m_generalParserGpu = new Udp4_7ParserGpu<T_Point>();
+  }   
   if (lidar_type == "Pandar128E3X" || lidar_type == "Pandar128") {
     m_generalParserGpu = new Udp1_4ParserGpu<T_Point>();
   }
@@ -239,3 +243,19 @@ int UdpParserGpu<T_Point>::SetTransformPara(float x, float y, float z, float rol
   return -1;
 }
 
+template<typename T_Point>
+int UdpParserGpu<T_Point>::SetOpticalCenterCoordinates(std::string lidar_type) {
+  if (m_generalParserGpu != nullptr) {
+    m_generalParserGpu->SetOpticalCenterCoordinates(lidar_type);
+    return 0;
+  }
+  return -1;
+}
+
+template<typename T_Point>
+int UdpParserGpu<T_Point>::SetXtSpotCorrecion(std::string lidar_type) {
+  if (m_generalParserGpu != nullptr) {
+    return m_generalParserGpu->SetXtSpotCorrecion(lidar_type);
+  }
+  return -1;
+}

@@ -41,6 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "udp3_1_parser.h"
 #include "udp3_2_parser.h"
 #include "udp4_3_parser.h"
+#include "udp4_7_parser.h"
 #include "udp6_1_parser.h"
 #include "udp7_2_parser.h"
 #include "udp_p40_parser.h"
@@ -96,6 +97,9 @@ class UdpParser {
   // compute xyzi of points from decoded packet
   // param packet is the decoded packet; xyzi of points after computed is puted in frame    
   int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
+
+  // parse the detailed content of the fault message message
+  int ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info);
 
   int GetGeneralParser(GeneralParser<T_Point> **parser);
   int SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);

@@ -50,6 +50,7 @@ int GeneralParserGpu<T_Point>::LoadCorrectionFile(std::string correction_path) {
     fin.read(buffer, length);
     fin.close();
     ret = LoadCorrectionString(buffer);
+    delete[] buffer;
     if (ret != 0) {
       std::cout << "Parse local correction file Error" << std::endl;
       return -1;
@@ -156,3 +157,47 @@ void GeneralParserGpu<T_Point>::SetTransformPara(float x, float y, float z, floa
   transform_.pitch = pitch;
 }
 
+template <typename T_Point>
+void GeneralParserGpu<T_Point>::SetOpticalCenterCoordinates(std::string lidar_type) {
+  if (lidar_type == "Pandar128E4X" || lidar_type == "OT") {
+    optical_center.x = -10.0 / 1000.0;
+    optical_center.y = 45.0 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else if(lidar_type == "Pandar128E3X" || lidar_type == "Pandar64E3X" || lidar_type == "Pandar40E3X" || lidar_type == "Pandar90E3X") {
+    optical_center.x = -12.0 / 1000.0;
+    optical_center.y = 43.56 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else if(lidar_type == "Pandar64E2X" || lidar_type == "Pandar40E2X") {
+    optical_center.x = -12.0 / 1000.0;
+    optical_center.y = 38.73 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else if(lidar_type == "PandarQT") {
+    optical_center.x = -7.2 / 1000.0;
+    optical_center.y = 29.8 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else if(lidar_type == "QT128C2X") {
+    optical_center.x = 7.2 / 1000.0;
+    optical_center.y = 35.4 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else if(lidar_type == "PandarXT32M1" || lidar_type == "PandarXT16M1") {
+    optical_center.x = -13.0 / 1000.0;
+    optical_center.y = 31.5 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else if(lidar_type == "PandarXT32M2X" || lidar_type == "XTM") {
+    optical_center.x = -13.0 / 1000.0;
+    optical_center.y = 30.5 / 1000.0;
+    optical_center.z = 0.0 / 1000.0;
+  } else {
+    printf("Parameter(distance_correction_lidar_type) is set to null or error to not enable distance correction\n");
+  }
+}
+
+template <typename T_Point>
+int GeneralParserGpu<T_Point>::SetXtSpotCorrecion(std::string lidar_type) {
+  if (lidar_type == "PandarXT32M1" || lidar_type == "PandarXT16M1" ) {
+    xt_spot_correction = true;
+  } else {
+    return -1;
+  }
+  return 0;
+}

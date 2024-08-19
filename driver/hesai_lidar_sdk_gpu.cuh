@@ -43,8 +43,12 @@ private:
   std::function<void(const u8Array_t&)> correction_cb_;
   std::function<void(const uint32_t &, const uint32_t &)> pkt_loss_cb_;
   std::function<void(const uint8_t&, const u8Array_t&)> ptp_cb_;
+  std::function<void(const FaultMessageInfo&)> fault_message_cb_;
   bool is_thread_runing_;
   bool packet_loss_tool_; 
+  uint32_t device_ip_address_;
+  uint16_t device_udp_port_;
+  uint16_t device_fault_port_;
 
 public:
   HesaiLidarSdkGpu()
@@ -97,11 +101,27 @@ public:
     //set packet_loss_tool
     packet_loss_tool_ = param.decoder_param.enable_packet_loss_tool;
 
+    device_ip_address_ = inet_addr(param.input_param.device_ip_address.c_str());
+    if(param.input_param.device_fault_port >= 1024 && param.input_param.device_fault_port <= 65535 && device_ip_address_ != INADDR_NONE){
+      device_fault_port_ = param.input_param.device_fault_port;
+    }
+    else{
+      device_fault_port_ = 0;
+    }
+    if(param.input_param.device_udp_src_port >= 1024 && param.input_param.device_udp_src_port <= 65535 && device_ip_address_ != INADDR_NONE){
+      device_udp_port_ = param.input_param.device_udp_src_port;
+    }
+    else{
+      device_udp_port_ = 0;
+    }
+
     //get lidar type from Lidar class
     std::string lidar_type_from_parser = lidar_ptr_->GetLidarType();
 
     //init gpu parser with lidar type
     gpu_parser_ptr_->SetLidarType(lidar_type_from_parser);
+    gpu_parser_ptr_->SetOpticalCenterCoordinates(param.decoder_param.distance_correction_lidar_type);
+    gpu_parser_ptr_->SetXtSpotCorrecion(param.lidar_type);
 
     //set transform param
     gpu_parser_ptr_->SetTransformPara(param.decoder_param.transform_param.x,
@@ -167,15 +187,29 @@ public:
 
       //get fault message
       if (packet.packet_len == kFaultMessageLength) {
-        FaultMessageCallback(packet, fault_message_info);
+        if(device_fault_port_ != 0){
+          if(device_ip_address_ != packet.ip || device_fault_port_ != packet.port){
+            continue;
+          }
+        }
+        ret = lidar_ptr_->ParserFaultMessage(packet, fault_message_info);
+        if (ret == 0) {
+          if (fault_message_cb_)
+            fault_message_cb_(fault_message_info);
+        }
         continue;
       }
 
-      //get distance azimuth reflection, etc.and put them into decode_packet
-      int res = lidar_ptr_->DecodePacket(decoded_packet, packet);
+      if(device_udp_port_ != 0 && (packet.is_timeout == false || packet_index == 0)){
+        if(device_ip_address_ != packet.ip || device_udp_port_ != packet.port){
+          continue;
+        }
+      }
 
-      //do not compute xyzi of points if enable packet_loss_tool_
-      // if(packet_loss_tool_ == true) continue;
+      //get distance azimuth reflection, etc.and put them into decode_packet
+      if(lidar_ptr_->DecodePacket(decoded_packet, packet) != 0) {
+        continue;
+      }
 
       //one frame is receive completely, split frame
       if (decoded_packet.scan_complete)
@@ -233,37 +267,46 @@ public:
           decoded_packet.packet_index = packet_index;
           udp_packet_frame.emplace_back(packet);
           //copy distances, reflection, azimuth, elevation from decoded packet to frame container
-          memcpy((frame.distances + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.distances), decoded_packet.block_num * decoded_packet.laser_num * sizeof(uint16_t));
-          memcpy((frame.reflectivities + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.reflectivities), decoded_packet.block_num * decoded_packet.laser_num * sizeof(uint8_t));
-          memcpy((frame.azimuth + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.azimuth), decoded_packet.block_num * decoded_packet.laser_num * sizeof(float));
-          memcpy((frame.elevation + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.elevation), decoded_packet.block_num * decoded_packet.laser_num * sizeof(float));
+          memcpy((frame.distances + packet_index * decoded_packet.points_num), (decoded_packet.distances), decoded_packet.points_num * sizeof(uint16_t));
+          memcpy((frame.reflectivities + packet_index * decoded_packet.points_num), (decoded_packet.reflectivities), decoded_packet.points_num * sizeof(uint8_t));
+          memcpy((frame.azimuth + packet_index * decoded_packet.points_num), (decoded_packet.azimuth), decoded_packet.points_num * sizeof(float));
+          memcpy((frame.elevation + packet_index * decoded_packet.points_num), (decoded_packet.elevation), decoded_packet.points_num * sizeof(float));
+          memcpy((frame.chn_index + packet_index * decoded_packet.points_num), (decoded_packet.chn_index), decoded_packet.points_num * sizeof(uint8_t));
+          memcpy((frame.confidence + packet_index * decoded_packet.points_num), (decoded_packet.confidenceLevel), decoded_packet.points_num * sizeof(uint8_t));
           frame.distance_unit = decoded_packet.distance_unit;
           frame.sensor_timestamp[packet_index] = decoded_packet.sensor_timestamp;
-          frame.points_num = frame.points_num + decoded_packet.block_num * decoded_packet.laser_num;
+          frame.points_num = frame.points_num + decoded_packet.points_num;
           frame.lidar_state = decoded_packet.lidar_state;
           frame.work_mode = decoded_packet.work_mode;
+          frame.packet_index = packet_index + 1;
           packet_index++;
         }
         
       }
       else
       {
-        //new decoded packet of one frame, put it into frame container
-        decoded_packet.packet_index = packet_index;
-        udp_packet_frame.emplace_back(packet);
-        //copy distances, reflection, azimuth, elevation from decoded packet to frame container
-        memcpy((frame.distances + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.distances), decoded_packet.block_num * decoded_packet.laser_num * sizeof(uint16_t));
-        memcpy((frame.reflectivities + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.reflectivities), decoded_packet.block_num * decoded_packet.laser_num * sizeof(uint8_t));
-        memcpy((frame.azimuth + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.azimuth), decoded_packet.block_num * decoded_packet.laser_num * sizeof(float));
-        memcpy((frame.elevation + packet_index * decoded_packet.block_num * decoded_packet.laser_num), (decoded_packet.elevation), decoded_packet.block_num * decoded_packet.laser_num * sizeof(float));
-        frame.distance_unit = decoded_packet.distance_unit;
-        frame.sensor_timestamp[packet_index] = decoded_packet.sensor_timestamp;
-        frame.points_num = frame.points_num + decoded_packet.block_num * decoded_packet.laser_num;
-        if (decoded_packet.block_num != 0 && decoded_packet.laser_num != 0) {
-            frame.laser_num = decoded_packet.laser_num;
-            frame.block_num = decoded_packet.block_num;
+        if(decoded_packet.IsDecodedPacketValid()) {
+          //new decoded packet of one frame, put it into frame container
+          decoded_packet.packet_index = packet_index;
+          udp_packet_frame.emplace_back(packet);
+          //copy distances, reflection, azimuth, elevation from decoded packet to frame container
+          memcpy((frame.distances + packet_index * decoded_packet.points_num), (decoded_packet.distances), decoded_packet.points_num * sizeof(uint16_t));
+          memcpy((frame.reflectivities + packet_index * decoded_packet.points_num), (decoded_packet.reflectivities), decoded_packet.points_num * sizeof(uint8_t));
+          memcpy((frame.azimuth + packet_index * decoded_packet.points_num), (decoded_packet.azimuth), decoded_packet.points_num * sizeof(float));
+          memcpy((frame.elevation + packet_index * decoded_packet.points_num), (decoded_packet.elevation), decoded_packet.points_num * sizeof(float));
+          memcpy((frame.chn_index + packet_index * decoded_packet.points_num), (decoded_packet.chn_index), decoded_packet.points_num * sizeof(uint8_t));
+          memcpy((frame.confidence + packet_index * decoded_packet.points_num), (decoded_packet.confidenceLevel), decoded_packet.points_num * sizeof(uint8_t));
+          frame.distance_unit = decoded_packet.distance_unit;
+          frame.sensor_timestamp[packet_index] = decoded_packet.sensor_timestamp;
+          frame.points_num = frame.points_num + decoded_packet.points_num;
+          frame.packet_index = packet_index + 1;
+          if (decoded_packet.block_num != 0 && decoded_packet.laser_num != 0) {
+              frame.laser_num = decoded_packet.laser_num;
+              frame.block_num = decoded_packet.block_num;
+              frame.per_points_num = decoded_packet.points_num;
+          }
+          packet_index++;
         }
-        packet_index++;
 
         //update status manually if start a new frame failedly
         if (packet_index >= kMaxPacketNumPerFrame) {
@@ -300,11 +343,8 @@ public:
     ptp_cb_ = callback;
   }
 
-  void FaultMessageCallback(UdpPacket& udp_packet, FaultMessageInfo& fault_message_info) {
-     FaultMessageVersion3 *fault_message_ptr = 
-      reinterpret_cast< FaultMessageVersion3*> (&(udp_packet.buffer[0]));
-    fault_message_ptr->ParserFaultMessage(fault_message_info);
-    return;
+  void RegRecvCallback(const std::function<void (const FaultMessageInfo&)>& callback) {
+    fault_message_cb_ = callback;
   }
 };
 

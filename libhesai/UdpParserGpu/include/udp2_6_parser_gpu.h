@@ -25,53 +25,60 @@ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT
 TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
+#ifndef Udp2_6_PARSER_GPU_H_
+#define Udp2_6_PARSER_GPU_H_
+#pragma once
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <cstring>
+#include <map>
+#include <memory>
+#include <mutex>
 
-/*
- * File:       udp_p40_parser.h
- * Author:     Zhang Yu <zhangyu@hesaitech.com>
- * Description: Declare UdpP40Parser class
-*/
+#include "general_parser_gpu.h"
 
-#ifndef UDP_P40_PARSER_H_
-#define UDP_P40_PARSER_H_
+#ifndef M_PI
+#define M_PI 3.1415926535898
+#endif
 
-#include "general_parser.h"
-#define BLOCKNUM 10
-#define LASERNUM 40
 namespace hesai
 {
 namespace lidar
 {
-// class UdpP40Parser
-// parsers packets and computes points for Pandar40
-// you can parser the upd or pcap packets using the DocodePacket fuction
-// you can compute xyzi of points using the ComputeXYZI fuction, which uses cpu to compute
+// class Udp2_6ParserGpu
+// computes points for ET25
+// you can compute xyzi of points using the ComputeXYZI fuction, which uses gpu to compute
 template <typename T_Point>
-class UdpP40Parser : public GeneralParser<T_Point> {
- public:
-  UdpP40Parser();
-  virtual ~UdpP40Parser();
-  
-  // covert a origin udp packet to decoded packet, the decode function is in UdpParser module
-  // udp_packet is the origin udp packet, output is the decoded packet
-  virtual int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket); 
-
-  // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
-  virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket);
-
-  // compute xyzi of points from decoded packet
-  // param packet is the decoded packet; xyzi of points after computed is puted in frame      
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
-  using GeneralParser<T_Point>::GetDistanceCorrection;
-  // virtual int ComputeXYZI(LidarDecodedFrame &frame, LidarDecodedPacket &packet);
-
-  // determine whether frame splitting is needed
-  bool IsNeedFrameSplit(uint16_t azimuth);
+class Udp2_6ParserGpu: public GeneralParserGpu<T_Point>{
  private:
+  float* channel_azimuths_cu_;
+  float* channel_elevations_cu_;
+  float* channel_azimuths_adjust_cu_;
+  float* channel_elevations_adjust_cu_;
+  float* raw_azimuths_cu_;
+  float* raw_elevations_cu_;
+  uint16_t* raw_distances_cu_;
+  uint8_t* raw_reflectivities_cu_;
+  uint64_t* raw_sensor_timestamp_cu_;
+  uint8_t* chn_index_cu_;
+ public:
+  Udp2_6ParserGpu();
+  ~Udp2_6ParserGpu();
+
+  // compute xyzi of points from decoded packet， use gpu device
+  // param packet is the decoded packet; xyzi of points after computed is puted in frame  
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
+  virtual int LoadCorrectionFile(std::string correction_path);
+  virtual int LoadCorrectionString(char *correction_string);
+  int LoadCorrectionDatData(char *correction_string);
+  int LoadCorrectionCsvData(char *correction_string);
+  ETCorrectionsHeader_V6 corrections_;
+  bool corrections_loaded_;
+  
 };
-}  // namespace lidar
-}  // namespace hesai
-
-#include "udp_p40_parser.cc"
-
-#endif  // UDP_P40_PARSER_H_
+}
+}
+#include "udp2_6_parser_gpu.cu"
+#endif  // Udp2_6_PARSER_GPU_H_

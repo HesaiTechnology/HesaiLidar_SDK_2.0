@@ -48,6 +48,7 @@ Udp3_1ParserGpu<T_Point>::~Udp3_1ParserGpu() {
   cudaSafeFree(raw_azimuths_cu_);
   cudaSafeFree(raw_distances_cu_);
   cudaSafeFree(raw_reflectivities_cu_);
+  cudaSafeFree(raw_sensor_timestamp_cu_);
   if (corrections_loaded_) {
     cudaSafeFree(channel_elevations_cu_);
     cudaSafeFree(channel_azimuths_cu_);
@@ -57,15 +58,32 @@ Udp3_1ParserGpu<T_Point>::~Udp3_1ParserGpu() {
 template <typename T_Point>
 __global__ void compute_xyzs_3_1_impl(T_Point *xyzs, const float* channel_azimuths, const float* channel_elevations,
     const float* raw_azimuths, const uint16_t *raw_distances, const uint8_t *raw_reflectivities, 
-    const uint64_t *raw_sensor_timestamp, const double raw_distance_unit, Transform transform, 
-    int blocknum, int lasernum) {
+    const uint64_t *raw_sensor_timestamp, const double raw_distance_unit, Transform transform, LidarOpticalCenter optical_center,
+    int blocknum, int lasernum, uint16_t packet_index) {
   auto iscan = blockIdx.x;
   auto ichannel = threadIdx.x;
-  float azimuth = raw_azimuths[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))];
-  auto theta = (azimuth) / HALF_CIRCLE * M_PI;
-  auto phi = (channel_elevations[(ichannel % lasernum)] * kResolutionFloat) / HALF_CIRCLE * M_PI;
+  if (iscan >= packet_index || ichannel >= blocknum * lasernum) return;
+  float azimuth = raw_azimuths[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] / kHalfCircleFloat * M_PI;
+  float theta = (channel_azimuths[(ichannel % lasernum)] * kResolutionFloat) / kHalfCircleFloat * M_PI;
+  float phi = (channel_elevations[(ichannel % lasernum)] * kResolutionFloat) / kHalfCircleFloat * M_PI;
+  float rho = raw_distances[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] * raw_distance_unit;
 
-  auto rho = raw_distances[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] * raw_distance_unit;
+  if(rho > 0.09 && optical_center.x != 0) {
+    float tx = std::cos(phi) * std::sin(theta);
+    float ty = std::cos(phi) * std::cos(theta);
+    float tz = std::sin(phi);
+    float B = 2 * tx * optical_center.x + 2 * ty * optical_center.y + 2 * tz * optical_center.z;
+    float C = optical_center.x * optical_center.x + optical_center.y * optical_center.y + optical_center.z * optical_center.z - rho * rho;
+    float d_opitcal = std::sqrt(B * B / 4 - C) - B / 2;
+    float x = d_opitcal * tx + optical_center.x;
+    float y = d_opitcal * ty + optical_center.y;
+    float z = d_opitcal * tz + optical_center.z;
+    theta = azimuth + std::atan(x / y);
+    phi = std::asin(z / rho);
+  } else {
+    theta += azimuth;
+  }
+
   float z = rho * sin(phi);
   auto r = rho * cosf(phi);
   float x = r * sin(theta);
@@ -88,6 +106,7 @@ __global__ void compute_xyzs_3_1_impl(T_Point *xyzs, const float* channel_azimut
   gpu::setZ(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], z_);
   gpu::setIntensity(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], raw_reflectivities[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))]);
   gpu::setTimestamp(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], double(raw_sensor_timestamp[iscan]) / kMicrosecondToSecond);
+  gpu::setRing(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], ichannel % lasernum);
 }
 template <typename T_Point>
 int Udp3_1ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
@@ -109,7 +128,8 @@ int Udp3_1ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
                           cudaMemcpyHostToDevice),
                ReturnCode::CudaMemcpyHostToDeviceError);    
 compute_xyzs_3_1_impl<<<kMaxPacketNumPerFrame, kMaxPointsNumPerPacket>>>(this->frame_.gpu()->points, channel_azimuths_cu_, channel_elevations_cu_, 
- raw_azimuths_cu_, raw_distances_cu_, raw_reflectivities_cu_, raw_sensor_timestamp_cu_, frame.distance_unit, this->transform_, frame.block_num, frame.laser_num);
+ raw_azimuths_cu_, raw_distances_cu_, raw_reflectivities_cu_, raw_sensor_timestamp_cu_, frame.distance_unit, this->transform_, this->optical_center,
+ frame.block_num, frame.laser_num, frame.packet_index);
   cudaSafeCall(cudaGetLastError(), ReturnCode::CudaXYZComputingError);
   this->frame_.DeviceToHost();
   std::memcpy(frame.points, this->frame_.cpu()->points, sizeof(T_Point) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket);
@@ -191,6 +211,7 @@ int Udp3_1ParserGpu<T_Point>::LoadCorrectionFile(std::string lidar_correction_fi
     fin.close();
     str_lidar_calibration = buffer;
     ret = LoadCorrectionString(buffer);
+    delete[] buffer;
     if (ret != 0) {
       printf("Parse local Correction file Error\n");
     } else {

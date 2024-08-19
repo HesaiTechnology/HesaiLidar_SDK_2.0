@@ -55,6 +55,8 @@ class Udp2_5ParserGpu: public GeneralParserGpu<T_Point>{
  private:
   float* channel_azimuths_cu_;
   float* channel_elevations_cu_;
+  float* channel_azimuths_adjust_cu_;
+  float* channel_elevations_adjust_cu_;
   float* raw_azimuths_cu_;
   float* raw_elevations_cu_;
   uint16_t* raw_distances_cu_;

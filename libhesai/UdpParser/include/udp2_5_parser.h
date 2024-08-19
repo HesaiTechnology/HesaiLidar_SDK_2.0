@@ -44,6 +44,8 @@ namespace lidar
     int16_t raw_elevations[ET_MAX_CHANNEL_NUM];
     int16_t elevation_adjust[3000];
     int16_t azimuth_adjust[3000];
+    float elevation_adjust_f[3000];
+    float azimuth_adjust_f[3000];
     uint8_t azimuth_adjust_interval;
     uint8_t elevation_adjust_interval;
     // SHA-256_value

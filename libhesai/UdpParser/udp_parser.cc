@@ -162,6 +162,10 @@ void UdpParser<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
           parser_ = new Udp4_3Parser<T_Point>();
           lidar_type_decoded_ = "AT128";
           break;
+        case 7:
+          parser_ = new Udp4_7Parser<T_Point>();
+          lidar_type_decoded_ = "ATX";
+          break;
         default:
           break;
       }
@@ -219,7 +223,7 @@ void UdpParser<T_Point>::CreatGeneralParser(const UdpPacket& packet) {
     lidar_type_decoded_ = "Pandar64";
     return;
   }
-  if (packet.buffer[0] != 0xEE && packet.buffer[1] != 0xFF) {
+  if (packet.buffer[0] != 0xEE || packet.buffer[1] != 0xFF) {
     printf("Packet with invaild delimiter\n");
     return;
   }
@@ -268,6 +272,8 @@ void UdpParser<T_Point>::CreatGeneralParser(std::string lidar_type) {
     parser_ = new Udp2_5Parser<T_Point>();
   } else if (lidar_type == "ET25" || lidar_type == "ET") {
     parser_ = new Udp2_6Parser<T_Point>();
+  } else if ( lidar_type == "ATX" ) {
+    parser_ = new Udp4_7Parser<T_Point>();
   }
 }
 template<typename T_Point>
@@ -383,7 +389,18 @@ int UdpParser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const Ud
   if (parser_ != nullptr) {
     return parser_->DecodePacket(frame, udpPacket);
   }
+  return -1;
+}
 
+template<typename T_Point>
+int UdpParser<T_Point>::ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info) {
+  if (parser_ == nullptr) {
+    return -1;
+  } else {
+    parser_->ParserFaultMessage(udp_packet, fault_message_info);
+    return 0;
+  }
+  return 0;
 }
 
 
