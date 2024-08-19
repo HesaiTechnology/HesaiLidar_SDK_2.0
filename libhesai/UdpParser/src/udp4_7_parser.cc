@@ -355,6 +355,11 @@ int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       setConfidence(frame.points[point_index], packet.confidenceLevel[blockid * packet.laser_num + i]);
       setTimestamp(frame.points[point_index], double(packet.sensor_timestamp) / kMicrosecondToSecond);
       setRing(frame.points[point_index], i);
+      frame.distances[point_index] = packet.distances[blockid * packet.laser_num + i];
+      frame.azimuths[point_index] = packet.azimuth[blockid * packet.laser_num + i];
+      frame.azimuth[point_index] = azimuth / kAllFineResolutionFloat;
+      frame.elevation[point_index] = elevation / kAllFineResolutionFloat;
+      frame.distance_unit = packet.distance_unit;
     }
   }
   GeneralParser<T_Point>::FrameNumAdd(frame, packet.points_num);

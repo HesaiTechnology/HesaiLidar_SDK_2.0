@@ -66,7 +66,7 @@ __global__ void compute_xyzs_p64_impl(T_Point *xyzs, const float* channel_azimut
   float phi = (channel_elevations[(ichannel % lasernum)] * kResolutionInt) / HALF_CIRCLE * M_PI;
 
   float rho = raw_distances[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] * raw_distance_unit;
-  if(rho > 0 && optical_center.x != 0) {
+  if(rho > 0.09 && optical_center.x != 0) {
     float tx = std::cos(phi) * std::sin(theta);
     float ty = std::cos(phi) * std::cos(theta);
     float tz = std::sin(phi);

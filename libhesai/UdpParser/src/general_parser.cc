@@ -271,7 +271,7 @@ double GeneralParser<T_Point>::GetFiretimesCorrection(int laserId, double speed)
 }
 template <typename T_Point>
 void GeneralParser<T_Point>::GetDistanceCorrection(int &azimuth, int &elevation, float &distance, DistanceCorrectionType type) {
-  if (distance <= 0) return;
+  if (distance <= 0.09) return;
   azimuth = (azimuth + CIRCLE) % CIRCLE;
   elevation = (elevation + CIRCLE) % CIRCLE;
   float tx = this->cos_all_angle_[elevation] * this->sin_all_angle_[azimuth];

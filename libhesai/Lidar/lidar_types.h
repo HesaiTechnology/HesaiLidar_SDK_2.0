@@ -193,7 +193,7 @@ class LidarDecodedFrame
     LidarDecodedFrame() {
         total_memory = new uint8_t[sizeof(PointT) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + 
                                    sizeof(uint64_t) * kMaxPacketNumPerFrame + 
-                                   sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket +
+                                   sizeof(uint32_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket +
                                    sizeof(float) * 2 * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket +
                                    sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + 
                                    sizeof(uint8_t) * 3 * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket
@@ -203,8 +203,8 @@ class LidarDecodedFrame
         offset = sizeof(PointT) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
         sensor_timestamp = reinterpret_cast<uint64_t* >(total_memory + offset);
         offset = sizeof(uint64_t) * kMaxPacketNumPerFrame + offset;
-        azimuths = reinterpret_cast<uint16_t* >(total_memory + offset);
-        offset = sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
+        azimuths = reinterpret_cast<uint32_t* >(total_memory + offset);
+        offset = sizeof(uint32_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
         azimuth = reinterpret_cast<float* >(total_memory + offset);
         offset = sizeof(float) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
         elevation = reinterpret_cast<float* >(total_memory + offset);
@@ -289,7 +289,7 @@ class LidarDecodedFrame
     uint32_t packet_num;
     uint8_t* total_memory = nullptr;                  
     PointT* points = nullptr;
-    uint16_t* azimuths = nullptr;
+    uint32_t* azimuths = nullptr;
     uint8_t* reflectivities = nullptr;
     float* azimuth = nullptr;
     float* elevation = nullptr;
