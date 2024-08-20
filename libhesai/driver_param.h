@@ -92,6 +92,8 @@ typedef struct DecoderParam
   // enable the udp packet loss detection tool
   // it forbiddens parser udp packet while trun on this tool
   bool enable_packet_loss_tool = false;
+  bool enable_packet_timeloss_tool = false;
+  bool packet_timeloss_tool_continue = false;
   // 0 use point cloud timestamp
   // 1 use sdk receive timestamp
   uint16_t use_timestamp_type = point_cloud_timestamp;

@@ -41,14 +41,12 @@ GeneralParser<T_Point>::GeneralParser() {
   this->motor_speed_ = 0;
   this->return_mode_ = 0;
   this->enable_update_monitor_info_ = false;
-  this->start_seqnum_ = 0;
-  this->last_seqnum_ = 0;
-  this->loss_count_ = 0;
-  this->start_time_ = 0;
   this->last_azimuth_ = 0;
   this->last_last_azimuth_ = 0;
   this->total_packet_count_ = 0;
   this->enable_packet_loss_tool_ = false;
+  this->enable_packet_timeloss_tool_ = false;
+  this->packet_timeloss_tool_continue_ = false;
   for (int i = 0; i < CIRCLE; ++i) {
     this->sin_all_angle_[i] = std::sin(i * 2 * M_PI / CIRCLE);
     this->cos_all_angle_[i] = std::cos(i * 2 * M_PI / CIRCLE);
@@ -211,6 +209,16 @@ void GeneralParser<T_Point>::EnablePacketLossTool(bool enable) {
 }
 
 template <typename T_Point>
+void GeneralParser<T_Point>::EnablePacketTimeLossTool(bool enable) {
+  this->enable_packet_timeloss_tool_ = enable;
+}
+
+template <typename T_Point>
+void GeneralParser<T_Point>::PacketTimeLossToolContinue(bool enable) {
+  this->packet_timeloss_tool_continue_ = enable;
+}
+
+template <typename T_Point>
 void GeneralParser<T_Point>::SetLidarType(std::string type) {
   this->lidar_type = type;
 }
@@ -342,3 +350,81 @@ void GeneralParser<T_Point>::SetTransformPara(float x, float y, float z, float r
   transform_.yaw = yaw;
   transform_.pitch = pitch;
 }
+
+template <typename T_Point>
+  void GeneralParser<T_Point>::CalPktLoss(uint32_t &PacketSeqnum) {
+    if (this->enable_packet_loss_tool_ == false) {
+      return;
+    }
+    if (PacketSeqnum > this->seqnum_loss_message_.last_seqnum && this->seqnum_loss_message_.last_seqnum != 0) {
+      this->total_packet_count_ += PacketSeqnum - this->seqnum_loss_message_.last_seqnum;
+    }
+    this->seqnum_loss_message_.is_packet_loss = false;
+    if (this->seqnum_loss_message_.start_seqnum == 0) {
+      this->seqnum_loss_message_.loss_count = 0;
+      this->seqnum_loss_message_.total_loss_count = 0;
+      this->seqnum_loss_message_.start_time = GetMicroTickCount();
+      this->seqnum_loss_message_.start_seqnum = PacketSeqnum;
+      this->seqnum_loss_message_.last_seqnum = PacketSeqnum;
+      this->seqnum_loss_message_.total_start_seqnum = PacketSeqnum;
+      return;
+    }
+    if (PacketSeqnum - this->seqnum_loss_message_.last_seqnum > 1) {
+      this->seqnum_loss_message_.loss_count += (PacketSeqnum - this->seqnum_loss_message_.last_seqnum - 1);
+      this->seqnum_loss_message_.total_loss_count += (PacketSeqnum - this->seqnum_loss_message_.last_seqnum - 1);
+      this->seqnum_loss_message_.is_packet_loss = true;
+    }
+    // print log every 1s
+    if (this->seqnum_loss_message_.loss_count != 0 && GetMicroTickCount() - this->seqnum_loss_message_.start_time >= 1 * 1000 * 1000) {
+      printf("pkt loss freq: %u/%u\n", this->seqnum_loss_message_.loss_count,
+             PacketSeqnum - this->seqnum_loss_message_.start_seqnum);
+      this->seqnum_loss_message_.loss_count = 0;
+      this->seqnum_loss_message_.start_time = GetMicroTickCount();
+      this->seqnum_loss_message_.start_seqnum = PacketSeqnum;
+    }
+    this->seqnum_loss_message_.last_seqnum = PacketSeqnum;
+  }
+
+template <typename T_Point>
+void GeneralParser<T_Point>::CalPktTimeLoss(uint64_t &PacketTimestamp) {
+  if(this->enable_packet_timeloss_tool_ == false){
+    return;
+  } 
+  if(this->packet_timeloss_tool_continue_ == false && this->time_loss_message_.total_timeloss_count != 0){    
+    return;
+  }
+  if (this->time_loss_message_.start_timestamp == 0) {
+    this->time_loss_message_.timeloss_count = 0;
+    this->time_loss_message_.total_timeloss_count = 0;
+    this->time_loss_message_.timeloss_start_time = GetMicroTickCount();
+    this->time_loss_message_.start_timestamp = PacketTimestamp;
+    this->time_loss_message_.last_timestamp = PacketTimestamp;
+    this->time_loss_message_.total_start_timestamp = PacketTimestamp;
+    return;
+  }
+  // packet time loss reset
+  else if(this->seqnum_loss_message_.is_packet_loss){
+    printf("pkt time loss freq: %u/%u\n", this->time_loss_message_.timeloss_count, this->total_packet_count_ - this->time_loss_message_.last_total_package_count);
+    this->time_loss_message_.timeloss_count = 0;
+    this->time_loss_message_.timeloss_start_time = GetMicroTickCount();
+    this->time_loss_message_.start_timestamp = PacketTimestamp;
+    this->time_loss_message_.last_timestamp = PacketTimestamp;
+    this->time_loss_message_.last_total_package_count = this->total_packet_count_;
+    return;
+  }
+  if (PacketTimestamp <= this->time_loss_message_.last_timestamp) {
+    this->time_loss_message_.timeloss_count++;
+    this->time_loss_message_.total_timeloss_count++;
+  }
+  // print log every 1s
+  if (this->time_loss_message_.timeloss_count != 0 && GetMicroTickCount() - this->time_loss_message_.timeloss_start_time >= 1 * 1000 * 1000) {
+    printf("pkt time loss freq: %u/%u\n", this->time_loss_message_.timeloss_count,
+           this->total_packet_count_ - this->time_loss_message_.last_total_package_count);
+    this->time_loss_message_.timeloss_count = 0;
+    this->time_loss_message_.timeloss_start_time = GetMicroTickCount();
+    this->time_loss_message_.start_timestamp = PacketTimestamp;
+    this->time_loss_message_.last_total_package_count = this->total_packet_count_;
+  }
+  this->time_loss_message_.last_timestamp = PacketTimestamp;    
+}
+

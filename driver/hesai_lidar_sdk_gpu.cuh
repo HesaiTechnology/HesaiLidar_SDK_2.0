@@ -231,7 +231,7 @@ public:
           if (pkt_loss_cb_ )
           {
             total_packet_count = lidar_ptr_->udp_parser_->GetGeneralParser()->total_packet_count_;
-            total_packet_loss_count = lidar_ptr_->udp_parser_->GetGeneralParser()->total_loss_count_;
+            total_packet_loss_count = lidar_ptr_->udp_parser_->GetGeneralParser()->seqnum_loss_message_.total_loss_count;
             pkt_loss_cb_(total_packet_count, total_packet_loss_count);
           }
           if (ptp_cb_ && frame.frame_index % 100 == 1)

@@ -225,16 +225,11 @@ int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
              sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V7) * pHeader->GetLaserNum()) *
                 pHeader->GetBlockNum() +
             sizeof(HS_LIDAR_BODY_CRC_ST_V7) + sizeof(HS_LIDAR_TAIL_ST_V7));
-    if(this->enable_packet_loss_tool_ == true) {
-      this->current_seqnum_ = pTailSeqNum->m_u32SeqNum;
-      if (this->current_seqnum_ > this->last_seqnum_ && this->last_seqnum_ != 0) {
-        this->total_packet_count_ += this->current_seqnum_ - this->last_seqnum_;
-      }
-      pTailSeqNum->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, 
-        this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
-    }
+    uint32_t packet_seqnum = pTailSeqNum->m_u32SeqNum;
+    this->CalPktLoss(packet_seqnum);
   }
-
+  uint64_t packet_timestamp = pTail->GetMicroLidarTimeU64();
+  this->CalPktTimeLoss(packet_timestamp); 
   // const HS_LIDAR_E2E_HEADER_ST_V7 *pE2EHeader = 
   //     reinterpret_cast<const HS_LIDAR_E2E_HEADER_ST_V7 *>(
   //           (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ST_V7) +
@@ -395,16 +390,11 @@ int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
              sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V7) * pHeader->GetLaserNum()) *
                 pHeader->GetBlockNum() +
             sizeof(HS_LIDAR_BODY_CRC_ST_V7) + sizeof(HS_LIDAR_TAIL_ST_V7));
-    if(this->enable_packet_loss_tool_ == true) {
-      this->current_seqnum_ = pTailSeqNum->m_u32SeqNum;
-      if (this->current_seqnum_ > this->last_seqnum_ && this->last_seqnum_ != 0) {
-        this->total_packet_count_ += this->current_seqnum_ - this->last_seqnum_;
-      }
-      pTailSeqNum->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, 
-        this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
-    }
+    uint32_t packet_seqnum = pTailSeqNum->m_u32SeqNum;
+    this->CalPktLoss(packet_seqnum);
   }
-
+  uint64_t packet_timestamp = pTail->GetMicroLidarTimeU64();
+  this->CalPktTimeLoss(packet_timestamp);
   // const HS_LIDAR_E2E_HEADER_ST_V7 *pE2EHeader = 
   //     reinterpret_cast<const HS_LIDAR_E2E_HEADER_ST_V7 *>(
   //           (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ST_V7) +

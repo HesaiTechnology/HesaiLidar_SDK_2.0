@@ -196,6 +196,46 @@ struct LidarOpticalCenter {
     z = 0;
   }
 };
+
+struct PacketSeqnumLossMessage{
+  uint32_t start_seqnum;
+  uint32_t last_seqnum;
+  uint32_t loss_count;
+  uint32_t start_time;
+  uint32_t total_loss_count;
+  uint32_t total_start_seqnum;
+  bool is_packet_loss;
+  PacketSeqnumLossMessage() {
+    start_seqnum = 0;
+    last_seqnum = 0;
+    loss_count = 0;
+    start_time = 0;
+    total_loss_count = 0;
+    total_start_seqnum = 0;
+    is_packet_loss = false;
+  }
+};
+
+struct PacketTimeLossMessage{
+  uint64_t start_timestamp;
+  uint64_t last_timestamp;
+  uint32_t timeloss_count;
+  uint32_t timeloss_start_time;
+  uint32_t total_timeloss_count;
+  uint64_t total_start_timestamp;
+  uint32_t last_total_package_count;
+  PacketTimeLossMessage() {
+    start_timestamp = 0;
+    last_timestamp = 0;
+    timeloss_count = 0;
+    timeloss_start_time = 0;
+    total_timeloss_count = 0;
+    total_start_timestamp = 0; 
+    last_total_package_count = 0;
+  }
+};
+
+
 // class GeneralParser
 // the GenneralParser class is a base class for parsering packets and computing points
 // you can parser the upd or pcap packets using the DocodePacket fuction
@@ -258,6 +298,10 @@ class GeneralParser {
 
   //set enable_packet_loss_tool_
   virtual void EnablePacketLossTool(bool enable);
+  virtual void EnablePacketTimeLossTool(bool enable);
+  virtual void PacketTimeLossToolContinue(bool enable);
+  void CalPktLoss(uint32_t &PacketSeqnum);
+  void CalPktTimeLoss(uint64_t &PacketTimestamp);
 
   void TransformPoint(float& x, float& y, float& z);
   void SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
@@ -268,11 +312,10 @@ class GeneralParser {
   uint16_t *GetMonitorInfo3();
   std::vector<double> elevation_correction_{0};
   std::vector<double> azimuth_collection_{0};
-  uint32_t total_start_seqnum_;
-  uint32_t total_loss_count_;
-  uint32_t current_seqnum_;
   uint32_t total_packet_count_;
-  
+  PacketSeqnumLossMessage seqnum_loss_message_;
+  PacketTimeLossMessage time_loss_message_;
+
  protected:
   Mutex _mutex;
   uint16_t monitor_info1_[256];
@@ -291,14 +334,12 @@ class GeneralParser {
   bool use_angle_ = true;
   int32_t last_azimuth_;
   int32_t last_last_azimuth_;
-  uint32_t start_seqnum_;
-  uint32_t last_seqnum_;
-  uint32_t loss_count_;
-  uint32_t start_time_;
   double firetime_correction_[512];
   bool enable_firetime_correction_;
   bool enable_distance_correction_;
   bool enable_packet_loss_tool_;
+  bool enable_packet_timeloss_tool_;
+  bool packet_timeloss_tool_continue_;
   std::string lidar_type;
   Transform transform_;
   float frame_start_azimuth_;

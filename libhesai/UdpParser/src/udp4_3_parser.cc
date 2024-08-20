@@ -192,15 +192,11 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
              sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V3) * pHeader->GetLaserNum()) *
                 pHeader->GetBlockNum() +
             sizeof(HS_LIDAR_BODY_CRC_ST_V3) + sizeof(HS_LIDAR_TAIL_ST_V3));
-    if(this->enable_packet_loss_tool_ == true) {
-      this->current_seqnum_ = pTailSeqNum->m_u32SeqNum;
-      if (this->current_seqnum_ > this->last_seqnum_ && this->last_seqnum_ != 0) {
-        this->total_packet_count_ += this->current_seqnum_ - this->last_seqnum_;
-      }
-      pTailSeqNum->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, 
-        this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
-    }
+    uint32_t packet_seqnum = pTailSeqNum->m_u32SeqNum;
+    this->CalPktLoss(packet_seqnum);
   }      
+  uint64_t packet_timestamp = pTail->GetMicroLidarTimeU64();
+  this->CalPktTimeLoss(packet_timestamp);
   output.host_timestamp = GetMicroTickCountU64();  
   if (output.use_timestamp_type == 0) {
     output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
@@ -317,15 +313,11 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
              sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V3) * pHeader->GetLaserNum()) *
                 pHeader->GetBlockNum() +
             sizeof(HS_LIDAR_BODY_CRC_ST_V3) + sizeof(HS_LIDAR_TAIL_ST_V3));
-    if(this->enable_packet_loss_tool_ == true) {
-      this->current_seqnum_ = pTailSeqNum->m_u32SeqNum;
-      if (this->current_seqnum_ > this->last_seqnum_ && this->last_seqnum_ != 0) {
-        this->total_packet_count_ += this->current_seqnum_ - this->last_seqnum_;
-      }
-      pTailSeqNum->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, 
-        this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
-    }
-  }         
+    uint32_t packet_seqnum = pTailSeqNum->m_u32SeqNum;
+    this->CalPktLoss(packet_seqnum);
+  } 
+  uint64_t packet_timestamp = pTail->GetMicroLidarTimeU64();
+  this->CalPktTimeLoss(packet_timestamp);        
   this->spin_speed_ = pTail->m_i16MotorSpeed;
   this->is_dual_return_= pTail->IsDualReturn();
 

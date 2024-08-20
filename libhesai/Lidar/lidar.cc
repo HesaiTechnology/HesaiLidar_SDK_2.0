@@ -214,6 +214,8 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     udp_parser_->SetPcapPlay(param.decoder_param.pcap_play_synchronization, param.input_param.source_type);
     udp_parser_->SetFrameAzimuth(param.decoder_param.frame_start_azimuth);
     udp_parser_->GetParser()->EnablePacketLossTool(param.decoder_param.enable_packet_loss_tool);
+    udp_parser_->GetParser()->EnablePacketTimeLossTool(param.decoder_param.enable_packet_timeloss_tool);
+    udp_parser_->GetParser()->PacketTimeLossToolContinue(param.decoder_param.packet_timeloss_tool_continue);
     res = 0;
     return res;
 }
