@@ -269,14 +269,10 @@ int Udp7_2Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   }
   output.host_timestamp = GetMicroTickCountU64();
 
-  if (this->enable_packet_loss_tool_ == true) {
-    this->current_seqnum_ = pTail->sequence_num;
-    if (this->current_seqnum_ > this->last_seqnum_ && this->last_seqnum_ != 0) {
-      this->total_packet_count_ += this->current_seqnum_ - this->last_seqnum_;
-    }
-    pTail->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, 
-        this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
-  }    
+  uint32_t packet_seqnum = pTail->sequence_num;
+  this->CalPktLoss(packet_seqnum);
+  uint64_t packet_timestamp = pTail->GetMicroLidarTimeU64();
+  this->CalPktTimeLoss(packet_timestamp);  
 
   output.points_num = pHeader->GetChannelNum();
   output.scan_complete = false;
@@ -331,14 +327,10 @@ int Udp7_2Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
           (sizeof(HS_LIDAR_BODY_CHN_UNIT_FT_V2) * pHeader->GetChannelNum()));  
   frame.sensor_timestamp[frame.packet_index] = pTail->GetMicroLidarTimeU64();
 
-  if (this->enable_packet_loss_tool_ == true) {
-    this->current_seqnum_ = pTail->sequence_num;
-    if (this->current_seqnum_ > this->last_seqnum_ && this->last_seqnum_ != 0) {
-      this->total_packet_count_ += this->current_seqnum_ - this->last_seqnum_;
-    }
-    pTail->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, 
-        this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
-  }    
+  uint32_t packet_seqnum = pTail->sequence_num;
+  this->CalPktLoss(packet_seqnum);
+  uint64_t packet_timestamp = pTail->GetMicroLidarTimeU64();
+  this->CalPktTimeLoss(packet_timestamp);   
 
   frame.points_num += pHeader->GetChannelNum();
   frame.scan_complete = false;

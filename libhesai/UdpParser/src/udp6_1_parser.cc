@@ -126,16 +126,10 @@ int Udp6_1Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   }
   output.host_timestamp = GetMicroTickCountU64();
 
-  if (this->enable_packet_loss_tool_ == true) {
-    this->current_seqnum_ = pTail->m_u32SeqNum;
-    if (this->current_seqnum_ > this->last_seqnum_ && this->last_seqnum_ != 0) {
-      this->total_packet_count_ += this->current_seqnum_ - this->last_seqnum_;
-    }
-    pTail->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, 
-        this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
-    // return 0;
-    // why return 0 ? 
-  }
+  uint32_t packet_seqnum = pTail->m_u32SeqNum;
+  this->CalPktLoss(packet_seqnum);
+  uint64_t packet_timestamp = pTail->GetMicroLidarTimeU64();
+  this->CalPktTimeLoss(packet_timestamp);
 
   this->spin_speed_ = pTail->m_u16MotorSpeed;
   this->is_dual_return_= pTail->IsDualReturn();
@@ -269,16 +263,10 @@ int Udp6_1Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
 
   frame.sensor_timestamp[frame.packet_index] = pTail->GetMicroLidarTimeU64();
 
-  if (this->enable_packet_loss_tool_ == true) {
-    this->current_seqnum_ = pTail->m_u32SeqNum;
-    if (this->current_seqnum_ > this->last_seqnum_ && this->last_seqnum_ != 0) {
-      this->total_packet_count_ += this->current_seqnum_ - this->last_seqnum_;
-    }
-    pTail->CalPktLoss(this->start_seqnum_, this->last_seqnum_, this->loss_count_, 
-        this->start_time_, this->total_loss_count_, this->total_start_seqnum_);
-    // return 0;
-    // why return 0 ? 
-  }
+  uint32_t packet_seqnum = pTail->m_u32SeqNum;
+  this->CalPktLoss(packet_seqnum);
+  uint64_t packet_timestamp = pTail->GetMicroLidarTimeU64();
+  this->CalPktTimeLoss(packet_timestamp);
 
   this->spin_speed_ = pTail->m_u16MotorSpeed;
   this->is_dual_return_= pTail->IsDualReturn();

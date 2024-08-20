@@ -7,8 +7,14 @@ uint32_t cur_frame_time;
 void lidarCallback(const LidarDecodedFrame<LidarPointXYZIRT>  &frame) {  
   cur_frame_time = GetMicroTickCount();
   if (cur_frame_time - last_frame_time > kMaxTimeInterval) {
-    printf("Time between last frame and cur frame is: %d\n us", (cur_frame_time - last_frame_time));
+    printf("Time between last frame and cur frame is: %d us\n", (cur_frame_time - last_frame_time));
   }
+}
+
+void faultMessageCallback(const FaultMessageInfo& fault_message_info) {
+  // Use fault message messages to make some judgments
+  // fault_message_info.Print();
+  return;
 }
 
 int main(int argc, char *argv[])
@@ -24,6 +30,8 @@ int main(int argc, char *argv[])
   // assign param
   param.input_param.source_type = DATA_FROM_LIDAR;
   param.decoder_param.enable_packet_loss_tool = true;
+  param.decoder_param.enable_packet_timeloss_tool = true;
+  param.decoder_param.packet_timeloss_tool_continue = true;
   param.input_param.pcap_path = "Your pcap file path";
   param.input_param.correction_file_path = "Your correction file path";
   param.input_param.firetimes_path = "Your firetime file path";
@@ -33,15 +41,14 @@ int main(int argc, char *argv[])
   param.input_param.udp_port = 2368;
   param.input_param.host_ip_address = "192.168.1.100";
   param.input_param.multicast_ip_address = "";
+  param.decoder_param.socket_buffer_size = 262144000;
 
   //init lidar with param
   sample.Init(param);
-  float socket_buffer = 262144000;
-  if (argc > 2) socket_buffer = atof(argv[2]);
-  sample.lidar_ptr_->source_->SetSocketBufferSize(socket_buffer);
 
   //assign callback fuction
   sample.RegRecvCallback(lidarCallback);
+  sample.RegRecvCallback(faultMessageCallback);
 
   //star process thread
   last_frame_time = GetMicroTickCount();
@@ -67,15 +74,22 @@ int main(int argc, char *argv[])
     }
   }
 
-  uint64_t end = GetMicroTickCountU64();
-  uint32_t total_packet_count = sample.lidar_ptr_->udp_parser_->GetGeneralParser()->total_packet_count_;
-  uint32_t total_packet_loss_count = sample.lidar_ptr_->udp_parser_->GetGeneralParser()->total_loss_count_;
-  printf("total recevice packet time: %lums\n",(end -start) / 1000);
-  printf("total receviced packet count: %u\n",total_packet_count);
-  printf("total loss packet count: %u\n",total_packet_loss_count);
-  if (float(total_packet_loss_count) / float(total_packet_count) > 0.01) {
-    printf("Error: Packet loss rate exceeds 1%%\n");
-  }
+  // uint64_t end = GetMicroTickCountU64();
+  // printf("total recevice packet time: %lums\n", (end -start) / 1000);
+  // uint32_t total_packet_count = sample.lidar_ptr_->udp_parser_->GetGeneralParser()->total_packet_count_;
+  // uint32_t total_packet_loss_count = sample.lidar_ptr_->udp_parser_->GetGeneralParser()->seqnum_loss_message_.total_loss_count;
+  // printf("total receviced packet count: %u\n", total_packet_count);
+  // printf("package loss: \n");
+  // printf("total loss packet count: %u\n", total_packet_loss_count);
+  // if (float(total_packet_loss_count) / float(total_packet_count) > 0.01) {
+  //   printf("Error: Packet seqnum loss rate exceeds 1%%\n");
+  // }
+  // uint32_t total_packet_timeloss_count = sample.lidar_ptr_->udp_parser_->GetGeneralParser()->time_loss_message_.total_timeloss_count;
+  // printf("timestamp loss: \n");
+  // printf("total loss packet count: %u\n", total_packet_timeloss_count);
+  // if (float(total_packet_timeloss_count) / float(total_packet_count) > 0.01) {
+  //   printf("Error: Packet timestamp loss rate exceeds 1%%\n");
+  // }
   sample.Stop();
 
 }
