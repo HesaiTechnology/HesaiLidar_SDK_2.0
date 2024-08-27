@@ -64,9 +64,9 @@ int main(int argc, char *argv[])
   // You can select the parameters in while():
   // 1.[IsPlayEnded(sample)]: adds the ability for the PCAP to automatically quit after playing the program
   // 2.[1                  ]: the application will not quit voluntarily
-  while (!IsPlayEnded(sample))
+  while (!IsPlayEnded(sample) || GetMicroTickCount() - last_frame_time < 1000000)
   {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   printf("The PCAP file has been parsed and we will exit the program.\n");

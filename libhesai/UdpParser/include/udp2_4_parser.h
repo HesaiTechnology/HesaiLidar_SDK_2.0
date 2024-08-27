@@ -74,7 +74,7 @@ namespace hesai
       ETCorrections_V4 m_ET_corrections;
     protected:
       bool get_correction_file_;
-      int last_frameid_ = 0;
+      int last_frameid_ = -1;
   };
   } // namespace lidar
 } // namespace hesai

@@ -311,7 +311,7 @@ int Udp2_5Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
 //  Framing
 template<typename T_Point>
 bool Udp2_5Parser<T_Point>::IsNeedFrameSplit(uint16_t frame_id) {
-  if ( frame_id != this->last_frameid_ ) {
+  if ( frame_id != this->last_frameid_  && this->last_frameid_ >= 0) {
       return true;
   }
   return false;

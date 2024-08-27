@@ -124,7 +124,7 @@ public:
     } 
 
     if (nullptr != init_thread_ptr_) {
-      runing_thread_ptr_->join();
+      init_thread_ptr_->join();
       delete init_thread_ptr_;
       init_thread_ptr_ = nullptr;
     } 
@@ -134,10 +134,9 @@ public:
 
   // start process thread
   void Start() {
-    // runing_thread_ptr_ = new std::thread(std::bind(&HesaiLidarSdk::Run, this));  
     while(1) {
       if ((source_type_ == DATA_FROM_LIDAR && lidar_ptr_->init_finish_[FaultMessParse]) || lidar_ptr_->init_finish_[AllInitFinish]) {
-        Run();
+        runing_thread_ptr_ = new std::thread(std::bind(&HesaiLidarSdk::Run, this));
         break;
       }
       usleep(50000);

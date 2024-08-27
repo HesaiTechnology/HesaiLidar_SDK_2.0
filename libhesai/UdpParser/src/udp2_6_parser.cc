@@ -312,7 +312,7 @@ int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
 //  Framing
 template<typename T_Point>
 bool Udp2_6Parser<T_Point>::IsNeedFrameSplit(uint16_t nowid) {
-  if ( nowid != this->last_frameid_ ) {
+  if ( nowid != this->last_frameid_  && this->last_frameid_ >= 0) {
       return true;
   }
   return false;
