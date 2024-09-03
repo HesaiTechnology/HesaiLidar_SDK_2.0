@@ -30,7 +30,8 @@ namespace lidar
     int16_t apha;
     int16_t beta;
     int16_t gamma;
-    ETCorrectionsHeader():angle_division(1)
+    ETCorrectionsHeader()
+    : delimiter(), reserved1(), reserved2(), channel_number(), mirror_nummber_reserved3(), angle_division(1), apha(), beta(), gamma() 
     {
       major_version = 0;
       min_version = 0;

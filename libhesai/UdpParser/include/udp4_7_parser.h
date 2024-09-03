@@ -80,7 +80,9 @@ struct ATXCorrections {
   static constexpr float kBegElevationAdjust = 20.0;
   static constexpr float kStepElevationAdjust = 2.0;
   static constexpr uint32_t kLenElevationAdjust = 70;
-  ATXCorrections() {
+  ATXCorrections() 
+  : header(), raw_azimuths(), raw_azimuths_even(), raw_azimuths_odd(), raw_elevations(), raw_elevations_adjust(), azimuth(), azimuth_even(), azimuth_odd(), elevation(), elevation_adjust(), SHA_value()
+  {
     for (int i = 0; i < CIRCLE; ++i) {
       sin_map[i] = std::sin(2 * i * M_PI / CIRCLE);
       cos_map[i] = std::cos(2 * i * M_PI / CIRCLE);
@@ -102,7 +104,7 @@ struct ATXCorrections {
     float left_percent = (azimuth_angle - kBegElevationAdjust - index * kStepElevationAdjust) / kStepElevationAdjust;
     return elevation_adjust[index] * (1 - left_percent) + elevation_adjust[index + 1] * left_percent;
   }
-}PACKED;
+};
 
 // class Udp4_7Parser
 // parsers packets and computes points for ATX

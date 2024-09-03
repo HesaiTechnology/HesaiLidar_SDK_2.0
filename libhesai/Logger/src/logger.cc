@@ -110,6 +110,9 @@ void Logger::AddToQueue(LOGLEVEL loglevel, const char* pszFile, int lineNo, cons
 	else if (loglevel == LOG_FATAL){
 		logLevel = "FATAL";
 	}
+    else{
+        logLevel = "";
+    }
     sprintf(content, "[%04d-%02d-%02d %02d:%02d:%02d][%s][0x%04x][%s:%d %s]%s",  
                 tmstr->tm_year + 1900,  
                 tmstr->tm_mon + 1,  

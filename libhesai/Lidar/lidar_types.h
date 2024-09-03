@@ -178,6 +178,7 @@ struct LidarDecodedPacket
       memset(distances, 0, kMaxPointsNumPerPacket * sizeof(uint16_t));
       memset(azimuth, 0, kMaxPointsNumPerPacket * sizeof(float));
       memset(elevation, 0, kMaxPointsNumPerPacket * sizeof(float));
+      memset(chn_index, 0, kMaxPointsNumPerPacket * sizeof(uint8_t));
       azimuths = 0;
       spin_speed = 0;
       lidar_state = 0;
@@ -231,6 +232,8 @@ class LidarDecodedFrame
         scan_complete = false;
         distance_unit = 0.0;
         frame_index = 0;
+        lidar_state = (uint8_t)(-1);
+        work_mode = (uint8_t)(-1);
     };
     ~LidarDecodedFrame() {
         // delete points;
@@ -261,6 +264,8 @@ class LidarDecodedFrame
           confidence = nullptr;
         }
     }
+    LidarDecodedFrame(const LidarDecodedFrame&) = delete;
+    LidarDecodedFrame& operator=(const LidarDecodedFrame&) = delete;
     void Update(){
       host_timestamp = 0;
       major_version = 0;
@@ -315,9 +320,10 @@ struct UdpPacket {
   uint64_t recv_timestamp;
   uint32_t ip;
   uint16_t port;
-  UdpPacket(const uint8_t* data = nullptr, uint32_t sz = 0)
-  : packet_len(sz)
+  UdpPacket(const uint8_t* data = nullptr, uint32_t sz = 0, uint64_t tm = 0, uint32_t i_ip = 0, uint32_t i_port = 0)
+  : packet_len(sz), recv_timestamp(tm), ip(i_ip), port(i_port)
   {
+    if(data != nullptr)
       memcpy(buffer, data, packet_len);
   }
 };

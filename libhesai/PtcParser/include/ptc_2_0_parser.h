@@ -60,6 +60,7 @@ struct PTCHeader_2_0 {
     identifier0_ = 0x57;
     identifier1_ = 0x75;
     ptc_version_ = 1;
+    cmd_ = 0;
     integrity_check_type_ = 0;
     return_code_ = 0;
     reserved_ = 0;

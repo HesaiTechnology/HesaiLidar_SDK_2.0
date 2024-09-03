@@ -83,7 +83,9 @@ struct PandarATCorrections {
   PandarATFrameInfo l;  // V1.5
   std::array<float, CIRCLE> sin_map;
   std::array<float, CIRCLE> cos_map;
-  PandarATCorrections() {
+  PandarATCorrections()
+  : header(), start_frame(), end_frame(), azimuth(), elevation(), azimuth_offset(), elevation_offset(), SHA256(), l()
+  {
     for (int i = 0; i < CIRCLE; ++i) {
       sin_map[i] = float(std::sin(2 * i * M_PI / CIRCLE));
       cos_map[i] = float(std::cos(2 * i * M_PI / CIRCLE));

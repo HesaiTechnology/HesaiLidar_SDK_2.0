@@ -90,6 +90,7 @@ public:
   ~Lidar();
   Lidar();
   Lidar(const Lidar &orig) = delete;
+  Lidar& operator=(const Lidar&) = delete;
   // init lidar with param. init logger, udp parser, source, ptc client, start receive/parser thread
   int Init(const DriverParam& param);
   int GetGeneralParser(GeneralParser<T_Point> **parser);

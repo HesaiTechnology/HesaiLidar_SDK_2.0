@@ -50,6 +50,9 @@ Lidar<T_Point>::Lidar() {
   source_ = nullptr;
   ptc_client_ = nullptr;
   std::fill(init_finish_, init_finish_ + 4, false);
+  ptc_port_ = 0;
+  udp_port_ = 0;
+  parser_thread_ptr_ = nullptr;
 }
 
 template <typename T_Point>

@@ -54,7 +54,7 @@ struct PandarFTCorrectionsHeader {
     uint8_t channel_number;
     uint8_t resolution;
     PandarFTCorrectionsHeader() 
-    : resolution(1)
+    : pilot(), version(), reversed(), column_number(), channel_number(), resolution(1)
     {}
 };
 struct PandarFTCorrections {
