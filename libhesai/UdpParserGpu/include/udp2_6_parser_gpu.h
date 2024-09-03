@@ -74,7 +74,7 @@ class Udp2_6ParserGpu: public GeneralParserGpu<T_Point>{
   virtual int LoadCorrectionString(char *correction_string);
   int LoadCorrectionDatData(char *correction_string);
   int LoadCorrectionCsvData(char *correction_string);
-  ETCorrectionsHeader_V6 corrections_;
+  ETCorrections corrections_;
   bool corrections_loaded_;
   
 };

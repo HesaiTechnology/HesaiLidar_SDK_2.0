@@ -127,8 +127,10 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
     if (0xee == ETheader.delimiter[0] && 0xff == ETheader.delimiter[1]) {
       switch (ETheader.min_version) {
         case 1: {
-          memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
-          p += sizeof(ETCorrectionsHeader);
+          ETCorrectionsHeader_V1V2 correction_v1;
+          memcpy((void *)&correction_v1, p, sizeof(struct ETCorrectionsHeader_V1V2));
+          corrections_.header.getDataFromV1V2(correction_v1);
+          p += sizeof(ETCorrectionsHeader_V1V2);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
           memcpy((void *)&corrections_.raw_azimuths, p,
@@ -153,6 +155,43 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
           return 0;
         } break;
         case 2: {
+          ETCorrectionsHeader_V1V2 correction_v2;
+          memcpy((void *)&correction_v2, p, sizeof(struct ETCorrectionsHeader_V1V2));
+          p += sizeof(ETCorrectionsHeader_V1V2);
+          corrections_.header.getDataFromV1V2(correction_v2);
+          auto channel_num = corrections_.header.channel_number;
+          uint16_t division = corrections_.header.angle_division;
+          memcpy((void *)&corrections_.raw_azimuths, p,
+                 sizeof(int16_t) * channel_num);
+          p += sizeof(int16_t) * channel_num;
+          memcpy((void *)&corrections_.raw_elevations, p,
+                 sizeof(int16_t) * channel_num);
+          p += sizeof(int16_t) * channel_num;
+          corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
+          corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
+          corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;
+          printf("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
+          for (int i = 0; i < channel_num; i++) {
+            corrections_.azimuths[i + 3] = ((float)(corrections_.raw_azimuths[i])) / division;
+            corrections_.elevations[i + 3] = ((float)(corrections_.raw_elevations[i])) / division;
+            printf("%d %f %f \n",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
+          }
+          corrections_.azimuth_adjust_interval = *((char*)p);
+          p = p + 1;
+          corrections_.elevation_adjust_interval = *((char*)p);
+          p = p + 1;
+          int angle_offset_len = (120 / (corrections_.azimuth_adjust_interval * 0.5) + 1) * (25 / (corrections_.elevation_adjust_interval * 0.5) + 1);
+          memcpy((void*)corrections_.azimuth_adjust, p, sizeof(int16_t) * angle_offset_len);
+          p = p + sizeof(int16_t) * angle_offset_len;
+          memcpy((void*)corrections_.elevation_adjust, p, sizeof(int16_t) * angle_offset_len); 
+          p = p + sizeof(int16_t) * angle_offset_len;
+          // int adjustNum = channel_num;
+          memcpy((void*)&corrections_.SHA_value, p, 32);
+          // successed
+          this->get_correction_file_ = true;
+          return 0;
+        } break;
+        case 3: {
           memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
           p += sizeof(ETCorrectionsHeader);
           auto channel_num = corrections_.header.channel_number;

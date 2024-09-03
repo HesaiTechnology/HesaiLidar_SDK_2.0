@@ -14,6 +14,12 @@ namespace hesai
 {
   namespace lidar
   {
+#ifdef _MSC_VER
+#define PACKED
+#pragma pack(push, 1)
+#else
+#define PACKED __attribute__((packed))
+#endif
     static constexpr int ET_MAX_CHANNEL_NUM_24 = 512;
     struct ETCorrections_V4 {
       uint8_t delimiter[2];
@@ -45,8 +51,10 @@ namespace hesai
     int16_t apha;
     int16_t beta;
     int16_t gamma;
-  };
-
+  } PACKED;
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
   // class Udp2_4Parser
   // parsers packets and computes points for ET25
   // you can parser the upd or pcap packets using the DocodePacket fuction

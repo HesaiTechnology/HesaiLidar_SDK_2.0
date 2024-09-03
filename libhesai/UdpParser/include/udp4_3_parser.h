@@ -49,7 +49,12 @@ namespace hesai
 {
 namespace lidar
 {
-
+#ifdef _MSC_VER
+#define PACKED
+#pragma pack(push, 1)
+#else
+#define PACKED __attribute__((packed))
+#endif
 struct PandarATCorrectionsHeader {
   uint8_t delimiter[2];
   uint8_t version[2];
@@ -58,7 +63,7 @@ struct PandarATCorrectionsHeader {
   uint8_t frame_number;
   uint8_t frame_config[8];
   uint8_t resolution;
-};
+} PACKED;
 static_assert(sizeof(PandarATCorrectionsHeader) == 16, "");
 
 struct PandarATFrameInfo {
@@ -106,6 +111,9 @@ struct PandarATCorrections {
                  k * elevation_offset[ch * CORRECTION_AZIMUTH_NUM + i + 1]);
   }
 };
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 // class Udp4_3Parser
 // parsers packets and computes points for PandarAT128
 // you can parser the upd or pcap packets using the DocodePacket fuction

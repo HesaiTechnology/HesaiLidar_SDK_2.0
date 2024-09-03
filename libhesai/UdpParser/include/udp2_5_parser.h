@@ -15,10 +15,15 @@ namespace hesai
 {
 namespace lidar
 {
-  
+#ifdef _MSC_VER
+#define PACKED
+#pragma pack(push, 1)
+#else
+#define PACKED __attribute__((packed))
+#endif
   static constexpr int ET_MAX_CHANNEL_NUM = 512;
 
-  struct ETCorrectionsHeader {
+  struct ETCorrectionsHeader_V1V2 {
     uint8_t delimiter[2];
     uint8_t major_version;
     uint8_t min_version;
@@ -30,12 +35,45 @@ namespace lidar
     int16_t apha;
     int16_t beta;
     int16_t gamma;
+    ETCorrectionsHeader_V1V2():delimiter(), reserved1(), reserved2(), channel_number(), 
+    mirror_nummber_reserved3(), angle_division(1), apha(), beta(), gamma()
+    {
+      major_version = 0;
+      min_version = 0;
+    }
+  } PACKED;
+  struct ETCorrectionsHeader {
+    uint8_t delimiter[2];
+    uint8_t major_version;
+    uint8_t min_version;
+    uint8_t reserved1;
+    uint8_t reserved2;
+    uint16_t channel_number;
+    uint8_t mirror_nummber_reserved3;
+    uint16_t angle_division;
+    int16_t apha;
+    int16_t beta;
+    int16_t gamma;
     ETCorrectionsHeader():angle_division(1)
     {
       major_version = 0;
       min_version = 0;
     }
-  };
+    void getDataFromV1V2(ETCorrectionsHeader_V1V2 &header) {
+      delimiter[0] = header.delimiter[0];
+      delimiter[1] = header.delimiter[1];
+      major_version = header.major_version;
+      min_version = header.min_version;
+      reserved1 = header.reserved1;
+      reserved2 = header.reserved2;
+      channel_number = header.channel_number;
+      mirror_nummber_reserved3 = header.mirror_nummber_reserved3;
+      angle_division = header.angle_division;
+      apha = header.apha;
+      beta = header.beta;
+      gamma = header.gamma;
+    }
+  } PACKED;
   struct ETCorrections {
     struct ETCorrectionsHeader header;
     float azimuths[ET_MAX_CHANNEL_NUM];
@@ -84,7 +122,9 @@ namespace lidar
     }
   };
 
-
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 
   // class Udp2_5Parser
   // parsers packets and computes points for ET25

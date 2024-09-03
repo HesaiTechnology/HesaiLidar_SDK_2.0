@@ -247,8 +247,10 @@ int Udp2_5ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
     if (0xee == ETheader.delimiter[0] && 0xff == ETheader.delimiter[1]) {
       switch (ETheader.min_version) {
         case 1: {
-          memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
-          p += sizeof(ETCorrectionsHeader);
+          ETCorrectionsHeader_V1V2 correction_v1;
+          memcpy((void *)&correction_v1, p, sizeof(struct ETCorrectionsHeader_V1V2));
+          corrections_.header.getDataFromV1V2(correction_v1);
+          p += sizeof(ETCorrectionsHeader_V1V2);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
           memcpy((void *)&corrections_.raw_azimuths, p,
@@ -279,6 +281,55 @@ int Udp2_5ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
           return 0;
         } break;
         case 2: {
+          ETCorrectionsHeader_V1V2 correction_v1;
+          memcpy((void *)&correction_v1, p, sizeof(struct ETCorrectionsHeader_V1V2));
+          corrections_.header.getDataFromV1V2(correction_v1);
+          p += sizeof(ETCorrectionsHeader_V1V2);
+          auto channel_num = corrections_.header.channel_number;
+          uint16_t division = corrections_.header.angle_division;
+          memcpy((void *)&corrections_.raw_azimuths, p,
+                 sizeof(int16_t) * channel_num);
+          p += sizeof(int16_t) * channel_num;
+          memcpy((void *)&corrections_.raw_elevations, p,
+                 sizeof(int16_t) * channel_num);
+          p += sizeof(int16_t) * channel_num;
+          corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
+          corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
+          corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;
+          printf("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
+          for (int i = 0; i < channel_num; i++) {
+            corrections_.azimuths[i + 3] = ((float)(corrections_.raw_azimuths[i])) / division;
+            corrections_.elevations[i + 3] = ((float)(corrections_.raw_elevations[i])) / division;
+            printf("%d %f %f \n",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
+          }
+          corrections_.azimuth_adjust_interval = *((char*)p);
+          p = p + 1;
+          corrections_.elevation_adjust_interval = *((char*)p);
+          p = p + 1;
+          int angle_offset_len = (120 / (corrections_.azimuth_adjust_interval * 0.5) + 1) * (25 / (corrections_.elevation_adjust_interval * 0.5) + 1);
+          memcpy((void*)corrections_.azimuth_adjust, p, sizeof(int16_t) * angle_offset_len);
+          p = p + sizeof(int16_t) * angle_offset_len;
+          memcpy((void*)corrections_.elevation_adjust, p, sizeof(int16_t) * angle_offset_len); 
+          p = p + sizeof(int16_t) * angle_offset_len;
+          for (int i = 0; i < angle_offset_len; i++) {
+            corrections_.azimuth_adjust_f[i] = 1.f * corrections_.azimuth_adjust[i] / corrections_.header.angle_division;
+            corrections_.elevation_adjust_f[i] = 1.f * corrections_.elevation_adjust[i] / corrections_.header.angle_division;
+          }
+          // int adjustNum = channel_num;
+          memcpy((void*)&corrections_.SHA_value, p, 32);
+          // successed
+          CUDACheck(cudaMalloc(&channel_azimuths_cu_, sizeof(corrections_.azimuths)));
+          CUDACheck(cudaMalloc(&channel_elevations_cu_, sizeof(corrections_.elevations)));
+          CUDACheck(cudaMalloc(&channel_azimuths_adjust_cu_, sizeof(corrections_.azimuth_adjust_f)));
+          CUDACheck(cudaMalloc(&channel_elevations_adjust_cu_, sizeof(corrections_.elevation_adjust_f)));
+          CUDACheck(cudaMemcpy(channel_azimuths_adjust_cu_, corrections_.azimuth_adjust_f, sizeof(corrections_.azimuth_adjust_f), cudaMemcpyHostToDevice));
+          CUDACheck(cudaMemcpy(channel_elevations_adjust_cu_, corrections_.elevation_adjust_f, sizeof(corrections_.elevation_adjust_f), cudaMemcpyHostToDevice));
+          CUDACheck(cudaMemcpy(channel_azimuths_cu_, corrections_.azimuths, sizeof(corrections_.azimuths), cudaMemcpyHostToDevice));
+          CUDACheck(cudaMemcpy(channel_elevations_cu_, corrections_.elevations, sizeof(corrections_.elevations), cudaMemcpyHostToDevice));
+          corrections_loaded_ = true;
+          return 0;
+        } break;
+        case 3: {
           memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
           p += sizeof(ETCorrectionsHeader);
           auto channel_num = corrections_.header.channel_number;

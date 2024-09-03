@@ -141,6 +141,8 @@ protected:
 };
 }  // namespace lidar
 }  // namespace hesai
-
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 #include "udp4_7_parser.cc"
 #endif // end of UDP4_7_PARSER_H_
