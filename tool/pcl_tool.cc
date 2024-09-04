@@ -34,10 +34,10 @@ uint32_t cur_frame_time;
 void lidarCallback(const LidarDecodedFrame<PointXYZIT>  &frame) {  
   cur_frame_time = GetMicroTickCount();
   if (cur_frame_time - last_frame_time > kMaxTimeInterval) {
-    printf("Time between last frame and cur frame is: %d us\n", (cur_frame_time - last_frame_time));
+    printf("Time between last frame and cur frame is: %u us\n", (cur_frame_time - last_frame_time));
   }
   last_frame_time = cur_frame_time;
-  printf("frame:%d points:%u packet:%d start time:%lf end time:%lf\n",frame.frame_index, frame.points_num, frame.packet_num, frame.points[0].timestamp, frame.points[frame.points_num - 1].timestamp) ;
+  printf("frame:%d points:%u packet:%u start time:%lf end time:%lf\n",frame.frame_index, frame.points_num, frame.packet_num, frame.points[0].timestamp, frame.points[frame.points_num - 1].timestamp) ;
   pcl::PointCloud<PointXYZIT>::Ptr pcl_pointcloud(new pcl::PointCloud<PointXYZIT>);
   mex_viewer.lock();
   if (frame.points_num == 0) return;

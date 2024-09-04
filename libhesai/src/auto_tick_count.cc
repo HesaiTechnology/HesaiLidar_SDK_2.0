@@ -137,10 +137,14 @@ int TickCount::ShowTimeSlice(std::string sLogFile, bool bSaveSysTime) {
   if (pFileSel != NULL)
     fprintf(pFileSel, "total cost:%s\n", GetTimeCost().c_str());
 
-  fclose(pFile);
-  pFile = NULL;
-  fclose(pFileSel);
-  pFileSel = NULL;
+  if(pFile != NULL){
+    fclose(pFile);
+    pFile = NULL;
+  }
+  if(pFileSel != NULL){
+    fclose(pFileSel);
+    pFileSel = NULL;
+  }
 
   return 0;
 }

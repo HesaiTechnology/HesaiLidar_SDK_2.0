@@ -215,7 +215,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
     );
     output.lidar_state = function_savety_ptr->GetLidarState();
   } else {
-    output.lidar_state = (uint8_t)(-1);
+    output.lidar_state = -1;
   }
 
   const auto *pTail = reinterpret_cast<const HS_LIDAR_TAIL_ME_V4 *>(
@@ -430,7 +430,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     );
     frame.lidar_state = function_savety_ptr->GetLidarState();
   } else {
-    frame.lidar_state = (uint8_t)(-1);
+    frame.lidar_state = -1;
   }
 
   const auto *pTail = reinterpret_cast<const HS_LIDAR_TAIL_ME_V4 *>(

@@ -98,7 +98,7 @@ int main(int argc, char* argv[], char* envp[])
       std::cout << "SetStandbyMode faild! Please make sure your input is valid." << std::endl;
     } else {
       std::cout << "SetStandbyMode successed!" << std::endl;
-      printf("Current standby_mode: %d\n", standby_mode);
+      printf("Current standby_mode: %u\n", standby_mode);
     }
 
     // set spin_speed
@@ -106,7 +106,7 @@ int main(int argc, char* argv[], char* envp[])
       std::cout << "SetSpinSpeed faild! Please make sure your input is valid." << std::endl;
     } else {
       std::cout << "SetSpinSpeed successed!" << std::endl;
-      printf("Current speed: %d\n", speed);
+      printf("Current speed: %u\n", speed);
     }
 
   }

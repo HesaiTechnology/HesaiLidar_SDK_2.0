@@ -124,8 +124,10 @@ int Udp2_6Parser<T_Point>::LoadCorrectionDatData(char *data) {
     if (0xee == ETheader.delimiter[0] && 0xff == ETheader.delimiter[1]) {
       switch (ETheader.min_version) {
         case 1: {
-          memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
-          p += sizeof(ETCorrectionsHeader);
+          ETCorrectionsHeader_V1V2 correction_v1;
+          memcpy((void *)&correction_v1, p, sizeof(struct ETCorrectionsHeader_V1V2));
+          corrections_.header.getDataFromV1V2(correction_v1);
+          p += sizeof(ETCorrectionsHeader_V1V2);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
           memcpy((void *)&corrections_.raw_azimuths, p,
@@ -150,8 +152,10 @@ int Udp2_6Parser<T_Point>::LoadCorrectionDatData(char *data) {
           return 0;
         } break;
         case 2: {
-          memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
-          p += sizeof(ETCorrectionsHeader);
+          ETCorrectionsHeader_V1V2 correction_v1;
+          memcpy((void *)&correction_v1, p, sizeof(struct ETCorrectionsHeader_V1V2));
+          corrections_.header.getDataFromV1V2(correction_v1);
+          p += sizeof(ETCorrectionsHeader_V1V2);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
           memcpy((void *)&corrections_.raw_azimuths, p,
@@ -312,7 +316,7 @@ int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
 //  Framing
 template<typename T_Point>
 bool Udp2_6Parser<T_Point>::IsNeedFrameSplit(uint16_t nowid) {
-  if ( nowid != this->last_frameid_ ) {
+  if ( nowid != this->last_frameid_  && this->last_frameid_ >= 0) {
       return true;
   }
   return false;
@@ -359,7 +363,7 @@ int Udp2_6Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       float delt_azi_h = std::sin(eta * M_PI / 180) * std::tan(2 * gamma * M_PI / 180) * std::tan(elv_v ) + std::sin(2 * eta * M_PI / 180) * gamma * gamma * M_PI / 180 * M_PI / 180;
       float elv_h = elv_v * 180 / M_PI + std::cos(eta * M_PI / 180) * 2 * gamma ;
       float azi_h = 90 +  raw_azimuth + delt_azi_h * 180 / M_PI + delt_azi_v * 180 / M_PI + phi;
-      if (corrections_.header.min_version == 2) {
+      if (corrections_.header.min_version == 2 || corrections_.header.min_version == 3) {
         azi_h = azi_h + corrections_.getAziAdjustV2(azi_h - 90, elv_h);
         elv_h = elv_h + corrections_.getEleAdjustV2(azi_h - 90, elv_h);
       }

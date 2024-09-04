@@ -80,7 +80,19 @@ struct ATXCorrections {
   static constexpr float kBegElevationAdjust = 20.0;
   static constexpr float kStepElevationAdjust = 2.0;
   static constexpr uint32_t kLenElevationAdjust = 70;
-  ATXCorrections() {
+  ATXCorrections() : header()
+  {
+    memset(raw_azimuths, 0, sizeof(raw_azimuths));
+    memset(raw_azimuths_even, 0, sizeof(raw_azimuths_even));
+    memset(raw_azimuths_odd, 0, sizeof(raw_azimuths_odd));
+    memset(raw_elevations, 0, sizeof(raw_elevations));
+    memset(raw_elevations_adjust, 0, sizeof(raw_elevations_adjust));
+    memset(azimuth, 0, sizeof(azimuth));
+    memset(azimuth_even, 0, sizeof(azimuth_even));
+    memset(azimuth_odd, 0, sizeof(azimuth_odd));
+    memset(elevation, 0, sizeof(elevation));
+    memset(elevation_adjust, 0, sizeof(elevation_adjust));
+    memset(SHA_value, 0, sizeof(SHA_value));
     for (int i = 0; i < CIRCLE; ++i) {
       sin_map[i] = std::sin(2 * i * M_PI / CIRCLE);
       cos_map[i] = std::cos(2 * i * M_PI / CIRCLE);
@@ -102,7 +114,7 @@ struct ATXCorrections {
     float left_percent = (azimuth_angle - kBegElevationAdjust - index * kStepElevationAdjust) / kStepElevationAdjust;
     return elevation_adjust[index] * (1 - left_percent) + elevation_adjust[index + 1] * left_percent;
   }
-}PACKED;
+};
 
 // class Udp4_7Parser
 // parsers packets and computes points for ATX
@@ -141,6 +153,8 @@ protected:
 };
 }  // namespace lidar
 }  // namespace hesai
-
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 #include "udp4_7_parser.cc"
 #endif // end of UDP4_7_PARSER_H_

@@ -49,7 +49,12 @@ namespace hesai
 {
 namespace lidar
 {
-
+#ifdef _MSC_VER
+#define PACKED
+#pragma pack(push, 1)
+#else
+#define PACKED __attribute__((packed))
+#endif
 struct PandarATCorrectionsHeader {
   uint8_t delimiter[2];
   uint8_t version[2];
@@ -58,7 +63,7 @@ struct PandarATCorrectionsHeader {
   uint8_t frame_number;
   uint8_t frame_config[8];
   uint8_t resolution;
-};
+} PACKED;
 static_assert(sizeof(PandarATCorrectionsHeader) == 16, "");
 
 struct PandarATFrameInfo {
@@ -83,7 +88,16 @@ struct PandarATCorrections {
   PandarATFrameInfo l;  // V1.5
   std::array<float, CIRCLE> sin_map;
   std::array<float, CIRCLE> cos_map;
-  PandarATCorrections() {
+  PandarATCorrections()
+  : header(), l()
+  {
+    memset(start_frame, 0, sizeof(start_frame));
+    memset(end_frame, 0, sizeof(end_frame));
+    memset(azimuth, 0, sizeof(azimuth));
+    memset(elevation, 0, sizeof(elevation));
+    memset(azimuth_offset, 0, sizeof(azimuth_offset));
+    memset(elevation_offset, 0, sizeof(elevation_offset));
+    memset(SHA256, 0, sizeof(SHA256));
     for (int i = 0; i < CIRCLE; ++i) {
       sin_map[i] = float(std::sin(2 * i * M_PI / CIRCLE));
       cos_map[i] = float(std::cos(2 * i * M_PI / CIRCLE));
@@ -106,6 +120,9 @@ struct PandarATCorrections {
                  k * elevation_offset[ch * CORRECTION_AZIMUTH_NUM + i + 1]);
   }
 };
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 // class Udp4_3Parser
 // parsers packets and computes points for PandarAT128
 // you can parser the upd or pcap packets using the DocodePacket fuction

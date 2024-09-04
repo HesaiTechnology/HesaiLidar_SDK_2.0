@@ -54,6 +54,7 @@ struct PTCHeader_1_0 {
   PTCHeader_1_0() {
     identifier0_ = 0x47;
     identifier1_ = 0x74;
+    cmd_ = 0;
     return_code_ = 0;
     payload_len_ = 0;
   }

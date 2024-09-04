@@ -57,7 +57,7 @@ namespace lidar
       // std::string pcap_file_;
       // std::string lidar_correction_file_;
       bool get_correction_file_;
-      int last_frameid_ = 0;
+      int last_frameid_ = -1;
   };
 
 

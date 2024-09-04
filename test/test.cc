@@ -8,10 +8,10 @@ void lidarCallback(const LidarDecodedFrame<LidarPointXYZICRT>  &frame) {
   cur_frame_time = GetMicroTickCount();
   if (last_frame_time == 0) last_frame_time = GetMicroTickCount();
   if (cur_frame_time - last_frame_time > kMaxTimeInterval) {
-    printf("Time between last frame and cur frame is: %d us\n", (cur_frame_time - last_frame_time));
+    printf("Time between last frame and cur frame is: %u us\n", (cur_frame_time - last_frame_time));
   }
   last_frame_time = cur_frame_time;
-  printf("frame:%d points:%u packet:%d start time:%lf end time:%lf\n",frame.frame_index, frame.points_num, frame.packet_num, frame.points[0].timestamp, frame.points[frame.points_num - 1].timestamp) ;
+  printf("frame:%d points:%u packet:%u start time:%lf end time:%lf\n",frame.frame_index, frame.points_num, frame.packet_num, frame.points[0].timestamp, frame.points[frame.points_num - 1].timestamp) ;
 }
 
 void faultMessageCallback(const FaultMessageInfo& fault_message_info) {
@@ -64,9 +64,9 @@ int main(int argc, char *argv[])
   // You can select the parameters in while():
   // 1.[IsPlayEnded(sample)]: adds the ability for the PCAP to automatically quit after playing the program
   // 2.[1                  ]: the application will not quit voluntarily
-  while (!IsPlayEnded(sample))
+  while (!IsPlayEnded(sample) || GetMicroTickCount() - last_frame_time < 1000000)
   {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   printf("The PCAP file has been parsed and we will exit the program.\n");

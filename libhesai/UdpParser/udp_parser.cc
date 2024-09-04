@@ -31,7 +31,11 @@ using namespace hesai::lidar;
 
 
 template<typename T_Point>
-UdpParser<T_Point>::UdpParser(uint8_t major, uint8_t minor) {
+UdpParser<T_Point>::UdpParser(uint8_t major, uint8_t minor){
+  last_host_timestamp_ = 0;
+  last_sensor_timestamp_ = 0;
+  packet_count_ = 0;
+  source_type_ = -1;
   parser_ = nullptr;
   pcap_saver_ = nullptr;
   fisrt_packet_ = true;
@@ -41,6 +45,10 @@ UdpParser<T_Point>::UdpParser(uint8_t major, uint8_t minor) {
 
 template<typename T_Point>
 UdpParser<T_Point>::UdpParser(UdpPacket& packet) {
+  last_host_timestamp_ = 0;
+  last_sensor_timestamp_ = 0;
+  packet_count_ = 0;
+  source_type_ = -1;
   parser_ = nullptr;
   pcap_saver_ = nullptr;
   fisrt_packet_ = true;
@@ -50,6 +58,10 @@ UdpParser<T_Point>::UdpParser(UdpPacket& packet) {
 
 template<typename T_Point>
 UdpParser<T_Point>::UdpParser(std::string lidar_type) {
+  last_host_timestamp_ = 0;
+  last_sensor_timestamp_ = 0;
+  packet_count_ = 0;
+  source_type_ = -1;
   parser_ = nullptr;
   pcap_saver_ = nullptr;
   fisrt_packet_ = true;
@@ -59,6 +71,10 @@ UdpParser<T_Point>::UdpParser(std::string lidar_type) {
 
 template<typename T_Point>
 UdpParser<T_Point>::UdpParser() {
+  last_host_timestamp_ = 0;
+  last_sensor_timestamp_ = 0;
+  packet_count_ = 0;
+  source_type_ = -1;
   parser_ = nullptr;
   pcap_saver_ = nullptr;
   fisrt_packet_ = true;

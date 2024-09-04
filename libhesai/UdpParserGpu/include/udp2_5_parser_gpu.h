@@ -57,11 +57,15 @@ class Udp2_5ParserGpu: public GeneralParserGpu<T_Point>{
   float* channel_elevations_cu_;
   float* channel_azimuths_adjust_cu_;
   float* channel_elevations_adjust_cu_;
+  float* gamma_cu;
+  float* elevation_offset_delta_cu;
+  float* azimuth_offset_delta_cu;
   float* raw_azimuths_cu_;
   float* raw_elevations_cu_;
   uint16_t* raw_distances_cu_;
   uint8_t* raw_reflectivities_cu_;
   uint64_t* raw_sensor_timestamp_cu_;
+  uint8_t* mirror_index_cu;
  public:
   Udp2_5ParserGpu();
   ~Udp2_5ParserGpu();
@@ -75,7 +79,6 @@ class Udp2_5ParserGpu: public GeneralParserGpu<T_Point>{
   int LoadCorrectionCsvData(char *correction_string);
   ETCorrections corrections_;
   bool corrections_loaded_;
-  
 };
 }
 }

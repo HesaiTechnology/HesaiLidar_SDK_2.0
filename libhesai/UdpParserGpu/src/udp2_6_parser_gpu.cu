@@ -252,8 +252,10 @@ int Udp2_6ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
     if (0xee == ETheader.delimiter[0] && 0xff == ETheader.delimiter[1]) {
       switch (ETheader.min_version) {
         case 1: {
-          memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
-          p += sizeof(ETCorrectionsHeader);
+          ETCorrectionsHeader_V1V2 correction_v1;
+          memcpy((void *)&correction_v1, p, sizeof(struct ETCorrectionsHeader_V1V2));
+          corrections_.header.getDataFromV1V2(correction_v1);
+          p += sizeof(ETCorrectionsHeader_V1V2);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
           memcpy((void *)&corrections_.raw_azimuths, p,
@@ -284,8 +286,10 @@ int Udp2_6ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
           return 0;
         } break;
         case 2: {
-          memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
-          p += sizeof(ETCorrectionsHeader);
+          ETCorrectionsHeader_V1V2 correction_v1;
+          memcpy((void *)&correction_v1, p, sizeof(struct ETCorrectionsHeader_V1V2));
+          corrections_.header.getDataFromV1V2(correction_v1);
+          p += sizeof(ETCorrectionsHeader_V1V2);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
           memcpy((void *)&corrections_.raw_azimuths, p,
