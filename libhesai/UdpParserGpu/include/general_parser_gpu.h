@@ -151,6 +151,7 @@ struct PointCloudStruct  {
   uint32_t frame_id = 0;
   int seq = 0;
   uint64_t sensor_timestamp[kMaxPacketNumPerFrame];
+  uint8_t mirror_index[kMaxPacketNumPerFrame];
   float azimuths[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
   uint16_t distances[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
   uint8_t reflectivities[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];

@@ -130,6 +130,7 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
           ETCorrectionsHeader_V1V2 correction_v1;
           memcpy((void *)&correction_v1, p, sizeof(struct ETCorrectionsHeader_V1V2));
           corrections_.header.getDataFromV1V2(correction_v1);
+          corrections_.min_version = corrections_.header.min_version;
           p += sizeof(ETCorrectionsHeader_V1V2);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
@@ -159,6 +160,7 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
           memcpy((void *)&correction_v2, p, sizeof(struct ETCorrectionsHeader_V1V2));
           p += sizeof(ETCorrectionsHeader_V1V2);
           corrections_.header.getDataFromV1V2(correction_v2);
+          corrections_.min_version = corrections_.header.min_version;
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
           memcpy((void *)&corrections_.raw_azimuths, p,
@@ -194,6 +196,7 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
         case 3: {
           memcpy((void *)&corrections_.header, p, sizeof(struct ETCorrectionsHeader));
           p += sizeof(ETCorrectionsHeader);
+          corrections_.min_version = corrections_.header.min_version;
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
           memcpy((void *)&corrections_.raw_azimuths, p,
@@ -216,6 +219,58 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
           corrections_.elevation_adjust_interval = *((char*)p);
           p = p + 1;
           int angle_offset_len = (120 / (corrections_.azimuth_adjust_interval * 0.5) + 1) * (25 / (corrections_.elevation_adjust_interval * 0.5) + 1);
+          memcpy((void*)corrections_.azimuth_adjust, p, sizeof(int16_t) * angle_offset_len);
+          p = p + sizeof(int16_t) * angle_offset_len;
+          memcpy((void*)corrections_.elevation_adjust, p, sizeof(int16_t) * angle_offset_len); 
+          p = p + sizeof(int16_t) * angle_offset_len;
+          // int adjustNum = channel_num;
+          memcpy((void*)&corrections_.SHA_value, p, 32);
+          // successed
+          this->get_correction_file_ = true;
+          return 0;
+        } break;
+        case 4: {
+          ETCorrectionsHeader_V3_4 correction_v3_4;
+          memcpy((void *)&correction_v3_4, p, sizeof(struct ETCorrectionsHeader_V3_4));
+          p += sizeof(ETCorrectionsHeader_V3_4);
+          corrections_.header.getDataFromV3_4(correction_v3_4);
+          corrections_.turn_number_per_frame = correction_v3_4.turn_number_per_frame;
+          corrections_.min_version = corrections_.header.min_version;
+          auto N = corrections_.header.channel_number;
+          auto M = corrections_.header.mirror_nummber_reserved3;
+          auto T = corrections_.turn_number_per_frame;
+          auto division = corrections_.header.angle_division;
+          memcpy((void *)&corrections_.gamma, p,
+                 sizeof(int16_t) * M);
+          p += sizeof(int16_t) * M;
+          memcpy((void *)&corrections_.raw_azimuths, p,
+                 sizeof(int16_t) * N);
+          p += sizeof(int16_t) * N;
+          memcpy((void *)&corrections_.raw_elevations, p,
+               sizeof(int16_t) * N);
+          p += sizeof(int16_t) * N;
+          memcpy((void *)&corrections_.azimuth_offset_delta, p,
+               sizeof(int16_t) * M);
+          p += sizeof(int16_t) * M;
+          memcpy((void *)&corrections_.elevation_offset_delta, p,
+               sizeof(int16_t) * M);
+          p += sizeof(int16_t) * M;
+          corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
+          corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
+          for (int i = 0; i < M; i++) {
+            corrections_.gamma_f[i] = ((float)(corrections_.gamma[i])) / division;
+            corrections_.azimuth_offset_delta_f[i] = ((float)(corrections_.azimuth_offset_delta[i])) / division;
+            corrections_.elevation_offset_delta_f[i] = ((float)(corrections_.elevation_offset_delta[i])) / division;
+          }
+          for (int i = 0; i < N; i++) {
+            corrections_.azimuths[i + 3] = ((float)(corrections_.raw_azimuths[i])) / division;
+            corrections_.elevations[i + 3] = ((float)(corrections_.raw_elevations[i])) / division;
+          }
+          corrections_.azimuth_adjust_interval = *((char*)p);
+          p = p + 1;
+          corrections_.elevation_adjust_interval = *((char*)p);
+          p = p + 1;
+          int angle_offset_len = T * (120 / (corrections_.azimuth_adjust_interval * 0.1) + 1) * (3.2 / (corrections_.elevation_adjust_interval * 0.1) + 1);
           memcpy((void*)corrections_.azimuth_adjust, p, sizeof(int16_t) * angle_offset_len);
           p = p + sizeof(int16_t) * angle_offset_len;
           memcpy((void*)corrections_.elevation_adjust, p, sizeof(int16_t) * angle_offset_len); 
@@ -298,6 +353,7 @@ int Udp2_5Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, con
   output.scan_complete = false;
   output.block_num = pHeader->GetBlockNum();
   output.laser_num = pHeader->GetLaserNum();
+  output.mirror_index = pTail->GetMirrorIndex();
   
   int index_unit = 0;
   // int index_seq = 0;
@@ -374,6 +430,11 @@ int Udp2_5Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
   float apha =  corrections_.elevations[0];
   float beta =  corrections_.elevations[1];
   float gamma =  corrections_.elevations[2];
+  uint8_t mirror_index = (packet.mirror_index >> 4) & 0x0F;
+  uint8_t turn_index = packet.mirror_index & 0x0F;
+  if (corrections_.min_version == 4) {
+    gamma = corrections_.gamma_f[mirror_index];
+  }
   // get the laser_num
   uint16_t lasernum = packet.laser_num;
   for (int blockId = 0; blockId < packet.block_num; blockId++) {
@@ -396,9 +457,14 @@ int Udp2_5Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarD
       float delt_azi_h = std::sin(eta * M_PI / 180) * std::tan(2 * gamma * M_PI / 180) * std::tan(elv_v ) + std::sin(2 * eta * M_PI / 180) * gamma * gamma * M_PI / 180 * M_PI / 180;
       float elv_h = elv_v * 180 / M_PI + std::cos(eta * M_PI / 180) * 2 * gamma ;
       float azi_h = 90 +  raw_azimuth + delt_azi_h * 180 / M_PI + delt_azi_v * 180 / M_PI + phi;
-      if (corrections_.header.min_version == 2) {
+      if (corrections_.header.min_version == 2 || corrections_.header.min_version == 3) {
         azi_h = azi_h + corrections_.getAziAdjustV2(azi_h - 90, elv_h);
         elv_h = elv_h + corrections_.getEleAdjustV2(azi_h - 90, elv_h);
+      } else if (corrections_.min_version == 4) {
+        azi_h += corrections_.getAziAdjustV4(azi_h - 90, elv_h, turn_index);
+        elv_h += corrections_.getEleAdjustV4(azi_h - 90, elv_h, turn_index);
+        azi_h += corrections_.azimuth_offset_delta_f[mirror_index];
+        elv_h += corrections_.elevation_offset_delta_f[mirror_index];
       }
       int azimuth = (int)(azi_h * kAllFineResolutionFloat + CIRCLE) % CIRCLE;
       if (packet.config.fov_start != -1 && packet.config.fov_end != -1)
@@ -475,6 +541,7 @@ int Udp2_5Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   frame.scan_complete = false;
   frame.block_num = pHeader->GetBlockNum();
   frame.laser_num = pHeader->GetLaserNum();
+  frame.mirror_index[frame.packet_index] = pTail->GetMirrorIndex();
   
   int index = frame.packet_index * pHeader->GetBlockNum() * pHeader->GetLaserNum();
   for (int blockId = 0; blockId < pHeader->GetBlockNum(); blockId++) {

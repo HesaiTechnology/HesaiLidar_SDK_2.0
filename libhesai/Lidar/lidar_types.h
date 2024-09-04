@@ -159,6 +159,7 @@ struct LidarDecodedPacket
     uint8_t lidar_state;
     uint8_t work_mode;
     uint16_t use_timestamp_type;
+    uint8_t mirror_index;
     LidarDecodeConfig config;
     bool IsDecodedPacketValid() {
       return block_num != 0;
@@ -183,6 +184,7 @@ struct LidarDecodedPacket
       lidar_state = 0;
       work_mode = 0;
       use_timestamp_type = 0;
+      mirror_index = 0;
     }
 };
 
@@ -196,7 +198,8 @@ class LidarDecodedFrame
                                    sizeof(uint32_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket +
                                    sizeof(float) * 2 * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket +
                                    sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + 
-                                   sizeof(uint8_t) * 3 * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket
+                                   sizeof(uint8_t) * 3 * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket +
+                                   sizeof(uint8_t) * kMaxPacketNumPerFrame
                                   ];
         int offset = 0;
         points = reinterpret_cast <PointT* >(total_memory + offset);
@@ -216,6 +219,9 @@ class LidarDecodedFrame
         chn_index = reinterpret_cast<uint8_t* >(total_memory + offset);
         offset = sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
         confidence = reinterpret_cast<uint8_t* >(total_memory + offset);
+        offset = sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
+        mirror_index = reinterpret_cast<uint8_t* >(total_memory + offset);
+        offset = sizeof(uint8_t) * kMaxPacketNumPerFrame + offset;
 
         host_timestamp = 0;
         major_version = 0;
@@ -259,6 +265,7 @@ class LidarDecodedFrame
           distances = nullptr;
           chn_index = nullptr;
           confidence = nullptr;
+          mirror_index = nullptr;
         }
     }
     void Update(){
@@ -296,6 +303,7 @@ class LidarDecodedFrame
     uint16_t* distances = nullptr;
     uint8_t* chn_index = nullptr;
     uint8_t* confidence = nullptr;
+    uint8_t* mirror_index = nullptr;
     uint16_t block_num;
     uint16_t laser_num;
     uint32_t per_points_num; 

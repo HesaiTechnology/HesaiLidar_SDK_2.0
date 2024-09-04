@@ -298,6 +298,7 @@ public:
           memcpy((frame.confidence + packet_index * decoded_packet.points_num), (decoded_packet.confidenceLevel), decoded_packet.points_num * sizeof(uint8_t));
           frame.distance_unit = decoded_packet.distance_unit;
           frame.sensor_timestamp[packet_index] = decoded_packet.sensor_timestamp;
+          frame.mirror_index[packet_index] = decoded_packet.mirror_index;
           frame.points_num = frame.points_num + decoded_packet.points_num;
           frame.packet_index = packet_index + 1;
           if (decoded_packet.block_num != 0 && decoded_packet.laser_num != 0) {

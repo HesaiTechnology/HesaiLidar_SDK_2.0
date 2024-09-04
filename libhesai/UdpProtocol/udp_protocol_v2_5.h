@@ -64,7 +64,8 @@ namespace hesai
       static const uint8_t kDualReturn = 0x39;
       static const uint8_t kFactoryInfo = 0x42;
       ReservedInfo1 m_reservedInfo1;
-      ReservedInfo2 m_reservedInfo2;
+      uint8_t m_u8Mirror_index;
+      uint8_t m_reserved[2];
       ReservedInfo3 m_reservedInfo3;
       uint8_t m_u8FrameID;
       uint8_t m_u8ShutDown;
@@ -77,8 +78,7 @@ namespace hesai
       uint8_t GetStsID0() const { return m_reservedInfo1.GetID(); }
       uint16_t GetData0() const { return m_reservedInfo1.GetData(); }
 
-      uint8_t GetStsID1() const { return m_reservedInfo2.GetID(); }
-      uint16_t GetData1() const { return m_reservedInfo2.GetData(); }
+      uint8_t GetMirrorIndex() const { return m_u8Mirror_index; }
 
       uint8_t GetStsID2() const { return m_reservedInfo3.GetID(); }
       uint16_t GetData2() const { return m_reservedInfo3.GetData(); }
@@ -134,10 +134,10 @@ namespace hesai
       void Print() const {
         printf("HS_LIDAR_TAIL_ET_V5:\n");
         printf(
-            "sts0:%d, data0:%d, sts1:%d, data1:%d, shutDown:%d"
+            "sts0:%d, data0:%d, MirrorIndex:%u, sts2:%d, data2:%d, shutDown:%d"
             "timestamp:%u, return_mode:0x%02x, factoryInfo:0x%02x, utc:%u %u "
             "%u %u %u %u\n",
-            GetStsID0(), GetData0(), GetStsID1(), GetData1(), HasShutdown(),
+            GetStsID0(), GetData0(), GetMirrorIndex(), GetStsID2(), GetStsID2(), HasShutdown(),
             GetTimestamp(), GetReturnMode(), GetFactoryInfo(),
             GetUTCData(0), GetUTCData(1), GetUTCData(2), GetUTCData(3),
             GetUTCData(4), GetUTCData(5));
