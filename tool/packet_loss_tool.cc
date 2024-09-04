@@ -7,7 +7,7 @@ uint32_t cur_frame_time;
 void lidarCallback(const LidarDecodedFrame<LidarPointXYZIRT>  &frame) {  
   cur_frame_time = GetMicroTickCount();
   if (cur_frame_time - last_frame_time > kMaxTimeInterval) {
-    printf("Time between last frame and cur frame is: %d us\n", (cur_frame_time - last_frame_time));
+    printf("Time between last frame and cur frame is: %u us\n", (cur_frame_time - last_frame_time));
   }
 }
 

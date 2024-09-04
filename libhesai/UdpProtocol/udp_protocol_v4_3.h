@@ -136,7 +136,7 @@ struct HS_LIDAR_TAIL_ST_V3 {
   uint8_t GetUTCData(uint8_t index) const {
     return m_u8UTC[index < sizeof(m_u8UTC) ? index : 0];
   }
-  int64_t GetMicroLidarTimeU64() const {
+  uint64_t GetMicroLidarTimeU64() const {
     if (m_u8UTC[0] != 0) {
 			struct tm t = {0};
 			t.tm_year = m_u8UTC[0];
@@ -158,10 +158,7 @@ struct HS_LIDAR_TAIL_ST_V3 {
 		}
 		else {
       uint32_t utc_time_big = *(uint32_t*)(&m_u8UTC[0] + 2);
-      int64_t unix_second = ((utc_time_big >> 24) & 0xff) |
-              ((utc_time_big >> 8) & 0xff00) |
-              ((utc_time_big << 8) & 0xff0000) |
-              ((utc_time_big << 24));
+      uint64_t unix_second = big_to_native(utc_time_big);
       return unix_second * 1000000 + GetTimestamp();
 		}
 
@@ -364,7 +361,7 @@ struct FaultMessageVersion4_3 {
   uint32_t GetTimestamp() const { return big_to_native(time_stamp); }
   uint32_t GetCrc() const { return little_to_native(crc); }
   uint32_t GetFaultCode() const { return big_to_native(fault_code); }
-  int64_t GetMicroLidarTimeU64() const {
+  uint64_t GetMicroLidarTimeU64() const {
     if (utc_time[0] != 0) {
 			struct tm t = {0};
 			t.tm_year = utc_time[0];
@@ -386,10 +383,7 @@ struct FaultMessageVersion4_3 {
 		}
 		else {
       uint32_t utc_time_big = *(uint32_t*)(&utc_time[0] + 2);
-      int64_t unix_second = ((utc_time_big >> 24) & 0xff) |
-              ((utc_time_big >> 8) & 0xff00) |
-              ((utc_time_big << 8) & 0xff0000) |
-              ((utc_time_big << 24));
+      uint64_t unix_second = big_to_native(utc_time_big);
       return unix_second * 1000000 + GetTimestamp();
 		}
   }

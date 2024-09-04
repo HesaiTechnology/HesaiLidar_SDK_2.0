@@ -88,7 +88,16 @@ struct PandarATCorrections {
   PandarATFrameInfo l;  // V1.5
   std::array<float, CIRCLE> sin_map;
   std::array<float, CIRCLE> cos_map;
-  PandarATCorrections() {
+  PandarATCorrections()
+  : header(), l()
+  {
+    memset(start_frame, 0, sizeof(start_frame));
+    memset(end_frame, 0, sizeof(end_frame));
+    memset(azimuth, 0, sizeof(azimuth));
+    memset(elevation, 0, sizeof(elevation));
+    memset(azimuth_offset, 0, sizeof(azimuth_offset));
+    memset(elevation_offset, 0, sizeof(elevation_offset));
+    memset(SHA256, 0, sizeof(SHA256));
     for (int i = 0; i < CIRCLE; ++i) {
       sin_map[i] = float(std::sin(2 * i * M_PI / CIRCLE));
       cos_map[i] = float(std::cos(2 * i * M_PI / CIRCLE));

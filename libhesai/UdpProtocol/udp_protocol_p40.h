@@ -95,7 +95,7 @@ struct HS_LIDAR_TAIL_L40 {
     return m_u8UTC[index < sizeof(m_u8UTC) ? index : 0];
   }
 
-  int64_t GetMicroLidarTimeU64() const {
+  uint64_t GetMicroLidarTimeU64() const {
       if (m_u8UTC[0] != 0) {
           struct tm t = {0};
           t.tm_year = m_u8UTC[0] + 100;
@@ -103,7 +103,7 @@ struct HS_LIDAR_TAIL_L40 {
               t.tm_year -= 100;
           }
           t.tm_mon = m_u8UTC[1] - 1;
-          t.tm_mday = m_u8UTC[2];
+          t.tm_mday = m_u8UTC[2] + 1;
           t.tm_hour = m_u8UTC[3];
           t.tm_min = m_u8UTC[4];
           t.tm_sec = m_u8UTC[5];
@@ -113,14 +113,11 @@ struct HS_LIDAR_TAIL_L40 {
   GetTimeZoneInformation(&tzi);
   long int timezone =  tzi.Bias * 60;
 #endif
-          return (mktime(&t) - timezone) * 1000000 + GetTimestamp();
+          return (mktime(&t) - timezone - 86400) * 1000000 + GetTimestamp();
       }
       else {
           uint32_t utc_time_big = *(uint32_t*)(&m_u8UTC[0] + 2);
-          int64_t unix_second = ((utc_time_big >> 24) & 0xff) |
-                  ((utc_time_big >> 8) & 0xff00) |
-                  ((utc_time_big << 8) & 0xff0000) |
-                  ((utc_time_big << 24));
+          uint64_t unix_second = big_to_native(utc_time_big);
           return unix_second * 1000000 + GetTimestamp();
       }
   }

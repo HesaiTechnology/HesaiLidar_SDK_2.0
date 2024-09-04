@@ -166,6 +166,7 @@ int GetAnglesFromFile(
   char sContent[255] = {0};
   if (fgets(sContent, 255, pFile) == NULL) { // skip first line
     printf("Failed to read from file\n");
+    fclose(pFile);
     return 1;
   } 
 
@@ -173,6 +174,7 @@ int GetAnglesFromFile(
     memset(sContent, 0, 255);
     if (fgets(sContent, 255, pFile) == NULL) {
       printf("Failed to read from file\n");
+      fclose(pFile);
       return 1;
     }
 

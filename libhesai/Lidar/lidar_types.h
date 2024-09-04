@@ -156,8 +156,8 @@ struct LidarDecodedPacket
     uint8_t chn_index[kMaxPointsNumPerPacket];
     uint16_t azimuths;
     uint16_t spin_speed;
-    uint8_t lidar_state;
-    uint8_t work_mode;
+    int16_t lidar_state;
+    int16_t work_mode;
     uint16_t use_timestamp_type;
     uint8_t mirror_index;
     LidarDecodeConfig config;
@@ -179,10 +179,11 @@ struct LidarDecodedPacket
       memset(distances, 0, kMaxPointsNumPerPacket * sizeof(uint16_t));
       memset(azimuth, 0, kMaxPointsNumPerPacket * sizeof(float));
       memset(elevation, 0, kMaxPointsNumPerPacket * sizeof(float));
+      memset(chn_index, 0, kMaxPointsNumPerPacket * sizeof(uint8_t));
       azimuths = 0;
       spin_speed = 0;
-      lidar_state = 0;
-      work_mode = 0;
+      lidar_state = -1;
+      work_mode = -1;
       use_timestamp_type = 0;
       mirror_index = 0;
     }
@@ -237,6 +238,8 @@ class LidarDecodedFrame
         scan_complete = false;
         distance_unit = 0.0;
         frame_index = 0;
+        lidar_state = -1;
+        work_mode = -1;
     };
     ~LidarDecodedFrame() {
         // delete points;
@@ -268,6 +271,8 @@ class LidarDecodedFrame
           mirror_index = nullptr;
         }
     }
+    LidarDecodedFrame(const LidarDecodedFrame&) = delete;
+    LidarDecodedFrame& operator=(const LidarDecodedFrame&) = delete;
     void Update(){
       host_timestamp = 0;
       major_version = 0;
@@ -282,8 +287,8 @@ class LidarDecodedFrame
       packet_index = 0;
       scan_complete = false;
       distance_unit = 0;
-      lidar_state = (uint8_t)(-1);
-      work_mode = (uint8_t)(-1);
+      lidar_state = -1;
+      work_mode = -1;
       frame_index++;
     }
     uint64_t host_timestamp;   
@@ -311,8 +316,8 @@ class LidarDecodedFrame
     bool scan_complete;
     double distance_unit;
     int frame_index;
-    uint8_t lidar_state;
-    uint8_t work_mode;
+    int16_t lidar_state;
+    int16_t work_mode;
 };
 
 
@@ -323,9 +328,11 @@ struct UdpPacket {
   uint64_t recv_timestamp;
   uint32_t ip;
   uint16_t port;
-  UdpPacket(const uint8_t* data = nullptr, uint32_t sz = 0)
-  : packet_len(sz)
+  UdpPacket(const uint8_t* data = nullptr, uint32_t sz = 0, uint64_t tm = 0, 
+            uint32_t i_ip = 0, uint32_t i_port = 0)
+  : packet_len(sz), recv_timestamp(tm), ip(i_ip), port(i_port)
   {
+    if(data != nullptr)
       memcpy(buffer, data, packet_len);
   }
 };
