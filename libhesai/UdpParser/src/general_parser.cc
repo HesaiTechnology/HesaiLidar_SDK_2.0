@@ -55,19 +55,13 @@ GeneralParser<T_Point>::GeneralParser() {
 
 
 template <typename T_Point>
-int GeneralParser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
+int GeneralParser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index) {
   return 0;
 }
 template <typename T_Point>
-void GeneralParser<T_Point>::FrameNumAdd(LidarDecodedFrame<T_Point> &frame, uint32_t points_num) {
-  LockS lock(this->_mutex);
-  frame.points_num += points_num;
-  frame.packet_num++;
+void GeneralParser<T_Point>::FrameNumAdd() {
+  this->compute_packet_num++;
 }
-template <typename T_Point>
-int GeneralParser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket) {
-  return 0;
-}  
 template <typename T_Point>
 int GeneralParser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket) {
   return 0;
@@ -352,7 +346,7 @@ void GeneralParser<T_Point>::SetTransformPara(float x, float y, float z, float r
 }
 
 template <typename T_Point>
-  void GeneralParser<T_Point>::CalPktLoss(uint32_t &PacketSeqnum) {
+  void GeneralParser<T_Point>::CalPktLoss(uint32_t PacketSeqnum) {
     if (this->enable_packet_loss_tool_ == false) {
       return;
     }
@@ -386,7 +380,7 @@ template <typename T_Point>
   }
 
 template <typename T_Point>
-void GeneralParser<T_Point>::CalPktTimeLoss(uint64_t &PacketTimestamp) {
+void GeneralParser<T_Point>::CalPktTimeLoss(uint64_t PacketTimestamp) {
   if(this->enable_packet_timeloss_tool_ == false){
     return;
   } 

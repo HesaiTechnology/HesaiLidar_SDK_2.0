@@ -135,10 +135,9 @@ public:
   virtual int LoadCorrectionString(char *correction_string);
   virtual void LoadFiretimesFile(std::string firetimes_path);
 
-  virtual int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket);  
   virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket); 
     
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
 
   virtual void ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info);
   ATXCorrections m_ATX_corrections;

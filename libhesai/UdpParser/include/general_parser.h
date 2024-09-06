@@ -277,18 +277,14 @@ class GeneralParser {
   void SetEnableDistanceCorrection(bool enable);
   void SetOpticalCenterCoordinates(std::string lidar_type);
   void SetLidarType(std::string lidar_type);
-  // covert a origin udp packet to decoded packet, the decode function is in UdpParser module
-  // udp_packet is the origin udp packet, output is the decoded packet
-  virtual int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket); 
-
   // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
   virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket); 
    
   // compute xyzi of points from decoded packet
   // param packet is the decoded packet; xyzi of points after computed is puted in frame  
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
   // Under thread safety, increase the points_num in the frame
-  void FrameNumAdd(LidarDecodedFrame<T_Point> &frame, uint32_t points_num);
+  void FrameNumAdd();
 
   // parse the detailed content of the fault message message
   virtual void ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info);
@@ -300,8 +296,10 @@ class GeneralParser {
   virtual void EnablePacketLossTool(bool enable);
   virtual void EnablePacketTimeLossTool(bool enable);
   virtual void PacketTimeLossToolContinue(bool enable);
-  void CalPktLoss(uint32_t &PacketSeqnum);
-  void CalPktTimeLoss(uint64_t &PacketTimestamp);
+  void CalPktLoss(uint32_t PacketSeqnum);
+  void CalPktTimeLoss(uint64_t PacketTimestamp);
+  uint32_t getComputePacketNum() { return compute_packet_num; }
+  void setComputePacketNumToZero() { compute_packet_num = 0; }
 
   void TransformPoint(float& x, float& y, float& z);
   void SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
@@ -317,7 +315,6 @@ class GeneralParser {
   PacketTimeLossMessage time_loss_message_;
 
  protected:
-  Mutex _mutex;
   uint16_t monitor_info1_[256];
   uint16_t monitor_info2_[256];
   uint16_t monitor_info3_[256];
@@ -344,6 +341,7 @@ class GeneralParser {
   Transform transform_;
   float frame_start_azimuth_;
   LidarOpticalCenter optical_center;
+  std::atomic<uint32_t> compute_packet_num;
 };
 }
 }

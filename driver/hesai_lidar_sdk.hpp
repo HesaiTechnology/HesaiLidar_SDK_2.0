@@ -155,11 +155,10 @@ public:
     printf("------begin to prase udp package------\n");
     is_thread_runing_ = true;
     UdpFrame_t udp_packet_frame;
-    LidarDecodedPacket<T_Point> decoded_packet;
-    decoded_packet.use_timestamp_type = lidar_ptr_->use_timestamp_type_;
-    decoded_packet.config.fov_start = lidar_ptr_->fov_start_;
-    decoded_packet.config.fov_end = lidar_ptr_->fov_end_;
-    int packet_index = 0;
+    lidar_ptr_->frame_.use_timestamp_type = lidar_ptr_->use_timestamp_type_;
+    lidar_ptr_->frame_.config.fov_start = lidar_ptr_->fov_start_;
+    lidar_ptr_->frame_.config.fov_end = lidar_ptr_->fov_end_;
+    uint32_t packet_index = 0;
     // uint32_t start = GetMicroTickCount();
     UdpPacket packet;
     FaultMessageInfo fault_message_info;
@@ -196,7 +195,7 @@ public:
         }
       }
       //get distance azimuth reflection, etc.and put them into decode_packet
-      if(lidar_ptr_->DecodePacket(decoded_packet, packet) != 0) {
+      if(lidar_ptr_->DecodePacket(lidar_ptr_->frame_, packet) != 0) {
         continue;
       }
 
@@ -204,7 +203,7 @@ public:
       // if(packet_loss_tool_ == true) continue;
 
       //one frame is receive completely, split frame
-      if(decoded_packet.scan_complete) {
+      if(lidar_ptr_->frame_.scan_complete) {
         //waiting for parser thread compute xyzi of points in the same frame
         while(!lidar_ptr_->ComputeXYZIComplete(packet_index)) std::this_thread::sleep_for(std::chrono::microseconds(100));
         // uint32_t end =  GetMicroTickCount();
@@ -244,26 +243,28 @@ public:
             correction_cb_(lidar_ptr_->correction_string_);
           }
         }
+
+        bool last_packet_is_valid = (lidar_ptr_->frame_.packet_num != packet_index);
         //reset frame variable
         lidar_ptr_->frame_.Update();
-
         //clear udp packet vector
         udp_packet_frame.clear();
         packet_index = 0;
 
-        //if the packet which contains split frame msgs is vaild, it will be the first packet of new frame
-        if(decoded_packet.IsDecodedPacketValid()) {
-          decoded_packet.packet_index = packet_index;
-          lidar_ptr_->ComputeXYZI(decoded_packet);
+        //if the packet which contains split frame msgs is valid, it will be the first packet of new frame
+        if(last_packet_is_valid) {
+          lidar_ptr_->DecodePacket(lidar_ptr_->frame_, packet);
+          lidar_ptr_->ComputeXYZI(packet_index);
+          lidar_ptr_->frame_.points_num += lidar_ptr_->frame_.per_points_num;
           udp_packet_frame.emplace_back(packet);
           packet_index++;
         }
       }
       else {
         //new decoded packet of one frame, put it into decoded_packets_buffer_ and compute xyzi of points
-        if(decoded_packet.IsDecodedPacketValid()) {
-          decoded_packet.packet_index = packet_index;
-          lidar_ptr_->ComputeXYZI(decoded_packet);
+        if(lidar_ptr_->frame_.packet_num != packet_index) {
+          lidar_ptr_->ComputeXYZI(packet_index);
+          lidar_ptr_->frame_.points_num += lidar_ptr_->frame_.per_points_num;
           udp_packet_frame.emplace_back(packet);
           packet_index++;
         } 

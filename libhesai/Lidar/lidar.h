@@ -110,16 +110,14 @@ public:
   // port is the udp port recorded in pcap                   
   int SaveUdpPacket(const std::string &record_path,
                     const UdpFrameArray_t &packets, int port = 2368);
-  /* this founction whill put a LidarDecodedPacket into decoded_packets_buffer_, and then the parser thread will 
+  /* this founction whill put a int into decoded_packets_buffer_, and then the parser thread will 
   convert decoded packet dato into pointxyzi info*/
-  int ComputeXYZI(LidarDecodedPacket<T_Point> &packet);
+  int ComputeXYZI(int packet_index);
   // covert a origin udp packet to decoded packet, the decode function is in UdpParser module
-  // udp_packet is the origin udp packet, output is the decoded packet
-  int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udp_packet);
   // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
   int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udp_packet);
   // Determine whether all pointxyzi info is parsed in this frame
-  bool ComputeXYZIComplete(int index);
+  bool ComputeXYZIComplete(uint32_t index);
   // parse the detailed content of the fault message message
   int ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info);
   // save lidar correction file from ptc
@@ -170,7 +168,7 @@ private:
   void ParserThread();
   /* this function will parser decoded packet data  in handle_thread_packet_buffer_ into pointxyzi info  */
   void HandleThread(int thread_num);
-  BlockingRing<LidarDecodedPacket<T_Point>, kPacketBufferSize> decoded_packets_buffer_;
+  BlockingRing<int, kPacketBufferSize> decoded_packets_buffer_;
 
   // this variable is the exit condition of udp/parser thread
   bool running_;
@@ -181,7 +179,7 @@ private:
   std::thread *recieve_packet_thread_ptr_;
   std::thread *parser_thread_ptr_;
   std::mutex *mutex_list_;
-  std::vector<std::list<LidarDecodedPacket<T_Point>>> handle_thread_packet_buffer_;
+  std::vector<std::list<int>> handle_thread_packet_buffer_;
   std::vector<std::thread *> handle_thread_vec_;
   uint32_t handle_buffer_size_;
   int handle_thread_count_;

@@ -202,117 +202,6 @@ int Udp2_6Parser<T_Point>::LoadCorrectionDatData(char *data) {
   return -1;
 }
 
-// decode, udpPacket---->DecodePacket
-template<typename T_Point>
-int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket) {
-  // verify  buffer[0] and buffer[1]
-  if (udpPacket.buffer[0] != 0xEE || udpPacket.buffer[1] != 0xFF ) {
-    return -1;
-  }
-
-  // point to header skip pre_header
-  const HS_LIDAR_HEADER_ET_V6* pHeader =
-    reinterpret_cast<const HS_LIDAR_HEADER_ET_V6 *>(
-      &(udpPacket.buffer[0]) + sizeof(HS_LIDAR_PRE_HEADER));
-  // point to tails
-  const HS_LIDAR_TAIL_ET_V6 *pTail =
-    reinterpret_cast<const HS_LIDAR_TAIL_ET_V6 *>(
-      &(udpPacket.buffer[0]) +  pHeader->GetPacketSize() - 
-      sizeof(HS_LIDAR_CYBER_SECURITY_ET_V6) - 
-      sizeof(HS_LIDAR_TAIL_SEQ_NUM_ET_V6) - 
-      sizeof(HS_LIDAR_TAIL_ET_V6)
-      );
-  // if (pHeader->HasSeqNum()){
-  //   const HS_LIDAR_TAIL_SEQ_NUM_ET_V6 *pTailSeqNum =
-  //     reinterpret_cast<const HS_LIDAR_TAIL_SEQ_NUM_ET_V6 *>(
-  //     &(udpPacket.buffer[0]) + pHeader->GetPacketSize() - 
-  //     sizeof(HS_LIDAR_CYBER_SECURITY_ET_V6) - 
-  //     sizeof(HS_LIDAR_TAIL_SEQ_NUM_ET_V6)
-  //     );
-  // }
-  const HS_LIDAR_BODY_SEQ2_ET_V6* pSeq2 = 
-    reinterpret_cast<const HS_LIDAR_BODY_SEQ2_ET_V6 *>(
-      (const unsigned char *)pHeader + 
-      sizeof(HS_LIDAR_HEADER_ET_V6) + sizeof(HS_LIDAR_BODY_POINT_ID_ET_V6)
-    );
-  const HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6* pUnit1 = 
-    reinterpret_cast<const HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6 *>(
-      (const unsigned char *)pSeq2 + 
-      sizeof(HS_LIDAR_BODY_SEQ2_ET_V6)
-    );
-  const HS_LIDAR_BODY_LASTER_UNIT_2_ET_V6* pUnit2 = 
-    reinterpret_cast<const HS_LIDAR_BODY_LASTER_UNIT_2_ET_V6 *>(
-      (const unsigned char *)pUnit1 + 
-      sizeof(HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6) * (pHeader->GetLaserNum() / pHeader->GetSeqNum())
-    );
-  // write the value to output
-  output.lidar_state = pTail->HasShutdown();
-  output.host_timestamp = GetMicroTickCountU64();
-  output.distance_unit = pHeader->GetDistUnit();
-  if (output.use_timestamp_type == 0) {
-    output.sensor_timestamp = pTail->GetMicroLidarTimeU64();
-  } else {
-    output.sensor_timestamp = udpPacket.recv_timestamp;
-  }
-  output.points_num = (pHeader->GetLaserNum() + pHeader->GetSecRetNum() * pHeader->GetSeqNum()) * pHeader->GetBlockNum();
-  output.scan_complete = false;
-  output.block_num = pHeader->GetBlockNum();
-  output.laser_num = pHeader->GetLaserNum();
-  
-  int index_unit = 0;
-  int index_unit2 = pHeader->GetLaserNum();
-  for (int seqId = 0; seqId < pHeader->GetSeqNum(); seqId++) {
-    int16_t horizontalAngle = pSeq2->GetHorizontalAngle();
-    int16_t verticalAngle = pSeq2->GetVerticalAngle();
-    for (int unitId = 0; unitId < (pHeader->GetLaserNum()/pHeader->GetSeqNum()); unitId++){
-      int16_t distance = pUnit1->GetDistance();
-      int8_t reflectivity = pUnit1->GetReflectivity();
-      output.reflectivities[index_unit] = reflectivity;
-      output.distances[index_unit] = distance;
-      output.azimuth[index_unit] = horizontalAngle/512.0f;
-      output.elevation[index_unit] = verticalAngle/512.0f;
-      output.chn_index[index_unit] = index_unit;
-      index_unit++;
-      pUnit1 += 1;
-    }
-    for (int unitId = 0; unitId < pHeader->GetSecRetNum(); unitId++){
-      int16_t distance = pUnit2->GetDistance();
-      int8_t reflectivity = pUnit2->GetReflectivity();
-      output.reflectivities[index_unit2] = reflectivity;
-      output.distances[index_unit2] = distance;
-      output.azimuth[index_unit2] = horizontalAngle/512.0f;
-      output.elevation[index_unit2] = verticalAngle/512.0f;
-      output.chn_index[index_unit2] = pUnit2->GetChnIndex();
-      index_unit2++;
-      pUnit2 += 1;
-    }
-    // pSeq2 next
-    pSeq2 = reinterpret_cast<const HS_LIDAR_BODY_SEQ2_ET_V6 *>(
-      (const unsigned char *)pSeq2 + 
-      sizeof(HS_LIDAR_BODY_SEQ2_ET_V6) + 
-      sizeof(HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6)*(pHeader->GetLaserNum()/pHeader->GetSeqNum()) +
-      sizeof(HS_LIDAR_BODY_LASTER_UNIT_2_ET_V6)*(pHeader->GetSecRetNum())
-      );
-      
-    // pUnit next
-    pUnit1 = reinterpret_cast<const HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6 *>(
-      (const unsigned char *)pSeq2 + 
-      sizeof(HS_LIDAR_BODY_SEQ2_ET_V6)
-    ); 
-    pUnit2 = reinterpret_cast<const HS_LIDAR_BODY_LASTER_UNIT_2_ET_V6 *>(
-    (const unsigned char *)pUnit1 + 
-    sizeof(HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6) * (pHeader->GetLaserNum() / pHeader->GetSeqNum())
-    );
-  } 
-
-  uint16_t nowid = pTail->GetFrameID();
-  if (this->use_angle_ && IsNeedFrameSplit(nowid)) {
-    output.scan_complete = true;
-  }
-  this->last_frameid_  = pTail->GetFrameID();
-  return 0;
-}
-  
 //  Framing
 template<typename T_Point>
 bool Udp2_6Parser<T_Point>::IsNeedFrameSplit(uint16_t nowid) {
@@ -334,66 +223,57 @@ int16_t Udp2_6Parser<T_Point>::GetVecticalAngle(int channel) {
 
 
 template<typename T_Point>
-int Udp2_6Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
+int Udp2_6Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index) {
   // get configer information from corrections_, 1 block 1 corrections_ 
   // float division = (float)corrections_.header.angle_division;
   float apha =  corrections_.elevations[0];
   float beta =  corrections_.elevations[1];
   float gamma =  corrections_.elevations[2];
   // get the points_num
-  uint16_t points_num = packet.points_num;
-  int blockId = 0;
-  // for (int blockId = 0; blockId < packet.block_num; blockId++) {
-    // T_Point point;
-    // float delte_apha = 0;
-    // float delte_theta = 0;
-    for (int i = 0; i < points_num; i++) {
-      int point_index = packet.packet_index * packet.points_num + blockId * packet.points_num + i; 
-      // get phi and psi and distance
-      float raw_azimuth = packet.azimuth[i + blockId*points_num];
-      float raw_elevation = packet.elevation[i + blockId*points_num];
-      float distance = packet.distances[i + blockId*points_num] * packet.distance_unit;
-      float phi = corrections_.azimuths[packet.chn_index[i + blockId*points_num] + 3];
-      float theta = corrections_.elevations[packet.chn_index[i + blockId*points_num] + 3];
-      float an = apha + phi;
-      float theta_n = (raw_elevation + theta / std::cos(an * M_PI / 180));
-      float elv_v = raw_elevation * M_PI / 180 + theta * M_PI / 180 - std::tan(raw_elevation * M_PI / 180) * (1 - std::cos(an * M_PI / 180)) ;
-      float delt_azi_v = std::sin(an * M_PI / 180) * std::cos(an * M_PI / 180) * theta_n * theta_n / 2  * 1.016 * M_PI / 180 * M_PI / 180;
-      float eta = phi + delt_azi_v * 180 / M_PI + beta + raw_azimuth / 2;
-      float delt_azi_h = std::sin(eta * M_PI / 180) * std::tan(2 * gamma * M_PI / 180) * std::tan(elv_v ) + std::sin(2 * eta * M_PI / 180) * gamma * gamma * M_PI / 180 * M_PI / 180;
-      float elv_h = elv_v * 180 / M_PI + std::cos(eta * M_PI / 180) * 2 * gamma ;
-      float azi_h = 90 +  raw_azimuth + delt_azi_h * 180 / M_PI + delt_azi_v * 180 / M_PI + phi;
-      if (corrections_.header.min_version == 2 || corrections_.header.min_version == 3) {
-        azi_h = azi_h + corrections_.getAziAdjustV2(azi_h - 90, elv_h);
-        elv_h = elv_h + corrections_.getEleAdjustV2(azi_h - 90, elv_h);
-      }
-      int azimuth = (int)(azi_h * kAllFineResolutionFloat + CIRCLE) % CIRCLE;
-      if (packet.config.fov_start != -1 && packet.config.fov_end != -1)
-      {
-        int fov_transfer = azimuth / 256 / 100;
-        if (fov_transfer < packet.config.fov_start || fov_transfer > packet.config.fov_end){//不在fov范围continue
-          continue;
-        }
-      }       
-      int elevation = (int)(elv_h * kAllFineResolutionFloat + CIRCLE) % CIRCLE;
-      float xyDistance = distance * this->cos_all_angle_[elevation];
-      float x = xyDistance * this->sin_all_angle_[azimuth];
-      float y = xyDistance * this->cos_all_angle_[azimuth];
-      float z = distance * this->sin_all_angle_[elevation];
-      setX(frame.points[point_index], x);
-      setY(frame.points[point_index], y);
-      setZ(frame.points[point_index], z);
-      setIntensity(frame.points[point_index], packet.reflectivities[blockId * packet.points_num + i]);
-      setTimestamp(frame.points[point_index], double(packet.sensor_timestamp) / kMicrosecondToSecond);
-      setRing(frame.points[point_index], packet.chn_index[i + blockId*points_num]);
-      frame.distances[point_index] = packet.distances[blockId * packet.laser_num + i];
-      frame.azimuths[point_index] = packet.azimuth[blockId * packet.laser_num + i];
-      frame.azimuth[point_index] = azimuth / kAllFineResolutionFloat;
-      frame.elevation[point_index] = elevation / kAllFineResolutionFloat;
-      frame.distance_unit = packet.distance_unit;
+  uint16_t points_num = frame.per_points_num;
+
+  for (int i = 0; i < points_num; i++) {
+    int point_index = packet_index * frame.per_points_num + i; 
+    // get phi and psi and distance
+    float raw_azimuth = frame.azimuth[point_index];
+    float raw_elevation = frame.elevation[point_index];
+    float distance = frame.distances[point_index] * frame.distance_unit;
+    float phi = corrections_.azimuths[frame.chn_index[point_index] + 3];
+    float theta = corrections_.elevations[frame.chn_index[point_index] + 3];
+    float an = apha + phi;
+    float theta_n = (raw_elevation + theta / std::cos(an * M_PI / 180));
+    float elv_v = raw_elevation * M_PI / 180 + theta * M_PI / 180 - std::tan(raw_elevation * M_PI / 180) * (1 - std::cos(an * M_PI / 180)) ;
+    float delt_azi_v = std::sin(an * M_PI / 180) * std::cos(an * M_PI / 180) * theta_n * theta_n / 2  * 1.016 * M_PI / 180 * M_PI / 180;
+    float eta = phi + delt_azi_v * 180 / M_PI + beta + raw_azimuth / 2;
+    float delt_azi_h = std::sin(eta * M_PI / 180) * std::tan(2 * gamma * M_PI / 180) * std::tan(elv_v ) + std::sin(2 * eta * M_PI / 180) * gamma * gamma * M_PI / 180 * M_PI / 180;
+    float elv_h = elv_v * 180 / M_PI + std::cos(eta * M_PI / 180) * 2 * gamma ;
+    float azi_h = 90 +  raw_azimuth + delt_azi_h * 180 / M_PI + delt_azi_v * 180 / M_PI + phi;
+    if (corrections_.header.min_version == 2 || corrections_.header.min_version == 3) {
+      azi_h = azi_h + corrections_.getAziAdjustV2(azi_h - 90, elv_h);
+      elv_h = elv_h + corrections_.getEleAdjustV2(azi_h - 90, elv_h);
     }
-  // }
-  GeneralParser<T_Point>::FrameNumAdd(frame, packet.points_num);
+    int azimuth = (int)(azi_h * kAllFineResolutionFloat + CIRCLE) % CIRCLE;
+    if (frame.config.fov_start != -1 && frame.config.fov_end != -1)
+    {
+      int fov_transfer = azimuth / 256 / 100;
+      if (fov_transfer < frame.config.fov_start || fov_transfer > frame.config.fov_end){//不在fov范围continue
+        continue;
+      }
+    }       
+    int elevation = (int)(elv_h * kAllFineResolutionFloat + CIRCLE) % CIRCLE;
+    float xyDistance = distance * this->cos_all_angle_[elevation];
+    float x = xyDistance * this->sin_all_angle_[azimuth];
+    float y = xyDistance * this->cos_all_angle_[azimuth];
+    float z = distance * this->sin_all_angle_[elevation];
+    setX(frame.points[point_index], x);
+    setY(frame.points[point_index], y);
+    setZ(frame.points[point_index], z);
+    setIntensity(frame.points[point_index], frame.reflectivities[point_index]);
+    setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
+    setRing(frame.points[point_index], frame.chn_index[point_index]);
+  }
+
+  GeneralParser<T_Point>::FrameNumAdd();
   return 0;
 }
 
@@ -414,14 +294,16 @@ int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
       sizeof(HS_LIDAR_TAIL_SEQ_NUM_ET_V6) - 
       sizeof(HS_LIDAR_TAIL_ET_V6)
       );
-  // if (pHeader->HasSeqNum()){
-  //   const HS_LIDAR_TAIL_SEQ_NUM_ET_V6 *pTailSeqNum =
-  //     reinterpret_cast<const HS_LIDAR_TAIL_SEQ_NUM_ET_V6 *>(
-  //     &(udpPacket.buffer[0]) + pHeader->GetPacketSize() - 
-  //     sizeof(HS_LIDAR_CYBER_SECURITY_ET_V6) - 
-  //     sizeof(HS_LIDAR_TAIL_SEQ_NUM_ET_V6)
-  //     );
-  // }
+  if (pHeader->HasSeqNum()){
+    const HS_LIDAR_TAIL_SEQ_NUM_ET_V6 *pTailSeqNum =
+      reinterpret_cast<const HS_LIDAR_TAIL_SEQ_NUM_ET_V6 *>(
+      &(udpPacket.buffer[0]) + pHeader->GetPacketSize() - 
+      sizeof(HS_LIDAR_CYBER_SECURITY_ET_V6) - 
+      sizeof(HS_LIDAR_TAIL_SEQ_NUM_ET_V6)
+      );
+    this->CalPktLoss(pTailSeqNum->GetSeqNum());
+  }
+  this->CalPktTimeLoss(pTail->GetMicroLidarTimeU64());
   const HS_LIDAR_BODY_SEQ2_ET_V6* pSeq2 = 
     reinterpret_cast<const HS_LIDAR_BODY_SEQ2_ET_V6 *>(
       (const unsigned char *)pHeader + 
@@ -437,15 +319,21 @@ int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
       (const unsigned char *)pUnit1 + 
       sizeof(HS_LIDAR_BODY_LASTER_UNIT_1_ET_V6) * (pHeader->GetLaserNum() / pHeader->GetSeqNum())
     );
-  frame.lidar_state = pTail->HasShutdown();
-  frame.sensor_timestamp[frame.packet_index] = pTail->GetMicroLidarTimeU64();
+  
+  if (frame.use_timestamp_type == 0) {
+    frame.sensor_timestamp[frame.packet_num] = pTail->GetMicroLidarTimeU64();
+  } else {
+    frame.sensor_timestamp[frame.packet_num] = udpPacket.recv_timestamp;
+  }
+  frame.host_timestamp = GetMicroTickCountU64();
+  frame.work_mode = pTail->m_u8ShutDown;
   frame.distance_unit = pHeader->GetDistUnit();
-  frame.points_num += (pHeader->GetLaserNum() + pHeader->GetSecRetNum() * pHeader->GetSeqNum()) * pHeader->GetBlockNum();
+  frame.per_points_num = (pHeader->GetLaserNum() + pHeader->GetSecRetNum() * pHeader->GetSeqNum()) * pHeader->GetBlockNum();
   frame.scan_complete = false;
   frame.block_num = pHeader->GetBlockNum();
   frame.laser_num = pHeader->GetLaserNum();
   
-  int index = frame.packet_index * (pHeader->GetLaserNum() + pHeader->GetSecRetNum() * pHeader->GetSeqNum()) * pHeader->GetBlockNum();
+  int index = frame.packet_num * (pHeader->GetLaserNum() + pHeader->GetSecRetNum() * pHeader->GetSeqNum()) * pHeader->GetBlockNum();
   int index_unit = index;
   int index_unit2 = index + pHeader->GetLaserNum();
   for (int seqId = 0; seqId < pHeader->GetSeqNum(); seqId++) {
@@ -454,18 +342,18 @@ int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     for (int unitId = 0; unitId < (pHeader->GetLaserNum()/pHeader->GetSeqNum()); unitId++){
       frame.reflectivities[index_unit] = pUnit1->GetReflectivity();
       frame.distances[index_unit] = pUnit1->GetDistance();
-      frame.azimuths[index_unit] = horizontalAngle;
       frame.azimuth[index_unit] = horizontalAngle/512.0f;
       frame.elevation[index_unit] = verticalAngle/512.0f;
+      frame.chn_index[index_unit] = index_unit;
       index_unit++;
       pUnit1 += 1;
     }
     for (int unitId = 0; unitId < pHeader->GetSecRetNum(); unitId++){
       frame.reflectivities[index_unit2] = pUnit2->GetReflectivity();
       frame.distances[index_unit2] = pUnit2->GetDistance();
-      frame.azimuths[index_unit2] = horizontalAngle;
       frame.azimuth[index_unit2] = horizontalAngle/512.0f;
       frame.elevation[index_unit2] = verticalAngle/512.0f;
+      frame.chn_index[index_unit2] = pUnit2->GetChnIndex();
       index_unit2++;
       pUnit2 += 1;
     }
@@ -493,6 +381,6 @@ int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     frame.scan_complete = true;
   }
   this->last_frameid_  = pTail->GetFrameID();
-  frame.packet_index++;
+  frame.packet_num++;
   return 0;
 }

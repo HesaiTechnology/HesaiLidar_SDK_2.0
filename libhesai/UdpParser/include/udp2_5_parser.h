@@ -233,17 +233,13 @@ namespace lidar
       virtual int LoadCorrectionString(char *correction_string);
       int LoadCorrectionDatData(char *correction_string);
       int LoadCorrectionCsvData(char *correction_string);
-  
-      // covert a origin udp packet to decoded packet, the decode function is in UdpParser module
-      // udp_packet is the origin udp packet, output is the decoded packet
-      virtual int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket);  
 
       // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
       virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket);
 
       // compute xyzi of points from decoded packet
       // param packet is the decoded packet; xyzi of points after computed is puted in frame    
-      virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
+      virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
       ETCorrections corrections_;      
 
     // 类维护的成员变量 

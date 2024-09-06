@@ -88,15 +88,12 @@ class UdpParser {
   uint16_t *GetMonitorInfo3();
 
   // covert a origin udp packet to decoded packet, the decode function is in UdpParser module
-  // udp_packet is the origin udp packet, output is the decoded packet
-  int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket); 
-
   // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
   int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket);  
 
   // compute xyzi of points from decoded packet
   // param packet is the decoded packet; xyzi of points after computed is puted in frame    
-  int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
+  int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
 
   // parse the detailed content of the fault message message
   int ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info);
@@ -107,6 +104,8 @@ class UdpParser {
   std::string GetLidarType() {return lidar_type_decoded_;}
   void SetPcapPlay(bool pcap_time_synchronization, int source_type);
   void SetFrameAzimuth(float frame_start_azimuth);
+  uint32_t getComputePacketNum() { if (parser_ != nullptr) return parser_->getComputePacketNum(); else return 0; }
+  void setComputePacketNumToZero() { if (parser_ != nullptr) parser_->setComputePacketNumToZero(); }
  private:
   GeneralParser<T_Point> *parser_;
   PcapSaver *pcap_saver_;
