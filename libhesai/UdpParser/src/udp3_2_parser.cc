@@ -401,8 +401,10 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     if (IsNeedFrameSplit(u16Azimuth)) {
       frame.scan_complete = true;
     }
-    this->last_last_azimuth_ = this->last_azimuth_;
-    this->last_azimuth_ = u16Azimuth;  
+    if (u16Azimuth != this->last_azimuth_) {
+      this->last_last_azimuth_ = this->last_azimuth_;
+      this->last_azimuth_ = u16Azimuth; 
+    } 
   } else {
     const HS_LIDAR_BODY_AZIMUTH_QT_V2 *pAzimuth =
         reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_QT_V2 *>(
@@ -468,8 +470,10 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     if (IsNeedFrameSplit(u16Azimuth)) {
       frame.scan_complete = true;
     }
-    this->last_last_azimuth_ = this->last_azimuth_;
-    this->last_azimuth_ = u16Azimuth;  
+    if (u16Azimuth != this->last_azimuth_) {
+      this->last_last_azimuth_ = this->last_azimuth_;
+      this->last_azimuth_ = u16Azimuth;  
+    }
   }
   frame.packet_num++;
   return 0;

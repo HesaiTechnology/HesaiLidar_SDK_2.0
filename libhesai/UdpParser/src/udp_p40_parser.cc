@@ -219,8 +219,10 @@ int UdpP40Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   if (IsNeedFrameSplit(u16Azimuth)) {
     frame.scan_complete = true;
   }
-  this->last_last_azimuth_ = this->last_azimuth_; 
-  this->last_azimuth_ = u16Azimuth;  
+  if (u16Azimuth != this->last_azimuth_) {
+    this->last_last_azimuth_ = this->last_azimuth_; 
+    this->last_azimuth_ = u16Azimuth;  
+  }
   frame.packet_num++;
   return 0;
 }
