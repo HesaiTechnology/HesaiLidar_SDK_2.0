@@ -138,6 +138,18 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     SetThreadNum(param.decoder_param.thread_num);
     /********************************************************************************/
 
+    if (param.input_param.source_type == 1) {
+      ptc_client_ = new (std::nothrow) PtcClient(param.input_param.device_ip_address
+                                                  , param.input_param.ptc_port
+                                                  , false
+                                                  , param.input_param.ptc_mode
+                                                  , 1
+                                                  , param.input_param.certFile
+                                                  , param.input_param.privateKeyFile
+                                                  , param.input_param.caFile
+                                                  , 2000
+                                                  , 2000);
+    }
     // clock_t start_time, end_time;
     // double time_interval = 0;
     UdpPacket udp_packet;
@@ -157,35 +169,6 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     udp_parser_->GetParser()->SetLidarType(param.lidar_type);
     init_finish_[FaultMessParse] = true;
     std::cout << "finish 0: The basic initialisation is complete" << std::endl;
-
-    if (param.input_param.source_type == 1) {
-      ptc_client_ = new (std::nothrow) PtcClient(param.input_param.device_ip_address
-                                                  , param.input_param.ptc_port
-                                                  , false
-                                                  , param.input_param.ptc_mode
-                                                  , 1
-                                                  , param.input_param.certFile
-                                                  , param.input_param.privateKeyFile
-                                                  , param.input_param.caFile
-                                                  , 2000
-                                                  , 2000);
-      init_finish_[PtcInitFinish] = true;
-      std::cout << "finish 1: ptc connection successfully" << std::endl;
-      if (param.input_param.standby_mode != -1) {
-        if(!SetStandbyMode(ptc_client_, param.input_param.standby_mode)) {
-          std::cout << "set standby mode successed!" << std::endl;
-        } else {
-          std::cout << "set standby mode failed!" << std::endl;
-        }
-      }
-      if (param.input_param.speed != -1) {
-        if(!SetSpinSpeed(ptc_client_, param.input_param.speed)) {
-          std::cout << "set speed successed!" << std::endl;
-        } else {
-          std::cout << "set speed failed!" << std::endl;
-        }
-      }
-    }
     
     /***************************Init decoder****************************************/   
     udp_parser_->SetTransformPara(param.decoder_param.transform_param.x, \
@@ -194,12 +177,35 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
                                   param.decoder_param.transform_param.roll, \
                                   param.decoder_param.transform_param.pitch, \
                                   param.decoder_param.transform_param.yaw);
+    udp_parser_->SetPcapPlay(param.decoder_param.pcap_play_synchronization, param.input_param.source_type);
+    udp_parser_->SetFrameAzimuth(param.decoder_param.frame_start_azimuth);
+    udp_parser_->GetParser()->EnablePacketLossTool(param.decoder_param.enable_packet_loss_tool);
+    udp_parser_->GetParser()->EnablePacketTimeLossTool(param.decoder_param.enable_packet_timeloss_tool);
+    udp_parser_->GetParser()->PacketTimeLossToolContinue(param.decoder_param.packet_timeloss_tool_continue);
     switch (param.input_param.source_type)
     {
-    case 1:
-      if (LoadCorrectionForUdpParser() == -1) {
-        std::cout << "---Failed to obtain correction file from lidar!---" << std::endl;
-        LoadCorrectionFile(param.input_param.correction_file_path);
+    case 1: {
+        while (!ptc_client_->IsOpen()) usleep(50000);
+        init_finish_[PtcInitFinish] = true;
+        std::cout << "finish 1: ptc connection successfully" << std::endl;
+        if (param.input_param.standby_mode != -1) {
+          if(!SetStandbyMode(ptc_client_, param.input_param.standby_mode)) {
+            std::cout << "set standby mode successed!" << std::endl;
+          } else {
+            std::cout << "set standby mode failed!" << std::endl;
+          }
+        }
+        if (param.input_param.speed != -1) {
+          if(!SetSpinSpeed(ptc_client_, param.input_param.speed)) {
+            std::cout << "set speed successed!" << std::endl;
+          } else {
+            std::cout << "set speed failed!" << std::endl;
+          }
+        }
+        if (LoadCorrectionForUdpParser() == -1) {
+          std::cout << "---Failed to obtain correction file from lidar!---" << std::endl;
+          LoadCorrectionFile(param.input_param.correction_file_path);
+        }
       }
       break;
     case 2:
@@ -214,11 +220,6 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     init_finish_[PointCloudParse] = true;
     std::cout << "finish 2: The angle calibration file is finished loading" << std::endl;
     /********************************************************************************/
-    udp_parser_->SetPcapPlay(param.decoder_param.pcap_play_synchronization, param.input_param.source_type);
-    udp_parser_->SetFrameAzimuth(param.decoder_param.frame_start_azimuth);
-    udp_parser_->GetParser()->EnablePacketLossTool(param.decoder_param.enable_packet_loss_tool);
-    udp_parser_->GetParser()->EnablePacketTimeLossTool(param.decoder_param.enable_packet_timeloss_tool);
-    udp_parser_->GetParser()->PacketTimeLossToolContinue(param.decoder_param.packet_timeloss_tool_continue);
     res = 0;
     return res;
 }

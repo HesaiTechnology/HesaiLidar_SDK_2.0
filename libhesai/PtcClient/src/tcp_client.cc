@@ -48,6 +48,7 @@ typedef int socklen_t;
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fcntl.h> 
 #endif
 #include <plat_utils.h>
 #include <string.h>
@@ -67,10 +68,9 @@ TcpClient::~TcpClient() {
 }
 
 void TcpClient::Close() {
-  printf("TcpClient::Close()\n");
 
-  m_sServerIP.clear();
-  ptc_port_ = 0;
+  // m_sServerIP.clear();
+  // ptc_port_ = 0;
   m_bLidarConnected = false;
 
   if (m_tcpSock > 0) {
@@ -82,6 +82,93 @@ void TcpClient::Close() {
 #endif
     m_tcpSock = -1;
   }
+}
+
+bool TcpClient::TryOpen(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
+          const char* cert, const char* private_key, const char* ca, uint32_t timeout) {
+  if (IsOpened(true) && m_sServerIP == IPAddr && u16Port == ptc_port_) {
+    return true;
+  }
+  if (IsOpened()) Close();
+  m_sServerIP = IPAddr;
+  ptc_port_ = u16Port;
+  
+#ifdef _MSC_VER
+  WSADATA wsaData;
+  WORD version = MAKEWORD(2, 2);
+  int res = WSAStartup(version, &wsaData);  // win sock start up
+  if (res) {
+      std::cerr << "Initilize winsock error !" << std::endl;
+      return false;
+  }
+#endif  
+  struct sockaddr_in serverAddr;
+
+  m_tcpSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  if ((int)m_tcpSock == -1) { 
+#ifdef _MSC_VER
+    WSACleanup();
+#endif
+    return false;
+  }
+
+  memset(&serverAddr, 0, sizeof(serverAddr));
+  serverAddr.sin_family = AF_INET;
+  serverAddr.sin_port = htons(ptc_port_);
+  if (inet_pton(AF_INET, m_sServerIP.c_str(), &serverAddr.sin_addr) <= 0) {
+    Close();
+    std::cout << __FUNCTION__ << "inet_pton error:" << m_sServerIP.c_str() << std::endl;
+    return false;
+  }
+
+  // 设置非阻塞模式  
+#ifdef _MSC_VER  
+  u_long mode = 1; // 1为非阻塞模式  
+  ioctlsocket(sock, FIONBIO, &mode);  
+#else  
+  int flags = fcntl(m_tcpSock, F_GETFL, 0); 
+  fcntl(m_tcpSock, F_SETFL, flags & O_NONBLOCK);  
+#endif 
+
+  int result = connect(m_tcpSock, (sockaddr*)&serverAddr, sizeof(serverAddr));  
+  if (result < 0) {  
+#ifdef _MSC_VER  
+    if (WSAGetLastError() != WSAEWOULDBLOCK) 
+#else  
+    if (errno != EINPROGRESS)  
+#endif  
+    {
+      std::cout << "socket Connection error." << std::endl;  
+      Close();
+      return false;  
+    }  
+  }
+
+  fd_set writefds;  
+  FD_ZERO(&writefds);  
+  FD_SET(m_tcpSock, &writefds);  
+  struct timeval tv;  
+  tv.tv_sec = timeout; // 超时1秒  
+  tv.tv_usec = 0;   
+  result = select(m_tcpSock + 1, nullptr, &writefds, nullptr, &tv);  
+  if (result <= 0) {  
+    Close();
+    return false;  
+  } 
+  std::cout << __FUNCTION__ << " succeed, IP" << m_sServerIP.c_str() << "port"
+           << ptc_port_ << std::endl;
+  
+#ifdef _MSC_VER  
+  mode = 0; // 0为阻塞模式  
+  ioctlsocket(m_tcpSock, FIONBIO, &mode);  
+#else  
+  flags = fcntl(m_tcpSock, F_GETFL, 0); 
+  fcntl(m_tcpSock, F_SETFL, flags & ~O_NONBLOCK); 
+#endif  
+
+  m_bLidarConnected = true;
+  return true;
 }
 
 bool TcpClient::Open(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
@@ -117,55 +204,35 @@ bool TcpClient::Open() {
 
   m_tcpSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-  if ((int)m_tcpSock == -1) return false;
+  if ((int)m_tcpSock == -1) { 
+#ifdef _MSC_VER
+    WSACleanup();
+#endif
+    return false;
+  }
 
   memset(&serverAddr, 0, sizeof(serverAddr));
 
   serverAddr.sin_family = AF_INET;
   serverAddr.sin_port = htons(ptc_port_);
   if (inet_pton(AF_INET, m_sServerIP.c_str(), &serverAddr.sin_addr) <= 0) {
-#ifdef _MSC_VER
-          closesocket(m_tcpSock);
-#else
-          close(m_tcpSock);
-#endif
-    m_tcpSock = -1;
+    Close();
     std::cout << __FUNCTION__ << "inet_pton error:" << m_sServerIP.c_str() << std::endl;
 
     return false;
   }
 
-  // int retVal = SetTimeout(m_u32RecTimeout, m_u32SendTimeout);
-  int retVal = 0;
-
-  if (retVal == 0) {
-    if (::connect(m_tcpSock, (sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
-      if (EINPROGRESS != errno && EWOULDBLOCK != errno) {
-#ifdef _MSC_VER
-          closesocket(m_tcpSock);
-#else
-          close(m_tcpSock);
-#endif
-        m_tcpSock = -1;
-        std::cout << __FUNCTION__ << "connect failed" << errno << std::endl;
-
-        return false;
-      } else if (EINPROGRESS == errno) {
-        std::cout << "connect lidar time out\n";
-
-        return false;
-      }
-
-      std::cout << "connect lidar fail errno" << errno << std::endl;
-
-      return false;
+  if (::connect(m_tcpSock, (sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
+    if (EINPROGRESS != errno && EWOULDBLOCK != errno) {
+      std::cout << __FUNCTION__ << "connect failed" << errno << std::endl;
+    } else if (EINPROGRESS == errno) {
+      std::cout << "connect lidar time out\n";
     }
-  } else {
-    std::cout << __FUNCTION__ << "setsockopt failed, errno" << errno << std::endl;
-
+    Close();
+    std::cout << "connect lidar fail errno" << errno << std::endl;
     return false;
   }
-
+  
   std::cout << __FUNCTION__ << " succeed, IP" << m_sServerIP.c_str() << "port"
            << ptc_port_ << std::endl;
 
@@ -195,13 +262,7 @@ int TcpClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
     if (len != u16Len && errno != EAGAIN && errno != EWOULDBLOCK &&
         errno != EINTR) {
       std::cout << __FUNCTION__ << "errno" << errno << std::endl;
-#ifdef _MSC_VER
-          closesocket(m_tcpSock);
-#else
-          close(m_tcpSock);
-#endif
-      m_tcpSock = -1;
-      m_bLidarConnected = false;
+      Close();
     }
   }
   return len;
@@ -225,13 +286,7 @@ int TcpClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
     if (len == 0 || (len == -1 && errno != EINTR && errno != EAGAIN &&
                      errno != EWOULDBLOCK)) {
       std::cout << __FUNCTION__ << ", len: " << len << " errno: " << errno << std::endl;
-#ifdef _MSC_VER
-          closesocket(m_tcpSock);
-#else
-          close(m_tcpSock);
-#endif
-      m_tcpSock = -1;
-      m_bLidarConnected = false;
+      Close();
     }
   }
 

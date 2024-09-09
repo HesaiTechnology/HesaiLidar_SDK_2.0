@@ -62,6 +62,8 @@ class TcpSslClient : public ClientBase {
   
   virtual bool Open(std::string IPAddr, uint16_t port, bool bAutoReceive = false, 
             const char* cert = nullptr, const char* private_key = nullptr, const char* ca = nullptr);
+  virtual bool TryOpen(std::string IPAddr, uint16_t port, bool bAutoReceive = false, 
+            const char* cert = nullptr, const char* private_key = nullptr, const char* ca = nullptr, uint32_t timeout = 1);
   bool Open();
   virtual void Close();
   virtual bool IsOpened();
@@ -107,6 +109,9 @@ class TcpSslClient : public ClientBase {
   SSL_CTX* ctx_;
   SOCKET tcpsock_;
   SSL* ssl_;
+  const char* cert_;
+  const char* private_key_;
+  const char* ca_;
 };
 }
 }

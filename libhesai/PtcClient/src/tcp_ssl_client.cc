@@ -40,10 +40,92 @@ typedef int socklen_t;
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fcntl.h> 
 #endif
 using namespace hesai::lidar;
 using std::placeholders::_1;
 using std::placeholders::_2;
+int tcp_try_open(const char* ipaddr, int port, uint32_t timeout) {
+  #ifdef _MSC_VER
+  WSADATA wsaData;
+  WORD version = MAKEWORD(2, 2);
+  int res = WSAStartup(version, &wsaData);  // win sock start up
+  if (res) {
+    std::cerr << "Initilize winsock error !" << std::endl;
+    return -1;
+  }
+#endif  
+  struct sockaddr_in serverAddr;
+  int sockfd;
+  sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+  if ((int)sockfd == -1) { 
+#ifdef _MSC_VER
+    WSACleanup();
+#endif
+    return -1;
+  }
+
+  memset(&serverAddr, 0, sizeof(serverAddr));
+  serverAddr.sin_family = AF_INET;
+  serverAddr.sin_port = htons(port);
+  if (inet_pton(AF_INET, ipaddr, &serverAddr.sin_addr) <= 0) {
+#ifdef _MSC_VER
+    closesocket(sockfd);
+    WSACleanup();
+#else
+    close(sockfd);
+#endif
+    std::cout << __FUNCTION__ << "inet_pton error:" << ipaddr << std::endl;
+    return -1;
+  }
+
+  // 设置非阻塞模式  
+#ifdef _MSC_VER  
+  u_long mode = 1; // 1为非阻塞模式  
+  ioctlsocket(sockfd, FIONBIO, &mode);  
+#else  
+  fcntl(sockfd, F_SETFL, O_NONBLOCK);  
+#endif 
+
+  int result = connect(sockfd, (sockaddr*)&serverAddr, sizeof(serverAddr));  
+  if (result < 0) {  
+#ifdef _MSC_VER  
+    if (WSAGetLastError() != WSAEWOULDBLOCK) 
+#else  
+    if (errno != EINPROGRESS)  
+#endif  
+    {
+      std::cout << "socket Connection error." << std::endl;  
+#ifdef _MSC_VER
+      closesocket(sockfd);
+      WSACleanup();
+#else
+      close(sockfd);
+#endif
+      return -1;  
+    }  
+  }
+
+  fd_set writefds;  
+  FD_ZERO(&writefds);  
+  FD_SET(sockfd, &writefds);  
+  struct timeval tv;  
+  tv.tv_sec = timeout; // 超时1秒  
+  tv.tv_usec = 0;   
+  result = select(sockfd + 1, nullptr, &writefds, nullptr, &tv);  
+  if (result <= 0) {  
+#ifdef _MSC_VER
+    closesocket(sockfd);
+    WSACleanup();
+#else
+    close(sockfd);
+#endif
+    return -1;  
+  } 
+  return sockfd;
+}
+
 int tcp_open(const char* ipaddr, int port) {
 #ifdef _MSC_VER
   WSADATA wsaData;
@@ -68,6 +150,7 @@ int tcp_open(const char* ipaddr, int port) {
   if (inet_pton(AF_INET, ipaddr, &servaddr.sin_addr) <= 0) {
 #ifdef _MSC_VER
           closesocket(sockfd);
+          WSACleanup();
 #else
           close(sockfd);
 #endif
@@ -80,6 +163,7 @@ int tcp_open(const char* ipaddr, int port) {
     printf("connect errno:%d, %s\n",errno,strerror(errno));
 #ifdef _MSC_VER
           closesocket(sockfd);
+          WSACleanup();
 #else
           close(sockfd);
 #endif
@@ -134,10 +218,9 @@ TcpSslClient::~TcpSslClient() {
 }
 
 void TcpSslClient::Close() {
-  printf("TcpSslClient::Close()\n");
 
-  m_sServerIP.clear();
-  ptc_port_ = 0;
+  // m_sServerIP.clear();
+  // ptc_port_ = 0;
   m_bLidarConnected = false;
   if(tcpsock_ > 0) {
 #ifdef _MSC_VER
@@ -163,6 +246,57 @@ bool TcpSslClient::IsOpened(bool bExpectation) {
   return m_bLidarConnected;
 }
 
+bool TcpSslClient::TryOpen(std::string IPAddr, 
+                        uint16_t u16Port,
+                        bool bAutoReceive, 
+                        const char* cert, 
+                        const char* private_key, 
+                        const char* ca,
+                        uint32_t timeout) {
+  if (IsOpened(true) && m_sServerIP == IPAddr && u16Port == ptc_port_) {
+    return true;
+  }
+  if (IsOpened()) Close();
+  m_sServerIP = IPAddr;
+  ptc_port_ = u16Port;
+  cert_ = cert;
+  private_key_ = private_key;
+  ca_ = ca;
+  ctx_ = InitSslClient(cert, private_key, ca);
+  if(ctx_ == NULL) {
+		return false;
+	}
+  tcpsock_ = tcp_try_open(m_sServerIP.c_str(), ptc_port_, timeout);
+  if(tcpsock_ < 0) {
+		printf("Connect to Server Failed!~!~\n");
+    Close();
+    return false;
+	}
+  ssl_ = SSL_new(ctx_);
+  if (ssl_ == NULL) {
+		printf("%s:%d, create ssl failed\n", __func__, __LINE__);
+		Close();
+    return false;
+	}
+
+  SSL_set_fd(ssl_, tcpsock_);
+	if(SSL_connect(ssl_) == 0) {
+		printf("%s:%d, connect ssl failed\n", __func__, __LINE__);
+		Close();
+    return false;
+	}
+
+  if(SSL_get_verify_result(ssl_) != X509_V_OK) {
+		printf("%s:%d, verify ssl failed\n", __func__, __LINE__);
+		Close();
+    return false;
+	}
+
+  printf("TcpSslClient::Open() success!\n");
+  m_bLidarConnected = true;
+  return true;
+}
+
 bool TcpSslClient::Open(std::string IPAddr, 
                         uint16_t u16Port,
                         bool bAutoReceive, 
@@ -182,17 +316,18 @@ bool TcpSslClient::Open(std::string IPAddr,
   Close();
   m_sServerIP = IPAddr;
   ptc_port_ = u16Port;
-
-  ctx_ = InitSslClient(cert, private_key, ca);
-  if(ctx_ == NULL) {
-    printf("%s:%d, create SSL_CTX failed\n", __func__, __LINE__);
-		// ERR_print_errors_fp(stderr);
-		return false;
-	}
+  cert_ = cert;
+  private_key_ = private_key;
+  ca_ = ca;
   return Open();
 }
 
 bool TcpSslClient::Open() {
+  ctx_ = InitSslClient(cert_, private_key_, ca_);
+  if(ctx_ == NULL) {
+    printf("%s:%d, create SSL_CTX failed\n", __func__, __LINE__);
+		return false;
+	}
   tcpsock_ = tcp_open(m_sServerIP.c_str(), ptc_port_);
   if(tcpsock_ < 0) {
 		printf("Connect to Server Failed!~!~\n");

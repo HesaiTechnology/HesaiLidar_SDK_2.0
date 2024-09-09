@@ -243,9 +243,6 @@ struct PacketTimeLossMessage{
 template <typename T_Point>
 class GeneralParser {
  public:
-  using Mutex = std::mutex;
-  using LockS = std::lock_guard<Mutex>;
- public:
   GeneralParser();
   virtual ~GeneralParser();
 

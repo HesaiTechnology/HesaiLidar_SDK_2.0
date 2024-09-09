@@ -34,6 +34,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ptc_client.h"
 
 #include <plat_utils.h>
+#include <unistd.h>
 #ifdef _MSC_VER
 #ifndef MSG_DONTWAIT
 #define MSG_DONTWAIT (0x40)
@@ -52,6 +53,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace hesai::lidar;
 const std::string PtcClient::kLidarIPAddr("192.168.1.201");
 
+PtcClient::~PtcClient() {
+  InitOpen = false;
+  if (nullptr != open_thread_ptr_) {
+    open_thread_ptr_->join();
+    delete open_thread_ptr_;
+    open_thread_ptr_ = nullptr;
+  } 
+}
+
 PtcClient::PtcClient(std::string ip
                     , uint16_t u16TcpPort
                     , bool bAutoReceive
@@ -64,26 +74,41 @@ PtcClient::PtcClient(std::string ip
                     , uint32_t u32SendTimeoutMs)
   : client_mode_(client_mode)
   , ptc_version_(ptc_version) {
-  std::cout << "PtcClient::PtcClient()" << ip.c_str()
-           << u16TcpPort << std::endl;
-  // TcpClient::Open(ip, u16TcpPort);
-  if(client_mode == PtcMode::tcp) {
-    client_ = std::make_shared<TcpClient>();
-    client_->Open(ip, u16TcpPort, bAutoReceive);
-  } else if(client_mode == PtcMode::tcp_ssl) {
-    client_ = std::make_shared<TcpSslClient>();
-    client_->Open(ip, u16TcpPort, bAutoReceive, cert, private_key, ca);
-  }
-  if (u32RecvTimeoutMs != 0 && u32SendTimeoutMs != 0) {
-    std::cout << "u32RecvTimeoutMs " << u32RecvTimeoutMs << std::endl;
-    std::cout << "u32SendTimeoutMs " << u32SendTimeoutMs << std::endl;    
-    client_->SetTimeout(u32RecvTimeoutMs, u32SendTimeoutMs);
-  }
+  lidar_ip_ = ip;
+  tcp_port_ =  u16TcpPort;
+  auto_receive_ = bAutoReceive;
+  cert_  = cert;
+  private_key_ = private_key;
+  ca_ = ca;
+  recv_timeout_ms_ = u32RecvTimeoutMs;
+  send_timeout_ms_ = u32SendTimeoutMs;
 
+  open_thread_ptr_ = new std::thread(std::bind(&PtcClient::TryOpen, this));
   // init ptc parser
   ptc_parser_ = std::make_shared<PtcParser>(ptc_version);
 
   CRCInit();
+}
+
+void PtcClient::TryOpen() {
+  std::cout << "PtcClient::PtcClient()" << lidar_ip_.c_str()
+           << tcp_port_ << std::endl;
+  if(client_mode_ == PtcMode::tcp) {
+    client_ = std::make_shared<TcpClient>();
+    while (InitOpen && !client_->TryOpen(lidar_ip_, tcp_port_, auto_receive_)) {
+      usleep(50000);
+    }
+  } else if(client_mode_ == PtcMode::tcp_ssl) {
+    client_ = std::make_shared<TcpSslClient>();
+    while(InitOpen && !client_->TryOpen(lidar_ip_, tcp_port_, auto_receive_, cert_, private_key_, ca_)) {
+      usleep(50000);
+    }
+  }
+  if (recv_timeout_ms_ != 0 && send_timeout_ms_ != 0) {
+    std::cout << "u32RecvTimeoutMs " << recv_timeout_ms_ << std::endl;
+    std::cout << "u32SendTimeoutMs " << send_timeout_ms_ << std::endl;    
+    client_->SetTimeout(recv_timeout_ms_, send_timeout_ms_);
+  }
 }
 
 bool PtcClient::IsValidRsp(u8Array_t &byteStreamIn) {
@@ -127,6 +152,7 @@ void PtcClient::TcpFlushIn() {
 int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
                                        u8Array_t &byteStreamOut,
                                        uint8_t u8Cmd) {
+  LockS lock(_mutex);
   int ret = 0;
   u8Array_t encoded;
   uint32_t tick = GetMicroTickCount();
