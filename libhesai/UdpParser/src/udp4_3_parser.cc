@@ -155,6 +155,14 @@ Udp4_3Parser<T_Point>::~Udp4_3Parser() { printf("release Udp4_3Parser\n"); }
 
 template<typename T_Point>
 int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket){
+  if (!this->get_correction_file_) {
+    static bool printErrorBool = true;
+    if (printErrorBool) {
+      std::cout << "No available angle calibration files, prohibit parsing of point cloud packages" << std::endl;
+      printErrorBool = false;
+    }
+    return -1;
+  }
   if(udpPacket.is_timeout == true) {
     for(int i = 0; i < 3; i++) {
       int angle = m_PandarAT_corrections.l.start_frame[i] / ANGULAR_RESOLUTION + MARGINAL_ANGLE - this->last_azimuth_;

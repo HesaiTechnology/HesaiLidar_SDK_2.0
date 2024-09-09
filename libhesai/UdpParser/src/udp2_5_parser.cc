@@ -386,6 +386,14 @@ int Udp2_5Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
 template<typename T_Point>
 int Udp2_5Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket)
 {
+  if (!this->get_correction_file_) {
+    static bool printErrorBool = true;
+    if (printErrorBool) {
+      std::cout << "No available angle calibration files, prohibit parsing of point cloud packages" << std::endl;
+      printErrorBool = false;
+    }
+    return -1;
+  }
   if (udpPacket.buffer[0] != 0xEE || udpPacket.buffer[1] != 0xFF ) {
     return -1;
   }
