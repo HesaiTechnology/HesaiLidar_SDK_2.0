@@ -138,37 +138,42 @@ typedef struct _LidarDecodeConfig {
     }
 } LidarDecodeConfig;
 
+#define SENSOR_TIMESTAMP_OFFSET         (0)
+#define SENSOR_TIMESTAMP_LEN            (sizeof(uint64_t) * kMaxPacketNumPerFrame)
+#define AZIMUTH_OFFSET                  (SENSOR_TIMESTAMP_OFFSET + SENSOR_TIMESTAMP_LEN)
+#define AZIMUTH_LEN                     (sizeof(float) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)
+#define ELEVATION_OFFSET                (AZIMUTH_OFFSET + AZIMUTH_LEN)
+#define ELEVATION_LEN                   (sizeof(float) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)
+#define DISTANCES_OFFSET                (ELEVATION_OFFSET + ELEVATION_LEN)
+#define DISTANCES_LEN                   (sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)
+#define REFLECTIVITIES_OFFSET           (DISTANCES_OFFSET + DISTANCES_LEN)
+#define REFLECTIVITIES_LEN              (sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)
+#define CONFIDENCE_OFFSET               (REFLECTIVITIES_OFFSET + REFLECTIVITIES_LEN)
+#define CONFIDENCE_LEN                  (sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)
+#define CHN_INDEX_OFFSET                (CONFIDENCE_OFFSET + CONFIDENCE_LEN)
+#define CHN_INDEX_LEN                   (sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)
+#define MIRROR_INDEX_OFFSET             (CHN_INDEX_OFFSET + CHN_INDEX_LEN)
+#define MIRROR_INDEX_LEN                (sizeof(uint8_t) * kMaxPacketNumPerFrame)
+#define POINTS_OFFSET                   (MIRROR_INDEX_OFFSET + MIRROR_INDEX_LEN)
+
+#define FRAME_DATA_LEN                  (SENSOR_TIMESTAMP_LEN + AZIMUTH_LEN + ELEVATION_LEN + DISTANCES_LEN +   \
+                                        REFLECTIVITIES_LEN + CONFIDENCE_LEN + CHN_INDEX_LEN + MIRROR_INDEX_LEN)
+#define FRAME_DATA_OFFSET               (0)
 template <typename PointT>
 class LidarDecodedFrame
 {
     public:
     LidarDecodedFrame() {
-        total_memory = new uint8_t[sizeof(PointT) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + 
-                                   sizeof(uint64_t) * kMaxPacketNumPerFrame + 
-                                   sizeof(float) * 2 * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket +
-                                   sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + 
-                                   sizeof(uint8_t) * 3 * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket +
-                                   sizeof(uint8_t) * kMaxPacketNumPerFrame
-                                  ];
-        int offset = 0;
-        points = reinterpret_cast <PointT* >(total_memory + offset);
-        offset = sizeof(PointT) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
-        sensor_timestamp = reinterpret_cast<uint64_t* >(total_memory + offset);
-        offset = sizeof(uint64_t) * kMaxPacketNumPerFrame + offset;
-        azimuth = reinterpret_cast<float* >(total_memory + offset);
-        offset = sizeof(float) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
-        elevation = reinterpret_cast<float* >(total_memory + offset);
-        offset = sizeof(float) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
-        distances = reinterpret_cast<uint16_t* >(total_memory + offset);
-        offset = sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
-        reflectivities = reinterpret_cast<uint8_t* >(total_memory + offset);
-        offset = sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
-        confidence = reinterpret_cast<uint8_t* >(total_memory + offset);
-        offset = sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
-        chn_index = reinterpret_cast<uint8_t* >(total_memory + offset);
-        offset = sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket + offset;
-        mirror_index = reinterpret_cast<uint8_t* >(total_memory + offset);
-        offset = sizeof(uint8_t) * kMaxPacketNumPerFrame + offset;
+        total_memory = new uint8_t[FRAME_DATA_LEN + (sizeof(PointT) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)];
+        sensor_timestamp = reinterpret_cast<uint64_t* >(total_memory + SENSOR_TIMESTAMP_OFFSET);
+        azimuth = reinterpret_cast<float* >(total_memory + AZIMUTH_OFFSET);
+        elevation = reinterpret_cast<float* >(total_memory + ELEVATION_OFFSET);
+        distances = reinterpret_cast<uint16_t* >(total_memory + DISTANCES_OFFSET);
+        reflectivities = reinterpret_cast<uint8_t* >(total_memory + REFLECTIVITIES_OFFSET);
+        confidence = reinterpret_cast<uint8_t* >(total_memory + CONFIDENCE_OFFSET);
+        chn_index = reinterpret_cast<uint8_t* >(total_memory + CHN_INDEX_OFFSET);
+        mirror_index = reinterpret_cast<uint8_t* >(total_memory + MIRROR_INDEX_OFFSET);
+        points = reinterpret_cast <PointT* >(total_memory + POINTS_OFFSET);
 
         host_timestamp = 0;
         major_version = 0;

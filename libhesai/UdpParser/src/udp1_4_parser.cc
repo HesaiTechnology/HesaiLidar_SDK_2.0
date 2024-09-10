@@ -48,7 +48,7 @@ Udp1_4Parser<T_Point>::Udp1_4Parser() {
 }
 
 template<typename T_Point>
-Udp1_4Parser<T_Point>::~Udp1_4Parser() { printf("release general parser\n"); }
+Udp1_4Parser<T_Point>::~Udp1_4Parser() { LogInfo("release general parser\n"); }
 
 template<typename T_Point>
 void Udp1_4Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
@@ -80,15 +80,19 @@ void Udp1_4Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
         uselessLine++;
         continue;
       }
-      if (lineStr[lineStr.size() - 1] == '\n'){
+      if (lineStr[lineStr.size() - 1] == '\n') {
         lineStr = lineStr.substr(lineStr.size() - 1);
       }
       if (strList.size() < 17) {
-        std::cout << "invalid input file!" << std::endl;
+        LogError("invalid firetime input file!(list)");
         this->get_firetime_file_ = false;
         return;
       }
       int idx = std::stoi(strList[0]) - 1;
+      if (idx >= kLaserNum || idx < 0) {
+        LogFatal("laser id is wrong in correction file. laser Id: %d", idx);
+        continue;
+      }
       for (int i = 1; i <= 15; i += 2) {
         int a = std::stoi(strList[i]);
         int b = std::stoi(strList[i + 1]);
@@ -97,18 +101,18 @@ void Udp1_4Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
       }
       count++;
       if (count > 128) {
-        std::cout << "Invalid input file!" << std::endl;
+        LogError("invalid firetime input file!(count)");
         this->get_firetime_file_ = false;
         return;
       }
     }
   } else {
-    std::cout << "Open firetime file failed" << std::endl;
+    LogWarning("Open firetime file failed");
     this->get_firetime_file_ = false;
     return;
   }
   this->get_firetime_file_ = true;
-  std::cout << "Open firetime file success!" << std::endl;
+  LogInfo("Open firetime file success!");
   return;
 }
 
@@ -248,7 +252,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   if (!this->get_correction_file_) {
     static bool printErrorBool = true;
     if (printErrorBool) {
-      std::cout << "No available angle calibration files, prohibit parsing of point cloud packages" << std::endl;
+      LogInfo("No available angle calibration files, prohibit parsing of point cloud packages");
       printErrorBool = false;
     }
     return -1;

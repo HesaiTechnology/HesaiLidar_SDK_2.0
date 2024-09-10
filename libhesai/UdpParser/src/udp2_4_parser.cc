@@ -8,14 +8,10 @@ using namespace hesai::lidar;
 template<typename T_Point>
 Udp2_4Parser<T_Point>::Udp2_4Parser() {
   this->get_correction_file_ = false;
-  for (int i = 0; i < CIRCLE; ++i) {
-    this->sin_all_angle_[i] = std::sin(i * 2 * M_PI / CIRCLE);
-    this->cos_all_angle_[i] = std::cos(i * 2 * M_PI / CIRCLE);
-  }
 }
 
 template<typename T_Point>
-Udp2_4Parser<T_Point>::~Udp2_4Parser() { printf("release Udp2_4Parser\n"); }
+Udp2_4Parser<T_Point>::~Udp2_4Parser() { LogInfo("release Udp2_4Parser\n"); }
 
 // The main purpose of this function is to open, read, and parse a lidar calibration file, and print appropriate messages based on the parsing results.
 // This function can read both .bin and .csv files.
@@ -27,10 +23,8 @@ void Udp2_4Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
         std::string extension = lidar_correction_file.substr(length - 4);
         if (extension == ".bin") {
             type = 1; //  .bin
-            printf(".bin\n");
         } else if (extension == ".csv") {
             type = 2; //  .csv
-            printf(".csv\n");
         } else {
             type = 0; //  wrong
             return;
@@ -39,10 +33,10 @@ void Udp2_4Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
   if (type == 1) {
     // print information
     int ret = 0;
-    printf("load correction file from local correction.bin now!\n");
+    LogInfo("load correction file from local correction.bin now!\n");
     std::ifstream fin(lidar_correction_file);
     if (fin.is_open()) {
-      printf("Open correction file success!\n");
+      LogDebug("Open correction file success!\n");
       int length = 0;
       std::string str_lidar_calibration;
       fin.seekg(0, std::ios::end);
@@ -56,13 +50,13 @@ void Udp2_4Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
       ret = LoadCorrectionString(buffer);
       delete[] buffer;
       if (ret != 0) {
-        printf("Parse local Correction file Error!\n");
+        LogError("Parse local Correction file Error!\n");
       } else {
-        printf("Parse local Correction file Success!!!\n");
+        LogInfo("Parse local Correction file Success!!!\n");
         this->get_correction_file_ = true;
       }
     } else { // open failed
-      printf("Open correction file failed\n");
+      LogError("Open correction file failed\n");
       return;
     }
   } 
@@ -70,15 +64,17 @@ void Udp2_4Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
   if (type == 2) {
     // print information
     int ret = 0;
-    printf("load correction file from local correction.csv now!\n");
+    LogInfo("load correction file from local correction.csv now!\n");
     ret = LoadCorrectionString_csv(lidar_correction_file);
     if (1 == ret) {
-      printf("Parse local Correction file Success!\n");
+      LogInfo("Parse local Correction file Success!\n");
       this->get_correction_file_ = true;
     } else {
-      printf("Parse local Correction file faild!\n");
+      LogError("Parse local Correction file faild!\n");
     }
+    return;
   }
+  LogWarning("Invalid suffix name");
 }
 
 // csv ----> correction
@@ -87,7 +83,7 @@ int  Udp2_4Parser<T_Point>::LoadCorrectionString_csv(std::string lidar_correctio
 {
     std::ifstream file(lidar_correction_file);
     if (!file.is_open()) {
-        printf("open the .csv faild\n");
+        LogError("open the .csv faild");
         return 0;
     }
     std::vector<float> column2;
@@ -114,9 +110,12 @@ int  Udp2_4Parser<T_Point>::LoadCorrectionString_csv(std::string lidar_correctio
     m_ET_corrections.channel_number = 0x40;
     m_ET_corrections.angle_division = 0x01;
   
-    for (size_t i = 0; i < column3.size(); i++) {
+    for (size_t i = 0; i < column3.size() && i < ET_MAX_CHANNEL_NUM_24; i++) {
       m_ET_corrections.elevations[i] = column2[i];
       m_ET_corrections.azimuths[i] = column3[i];
+    }
+    if(column3.size() > ET_MAX_CHANNEL_NUM_24) {
+      LogError("correction.csv have invalid data, max line:%u", column3.size());
     }
     return 1;
 }
@@ -134,6 +133,10 @@ int Udp2_4Parser<T_Point>::LoadCorrectionString(char *data) {
           p += sizeof(ETCorrections_v4_Header);
           auto channel_num = m_ET_corrections.channel_number;
           uint16_t division = m_ET_corrections.angle_division;
+          if ((channel_num > ET_MAX_CHANNEL_NUM_24 - 3) || division == 0) {
+            LogError("data error: channel_num is %u, division is %u", channel_num, division);
+            return -1;
+          }
           memcpy((void *)&m_ET_corrections.raw_azimuths, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;
@@ -143,11 +146,9 @@ int Udp2_4Parser<T_Point>::LoadCorrectionString(char *data) {
           m_ET_corrections.elevations[0] = ((float)(m_ET_corrections.apha)) / division;
           m_ET_corrections.elevations[1] = ((float)(m_ET_corrections.beta)) / division;
           m_ET_corrections.elevations[2] = ((float)(m_ET_corrections.gamma)) / division;
-          printf("apha:%f, beta:%f, gamma:%f\n", m_ET_corrections.elevations[0], m_ET_corrections.elevations[1], m_ET_corrections.elevations[2]);
           for (int i = 0; i < channel_num; i++) {
             m_ET_corrections.azimuths[i + 3] = ((float)(m_ET_corrections.raw_azimuths[i])) / division;
             m_ET_corrections.elevations[i + 3] = ((float)(m_ET_corrections.raw_elevations[i])) / division;
-            printf("%d %f %f \n",i, m_ET_corrections.azimuths[i + 3], m_ET_corrections.elevations[i + 3]);
           }
           memcpy((void*)&m_ET_corrections.SHA_value, p, 32);
           // successed
@@ -155,14 +156,14 @@ int Udp2_4Parser<T_Point>::LoadCorrectionString(char *data) {
           return 0;
         } break;
         default:
-          printf("min_version is wrong!\n");
+          LogError("min_version is wrong!\n");
           break;
       }
     } else {
         return -1;
     }
   } catch (const std::exception &e) {
-    std::cerr << e.what() << '\n';
+    LogFatal("load correction error: %s", e.what());
     return -1;
   }
   return -1;
@@ -181,7 +182,7 @@ bool Udp2_4Parser<T_Point>::IsNeedFrameSplit(uint16_t nowid) {
 template<typename T_Point>
 int16_t Udp2_4Parser<T_Point>::GetVecticalAngle(int channel) {
   if (this->get_correction_file_ == false) {
-    printf ("GetVecticalAngle: no correction file get, Error\n");
+    LogError("GetVecticalAngle: no correction file get, Error");
     return -1;
   }
   return m_ET_corrections.elevations[channel];
@@ -245,7 +246,7 @@ int Udp2_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   if (!this->get_correction_file_) {
     static bool printErrorBool = true;
     if (printErrorBool) {
-      std::cout << "No available angle calibration files, prohibit parsing of point cloud packages" << std::endl;
+      LogInfo("No available angle calibration files, prohibit parsing of point cloud packages");
       printErrorBool = false;
     }
     return -1;

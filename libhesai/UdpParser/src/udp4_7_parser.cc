@@ -18,12 +18,12 @@ Udp4_7Parser<T_Point>::Udp4_7Parser() {
 }
 
 template<typename T_Point>
-Udp4_7Parser<T_Point>::~Udp4_7Parser() { printf("release Udp4_7Parser\n"); }
+Udp4_7Parser<T_Point>::~Udp4_7Parser() { LogInfo("release Udp4_7Parser"); }
 
 template<typename T_Point>
 int16_t Udp4_7Parser<T_Point>::GetVecticalAngle(int channel) {
   if (this->get_correction_file_ == false) {
-    printf ("GetVecticalAngle: no correction file get, Error");
+    LogError("GetVecticalAngle: no correction file get, Error");
     return -1;
   }
   return m_ATX_corrections.elevation[channel];
@@ -41,10 +41,10 @@ bool Udp4_7Parser<T_Point>::IsNeedFrameSplit(uint16_t frame_id) {
 template<typename T_Point>
 void Udp4_7Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file) {
   int ret = 0;
-  printf("load correction file from local correction.dat now!\n");
+  LogInfo("load correction file from local correction.dat now!");
   std::ifstream fin(lidar_correction_file);
   if (fin.is_open()) {
-    printf("Open correction file success\n");
+    LogDebug("Open correction file success");
     int length = 0;
     std::string str_lidar_calibration;
     fin.seekg(0, std::ios::end);
@@ -57,12 +57,12 @@ void Udp4_7Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
     ret = LoadCorrectionString(buffer);
     delete[] buffer;
     if (ret != 0) {
-      printf("Parse local Correction file Error\n");
+      LogError("Parse local Correction file Error");
     } else {
-      printf("Parse local Correction file Success!!!\n");
+      LogInfo("Parse local Correction file Success!!!");
     }
   } else {
-    printf("Open correction file failed\n");
+    LogError("Open correction file failed");
     return;
   }
 }
@@ -79,6 +79,10 @@ int Udp4_7Parser<T_Point>::LoadCorrectionString(char *data) {
           auto channel_num = m_ATX_corrections.header.channel_number;
           uint16_t division = m_ATX_corrections.header.angle_division;
           p += sizeof(ATXCorrectionsHeader);
+          if (channel_num > ATX_LASER_NUM || division == 0) {
+            LogError("data error: channel_num is %u, division is %u", channel_num, division);
+            return -1;
+          }
           memcpy((void *)&m_ATX_corrections.raw_azimuths, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;
@@ -100,6 +104,10 @@ int Udp4_7Parser<T_Point>::LoadCorrectionString(char *data) {
           auto channel_num = m_ATX_corrections.header.channel_number;
           uint16_t division = m_ATX_corrections.header.angle_division;
           p += sizeof(ATXCorrectionsHeader);
+          if (channel_num > ATX_LASER_NUM || division == 0) {
+            LogError("data error: channel_num is %u, division is %u", channel_num, division);
+            return -1;
+          }
           memcpy((void *)&m_ATX_corrections.raw_azimuths_even, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;       
@@ -125,6 +133,10 @@ int Udp4_7Parser<T_Point>::LoadCorrectionString(char *data) {
           auto channel_num = m_ATX_corrections.header.channel_number;
           uint16_t division = m_ATX_corrections.header.angle_division;
           p += sizeof(ATXCorrectionsHeader);
+          if (channel_num > ATX_LASER_NUM || division == 0) {
+            LogError("data error: channel_num is %u, division is %u", channel_num, division);
+            return -1;
+          }
           memcpy((void *)&m_ATX_corrections.raw_azimuths_even, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;       
@@ -157,7 +169,7 @@ int Udp4_7Parser<T_Point>::LoadCorrectionString(char *data) {
     }
     return -1;
   } catch (const std::exception &e) {
-    std::cerr << e.what() << '\n';
+    LogFatal("load correction error: %s", e.what());
     return -1;
   }
   return -1;
@@ -182,11 +194,11 @@ void Udp4_7Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
       
     }
     this->get_firetime_file_ = true;
-    std::cout << "Open firetime file success!" << std::endl;
+    LogInfo("Open firetime file success!");
     inFile.close();
     return;
   } else {
-    std::cout << "Open firetime file failed" << std::endl;
+    LogWarning("Open firetime file failed");
     this->get_firetime_file_ = false;
     return;
   }
@@ -221,10 +233,10 @@ int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
           continue;
         }
       }
-      float xyDistance = distance * m_ATX_corrections.cos_map[(elevation)];
-      float x = xyDistance * m_ATX_corrections.sin_map[(azimuth)];
-      float y = xyDistance * m_ATX_corrections.cos_map[(azimuth)];
-      float z = distance * m_ATX_corrections.sin_map[(elevation)];
+      float xyDistance = distance * this->cos_all_angle_[(elevation)];
+      float x = xyDistance * this->sin_all_angle_[(azimuth)];
+      float y = xyDistance * this->cos_all_angle_[(azimuth)];
+      float z = distance * this->sin_all_angle_[(elevation)];
       this->TransformPoint(x, y, z);
       setX(frame.points[point_index], x);
       setY(frame.points[point_index], y);
@@ -244,7 +256,7 @@ int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   if (!this->get_correction_file_) {
     static bool printErrorBool = true;
     if (printErrorBool) {
-      std::cout << "No available angle calibration files, prohibit parsing of point cloud packages" << std::endl;
+      LogInfo("No available angle calibration files, prohibit parsing of point cloud packages");
       printErrorBool = false;
     }
     return -1;

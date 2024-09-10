@@ -240,7 +240,7 @@ void UdpParser<T_Point>::CreatGeneralParser(const UdpPacket& packet) {
     return;
   }
   if (packet.buffer[0] != 0xEE || packet.buffer[1] != 0xFF) {
-    printf("Packet with invaild delimiter\n");
+    LogWarning("Packet with invaild delimiter\n");
     return;
   }
   uint8_t UdpMajorVersion = packet.buffer[2];
@@ -432,7 +432,7 @@ void UdpParser<T_Point>::SetFrameAzimuth(float frame_start_azimuth) {
   if (parser_ != nullptr) {
     parser_->SetFrameAzimuth(frame_start_azimuth);
   } else {
-    printf("parser is nullptr\n");
+    LogWarning("parser is nullptr\n");
   }
   return;
 }

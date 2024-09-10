@@ -26,6 +26,7 @@ TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF TH
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 #include <plat_utils.h>
+#include "logger.h"
 static const int kTimeStrLen = 1000;
 #ifdef _MSC_VER
 #define EPOCHFILETIME (116444736000000000UL)
@@ -41,16 +42,16 @@ static const int kTimeStrLen = 1000;
 #ifdef _MSC_VER
 void SetThreadPriorityWin(int priority) {
   auto handle = GetCurrentThread();
-  printf("set thread %lu, priority %d\n",std::this_thread::get_id(),
+  LogInfo("set thread %lu, priority %d",std::this_thread::get_id(),
         priority);
   SetThreadPriority(handle, priority);
   int prior = GetThreadPriority(handle);
-  printf("get thead %lu, priority %d\n", std::this_thread::get_id(),
+  LogInfo("get thead %lu, priority %d", std::this_thread::get_id(),
         prior);
 }
 #else
 void SetThreadPriority(int policy, int priority) {
-  printf("set thread %lu, tid %ld, policy %d and priority %d\n", pthread_self(),
+  LogInfo("set thread %lu, tid %ld, policy %d and priority %d", pthread_self(),
          gettid(), policy, priority);
   sched_param param;
   param.sched_priority = priority;
@@ -58,7 +59,7 @@ void SetThreadPriority(int policy, int priority) {
 
   int ret_policy;
   pthread_getschedparam(pthread_self(), &ret_policy, &param);
-  printf("get thead %lu, tid %ld, policy %d and priority %d\n", pthread_self(),
+  LogInfo("get thead %lu, tid %ld, policy %d and priority %d", pthread_self(),
          gettid(), ret_policy, param.sched_priority);
 }
 #endif
@@ -159,13 +160,13 @@ int GetAnglesFromFile(
   FILE* pFile = fopen(sFile.c_str(), "r");
 
   if (NULL == pFile) {
-    printf("cannot open the angle file, please check: %s\n", sFile.c_str());
+    LogError("cannot open the angle file, please check: %s", sFile.c_str());
     return 1;
   }
 
   char sContent[255] = {0};
   if (fgets(sContent, 255, pFile) == NULL) { // skip first line
-    printf("Failed to read from file\n");
+    LogError("Failed to read from file");
     fclose(pFile);
     return 1;
   } 
@@ -173,7 +174,7 @@ int GetAnglesFromFile(
   while (!feof(pFile)) {
     memset(sContent, 0, 255);
     if (fgets(sContent, 255, pFile) == NULL) {
-      printf("Failed to read from file\n");
+      LogError("Failed to read from file");
       fclose(pFile);
       return 1;
     }

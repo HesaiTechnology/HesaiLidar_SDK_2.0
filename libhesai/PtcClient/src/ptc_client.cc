@@ -91,8 +91,7 @@ PtcClient::PtcClient(std::string ip
 }
 
 void PtcClient::TryOpen() {
-  std::cout << "PtcClient::PtcClient()" << lidar_ip_.c_str()
-           << tcp_port_ << std::endl;
+  LogInfo("PtcClient::PtcClient() %s %u", lidar_ip_.c_str(), tcp_port_);
   if(client_mode_ == PtcMode::tcp) {
     client_ = std::make_shared<TcpClient>();
     while (InitOpen && !client_->TryOpen(lidar_ip_, tcp_port_, auto_receive_)) {
@@ -105,8 +104,8 @@ void PtcClient::TryOpen() {
     }
   }
   if (recv_timeout_ms_ != 0 && send_timeout_ms_ != 0) {
-    std::cout << "u32RecvTimeoutMs " << recv_timeout_ms_ << std::endl;
-    std::cout << "u32SendTimeoutMs " << send_timeout_ms_ << std::endl;    
+    LogInfo("u32RecvTimeoutMs %u", recv_timeout_ms_);
+    LogInfo("u32SendTimeoutMs %u", send_timeout_ms_);    
     client_->SetTimeout(recv_timeout_ms_, send_timeout_ms_);
   }
 }
@@ -141,7 +140,7 @@ void PtcClient::TcpFlushIn() {
   do {
     len = client_->Receive(u8Buf.data(), u8Buf.size(), MSG_DONTWAIT);
     if (len > 0) {
-      std::cout << "TcpFlushIn, len" << len << std::endl;
+      std::cout << "TcpFlushIn, len " << len << std::endl;
       for(size_t i = 0; i<u8Buf.size(); i++) {
         printf("%x ", u8Buf[i]);
       }
@@ -204,15 +203,13 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
     }
     //因超时退出而导致数据未接收完全
     if (nLeft > 0) {
-      // std::cout << "PtcClient::QueryCommand, invalid Header, nLeft:"
-      //          << nLeft << ", u8HeaderBuf:" << std::hex << u8HeaderBuf;
       ret = -1;
     } else {
       //开始接收body
       if(ptc_version_ == 1) {
         PTCHeader_1_0 *pPTCHeader = reinterpret_cast<PTCHeader_1_0 *>(u8HeaderBuf.data());
         if (!pPTCHeader->IsValidReturnCode() || pPTCHeader->cmd_ != u8Cmd) {
-          std::cout << "PtcClient::QueryCommand,RspCode invalid:" << pPTCHeader->return_code_ << ", u8HeaderBuf: " << std::endl;
+          LogWarning("PtcClient::QueryCommand, RspCode invalid:%u", pPTCHeader->return_code_);
           ret = -1;
         } else {
           nPayLoadLen = pPTCHeader->GetPayloadLen();
@@ -220,7 +217,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
       } else {
         PTCHeader_2_0 *pPTCHeader = reinterpret_cast<PTCHeader_2_0 *>(u8HeaderBuf.data());
         if (!pPTCHeader->IsValidReturnCode() || pPTCHeader->cmd_ != u8Cmd) {
-          std::cout << "PtcClient::QueryCommand,RspCode invalid:" << pPTCHeader->return_code_ << ", u8HeaderBuf: " << std::endl;
+          LogWarning("PtcClient::QueryCommand,RspCode invalid:%u", pPTCHeader->return_code_);
           ret = -1;
         } else {
           nPayLoadLen = pPTCHeader->GetPayloadLen();
@@ -228,12 +225,11 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
       }
     }
   }
-  // std::cout << "nPayLoadLen = " << nPayLoadLen << std::endl;
   if (ret == 0 && nPayLoadLen > 0) {
     //对payLoad进行一个判断，避免负载过长申请过大的空间 目前指定为10K
     const int kMaxPayloadBuffSize = 10240;
     if (nPayLoadLen > kMaxPayloadBuffSize)
-      std::cout << "PtcClient::QueryCommand, warning, nPayLoadLen too large:" << nPayLoadLen << std::endl;
+      LogWarning("PtcClient::QueryCommand, warning, nPayLoadLen too large:%d", nPayLoadLen);
 
     // tmp code to allow LiDAR bug
     // const int kExtraBufLen = 4;
@@ -253,9 +249,6 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
     }
 
     if (nLeft > 0) {
-      // std::cout << "PtcClient::QueryCommand,Body "
-      //           <<"incomplete:nPayLoadLen:"
-      //           << nPayLoadLen << " nLeft:" << nLeft << std::endl;
       ret = -1;
     } else {
       //将收到的bodyBuf拷贝到最终要传出的buf
@@ -265,17 +258,12 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
     }
   }
 
-  // std::cout << "PtcClient::QueryCommand,rsp, header:" << std::hex
-  //          << u8HeaderBuf << "byteStreamOut:" << byteStreamOut;
-
-  printf("exec time: %fms\n", (GetMicroTickCount() - tick) / 1000.f);
+  LogDebug("exec time: %fms", (GetMicroTickCount() - tick) / 1000.f);
 
   return ret;
 }
 
 int PtcClient::SendCommand(u8Array_t &byteStreamIn, uint8_t u8Cmd) {
-  // std::cout << "PtcClient::SendCommand, cmd:" << u8Cmd
-  //          << "data:" << std::hex << byteStreamIn;
 
   u8Array_t byteStreamOut;
 
@@ -295,13 +283,10 @@ u8Array_t PtcClient::GetCorrectionInfo() {
   ret = this->QueryCommand(dataIn, dataOut,
                            kPTCGetLidarCalibration);
 
-  // ret = this->QueryCommand(dataIn, dataOut,
-  //                          PtcClient::kPTCGetInventoryInfo);
-
   if (ret == 0 && !dataOut.empty()) {
-    std::cout << "Read correction file from lidar success" << std::endl;
+    LogInfo("Read correction file from lidar success");
   } else {
-    std::cout << "Read correction file from lidar fail" << std::endl;
+    LogWarning("Read correction file from lidar fail");
   }
 
   return dataOut;
@@ -400,8 +385,10 @@ int PtcClient::GetCorrectionInfo(u8Array_t &dataOut) {
                            kPTCGetLidarCalibration);
 
   if (ret == 0 && !dataOut.empty()) {
+    LogInfo("Read correction file from lidar success");
     return 0;
   } else {
+    LogWarning("Read correction file from lidar fail");
     return -1;
   }
 }

@@ -8,24 +8,20 @@ using namespace hesai::lidar;
 template<typename T_Point>
 Udp2_6Parser<T_Point>::Udp2_6Parser() {
   this->get_correction_file_ = false;
-  for (int i = 0; i < CIRCLE; ++i) {
-    this->sin_all_angle_[i] = std::sin(i * 2 * M_PI / CIRCLE);
-    this->cos_all_angle_[i] = std::cos(i * 2 * M_PI / CIRCLE);
-  }
 }
 
 template<typename T_Point>
-Udp2_6Parser<T_Point>::~Udp2_6Parser() { printf("release Udp2_6Parser\n"); }
+Udp2_6Parser<T_Point>::~Udp2_6Parser() { LogInfo("release Udp2_6Parser"); }
 
 // The main purpose of this function is to open, read, and parse a lidar calibration file, and print appropriate messages based on the parsing results.
 // This function can read both .bin and .csv files.
 template<typename T_Point>
 void Udp2_6Parser<T_Point>::LoadCorrectionFile(std::string correction_path) {
   int ret = 0;
-  printf("load correction file from local correction file now!\n");
+  LogInfo("load correction file from local correction file now!");
   std::ifstream fin(correction_path);
   if (fin.is_open()) {
-    printf("Open correction file success\n");
+    LogDebug("Open correction file success");
     int length = 0;
     std::string str_lidar_calibration;
     fin.seekg(0, std::ios::end);
@@ -37,13 +33,12 @@ void Udp2_6Parser<T_Point>::LoadCorrectionFile(std::string correction_path) {
     str_lidar_calibration = buffer;
     ret = LoadCorrectionString(buffer);
     if (ret != 0) {
-      printf("Parse local Correction file Error\n");
-    } else {
-      
-      printf("Parse local Correction file Success!!!\n");
+      LogError("Parse local Correction file Error");
+    } else {  
+      LogInfo("Parse local Correction file Success!!!");
     }
   } else {
-    printf("Open correction file failed\n");
+    LogError("Open correction file failed");
     return;
   }
 }
@@ -96,10 +91,12 @@ int  Udp2_6Parser<T_Point>::LoadCorrectionCsvData(char *correction_string)
     std::getline(ss, subline, ',');
     std::stringstream(subline) >> azimuth;
 
-    if (laserId != lineCount || laserId >= MAX_LASER_NUM) {
-      std::cout << "laser id is wrong in correction file. laser Id:"
-                  << laserId << ", line" << lineCount << std::endl;
-      // return -1;
+    if (laserId > MAX_LASER_NUM || laserId <= 0) {
+      LogFatal("laser id is wrong in correction file. laser Id: %d, line: %d", laserId, lineCount);
+      continue;
+    }
+    if (laserId != lineCount) {
+      LogError("laser id is wrong in correction file. laser Id: %d, line: %d", laserId, lineCount);
     }
     elevation_list[laserId - 1] = elevation;
     azimuth_list[laserId - 1] = azimuth;
@@ -108,7 +105,7 @@ int  Udp2_6Parser<T_Point>::LoadCorrectionCsvData(char *correction_string)
   for (int i = 0; i < lineCount; ++i) {
     corrections_.azimuths[i] = azimuth_list[i];
     corrections_.elevations[i] = elevation_list[i];
-    // printf("%d %f %f \n",i, corrections_.azimuths[i], corrections_.elevations[i]);
+    LogDebug("%d %f %f \n", i, corrections_.azimuths[i], corrections_.elevations[i]);
   }
   this->get_correction_file_ = true;
   return 0;
@@ -130,6 +127,10 @@ int Udp2_6Parser<T_Point>::LoadCorrectionDatData(char *data) {
           p += sizeof(ETCorrectionsHeader_V1V2);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
+          if ((channel_num > ET_MAX_CHANNEL_NUM - 3) || division == 0) {
+            LogError("data error: channel_num is %u, division is %u", channel_num, division);
+            return -1;
+          }
           memcpy((void *)&corrections_.raw_azimuths, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;
@@ -139,11 +140,11 @@ int Udp2_6Parser<T_Point>::LoadCorrectionDatData(char *data) {
           corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
           corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
           corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;
-          // printf("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
+          LogDebug("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
           for (int i = 0; i < channel_num; i++) {
             corrections_.azimuths[i + 3] = ((float)(corrections_.raw_azimuths[i])) / division;
             corrections_.elevations[i + 3] = ((float)(corrections_.raw_elevations[i])) / division;
-            printf("%d %f %f \n",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
+            LogDebug("%d %f %f",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
           }
           
           memcpy((void*)&corrections_.SHA_value, p, 32);
@@ -158,6 +159,10 @@ int Udp2_6Parser<T_Point>::LoadCorrectionDatData(char *data) {
           p += sizeof(ETCorrectionsHeader_V1V2);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
+          if ((channel_num > ET_MAX_CHANNEL_NUM - 3) || division == 0) {
+            LogError("data error: channel_num is %u, division is %u", channel_num, division);
+            return -1;
+          }
           memcpy((void *)&corrections_.raw_azimuths, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;
@@ -167,11 +172,11 @@ int Udp2_6Parser<T_Point>::LoadCorrectionDatData(char *data) {
           corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
           corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
           corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;
-          // printf("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
+          LogDebug("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
           for (int i = 0; i < channel_num; i++) {
             corrections_.azimuths[i + 3] = ((float)(corrections_.raw_azimuths[i])) / division;
             corrections_.elevations[i + 3] = ((float)(corrections_.raw_elevations[i])) / division;
-            printf("%d %f %f \n",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
+            LogDebug("%d %f %f \n",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
           }
           corrections_.azimuth_adjust_interval = *((char*)p);
           p = p + 1;
@@ -189,14 +194,14 @@ int Udp2_6Parser<T_Point>::LoadCorrectionDatData(char *data) {
           return 0;
         } break;
         default:
-          printf("min_version is wrong!\n");
+          LogWarning("min_version is wrong!\n");
           break;
       }
     } else {
         return -1;
     }
   } catch (const std::exception &e) {
-    std::cerr << e.what() << '\n';
+    LogFatal("load correction error: %s", e.what());
     return -1;
   }
   return -1;
@@ -215,7 +220,7 @@ bool Udp2_6Parser<T_Point>::IsNeedFrameSplit(uint16_t nowid) {
 template<typename T_Point>
 int16_t Udp2_6Parser<T_Point>::GetVecticalAngle(int channel) {
   if (this->get_correction_file_ == false) {
-    printf ("GetVecticalAngle: no correction file get, Error\n");
+    LogError("GetVecticalAngle: no correction file get, Error");
     return -1;
   }
   return corrections_.elevations[channel];
@@ -283,7 +288,7 @@ int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   if (!this->get_correction_file_) {
     static bool printErrorBool = true;
     if (printErrorBool) {
-      std::cout << "No available angle calibration files, prohibit parsing of point cloud packages" << std::endl;
+      LogInfo("No available angle calibration files, prohibit parsing of point cloud packages");
       printErrorBool = false;
     }
     return -1;

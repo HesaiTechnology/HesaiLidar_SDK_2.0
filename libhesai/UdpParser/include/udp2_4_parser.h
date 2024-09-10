@@ -28,7 +28,7 @@ namespace hesai
       uint8_t reserved1;
       uint8_t reserved2;
       uint8_t channel_number;
-      uint8_t mirror_nummber_reserved3;
+      uint8_t mirror_number_reserved3;
       uint16_t angle_division;
       int16_t apha;
       int16_t beta;
@@ -46,7 +46,7 @@ namespace hesai
     uint8_t reserved1;
     uint8_t reserved2;
     uint8_t channel_number;
-    uint8_t mirror_nummber_reserved3;
+    uint8_t mirror_number_reserved3;
     uint16_t angle_division;
     int16_t apha;
     int16_t beta;

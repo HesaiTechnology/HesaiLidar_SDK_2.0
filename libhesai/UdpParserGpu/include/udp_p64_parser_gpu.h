@@ -53,10 +53,7 @@ class UdpP64ParserGpu: public GeneralParserGpu<T_Point>{
  private:
   float* channel_azimuths_cu_;
   float* channel_elevations_cu_;
-  float* raw_azimuths_cu_;
-  uint16_t* raw_distances_cu_;
-  uint8_t* raw_reflectivities_cu_;
-  uint64_t* raw_sensor_timestamp_cu_;
+  uint8_t* frame_data_cu_;
  public:
   UdpP64ParserGpu();
   ~UdpP64ParserGpu();

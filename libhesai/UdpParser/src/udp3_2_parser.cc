@@ -41,7 +41,7 @@ Udp3_2Parser<T_Point>::Udp3_2Parser() {
 }
 
 template<typename T_Point>
-Udp3_2Parser<T_Point>::~Udp3_2Parser() { printf("release general parser\n"); }
+Udp3_2Parser<T_Point>::~Udp3_2Parser() { LogInfo("release general parser\n"); }
 
 template<typename T_Point>
 int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
@@ -51,7 +51,7 @@ int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
   std::string line;
   // first line sequence,chn id,firetime/us
   if (std::getline(fin, line)) {  
-    printf("Parse Lidar firetime now...\n");
+    LogInfo("Parse Lidar firetime now...\n");
   }
   std::vector<std::string> firstLine;
   split_string(firstLine, line, ',');
@@ -67,6 +67,10 @@ int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
     std::vector<std::string> loopNumLine;
     split_string(loopNumLine, line, ',');
     int loopNum = atoi(loopNumLine[3].c_str());
+    if (loopNum > HS_LIDAR_QT128_LOOP_NUM) {
+      LogError("firetimes loop num is error : %d", loopNum);
+      return -1;
+    }
     std::getline(fin, line);
     for (int i = 0; i < HS_LIDAR_QT128_LASER_NUM; i++) {
       std::getline(fin, line);
@@ -75,17 +79,19 @@ int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
       for (int j = 0; j < loopNum; j++) {
         if ((int)ChannelLine.size() == loopNum * 2) {
           int laserId = atoi(ChannelLine[j * 2].c_str()) - 1;
-          if (laserId >= 0)
-          firetimes[j][laserId] = std::stof(ChannelLine[j * 2 + 1].c_str());
+          if (laserId >= 0 && laserId < HS_LIDAR_QT128_LASER_NUM)
+            firetimes[j][laserId] = std::stof(ChannelLine[j * 2 + 1].c_str());
+          else 
+            LogError("firetimes laserId is error : %d", laserId);
         } else {
-          std::cout << "loop num is not equal to the first channel line\n";
+          LogError("loop num is not equal to the first channel line");
           return -1;
         }
       }
     }
     qt128_firetime_ = firetimes;
   } else {
-    std::cout << "firetime file delimiter is wrong \n";
+    LogError("firetime file delimiter is wrong");
     return -1;
   }
   return 0;
@@ -105,10 +111,10 @@ void Udp3_2Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
     ret = LoadFiretimesString(buffer);
     delete[] buffer;
     if (ret != 0) {
-      std::cout << "Parse local firetimes file Error\n";
+      LogError("Parse local firetimes file Error");
     }
   } else {
-    std::cout << "Open firetimes file failed\n";
+    LogError("Open firetimes file failed");
     return;
   }
 }
@@ -127,7 +133,7 @@ int Udp3_2Parser<T_Point>::LoadChannelConfigString(char *channel_config_content)
         std::stoi(versionLine[1].c_str());
     pandarQT_channel_config_.min_version = std::stoi(versionLine[2].c_str());
   } else {
-    std::cout << "channel config file delimiter is wrong\n";
+    LogError("channel config file delimiter is wrong");
     return -1;
   }
   std::getline(ifs, line);
@@ -137,8 +143,8 @@ int Udp3_2Parser<T_Point>::LoadChannelConfigString(char *channel_config_content)
   pandarQT_channel_config_.m_u8BlockNum = std::stoi(channelNumLine[3].c_str());
   if (pandarQT_channel_config_.laser_num <= 0 ||
       pandarQT_channel_config_.m_u8BlockNum <= 0) {
-    std::cout << "LaserNum:" << pandarQT_channel_config_.laser_num
-                << " BlockNum:" << pandarQT_channel_config_.m_u8BlockNum << std::endl;
+    LogError("LaserNum: %u BlockNum: %u", pandarQT_channel_config_.laser_num
+                , pandarQT_channel_config_.m_u8BlockNum);
     return -1;
   }
   std::getline(ifs, line);
@@ -160,7 +166,7 @@ int Udp3_2Parser<T_Point>::LoadChannelConfigString(char *channel_config_content)
         pandarQT_channel_config_.m_vChannelConfigTable[j][i] =
             std::stoi(ChannelLine[j].c_str());
       } else {
-        std::cout << "loop num is not equal to the first channel line" << std::endl;
+        LogError("loop num is not equal to the first channel line");
         return -1;
       }
     }
@@ -185,10 +191,10 @@ void Udp3_2Parser<T_Point>::LoadChannelConfigFile(std::string channel_config_pat
     ret = LoadChannelConfigString(buffer);
     delete[] buffer;
     if (ret != 0) {
-      std::cout << "Parse local channel congfig file Error" << std::endl;
+      LogError("Parse local channel congfig file Error");
     }
   } else {
-    std::cout << "Open channel congfig file failed" << std::endl;
+    LogError("Open channel congfig file failed");
     return;
   }
 }
@@ -310,7 +316,7 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   if (!this->get_correction_file_) {
     static bool printErrorBool = true;
     if (printErrorBool) {
-      std::cout << "No available angle calibration files, prohibit parsing of point cloud packages" << std::endl;
+      LogInfo("No available angle calibration files, prohibit parsing of point cloud packages");
       printErrorBool = false;
     }
     return -1;
@@ -393,7 +399,7 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
                i < pandarQT_channel_config_.m_vChannelConfigTable[loopIndex].size())
                   ? pandarQT_channel_config_.m_vChannelConfigTable[loopIndex][j] - 1
                   : j;
-        if (this->enable_firetime_correction_) {
+        if (this->get_firetime_file_) {
           frame.azimuth[index] = u16Azimuth + GetFiretimesCorrection(
                                     laserId, pTail->GetMotorSpeed(), loopIndex) * kResolutionFloat;
         } else {
@@ -463,7 +469,7 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
                i < pandarQT_channel_config_.m_vChannelConfigTable[loopIndex].size())
                   ? pandarQT_channel_config_.m_vChannelConfigTable[loopIndex][j] - 1
                   : j;
-        if (this->enable_firetime_correction_) {
+        if (this->get_firetime_file_) {
           frame.azimuth[index] = u16Azimuth + GetFiretimesCorrection(
                                     laserId, pTail->GetMotorSpeed(), loopIndex) * kResolutionFloat;
         } else {

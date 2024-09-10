@@ -38,19 +38,11 @@ using namespace hesai::lidar;
 template <typename T_Point>
 Udp4_7ParserGpu<T_Point>::Udp4_7ParserGpu() {
   corrections_loaded_ = false;
-  cudaSafeMalloc(raw_azimuths_cu_, sizeof(PointCloudStruct<T_Point>::azimuths));
-  cudaSafeMalloc(raw_distances_cu_, sizeof(PointCloudStruct<T_Point>::distances));
-  cudaSafeMalloc(raw_reflectivities_cu_, sizeof(PointCloudStruct<T_Point>::reflectivities));
-  cudaSafeMalloc(raw_sensor_timestamp_cu_, sizeof(PointCloudStruct<T_Point>::sensor_timestamp));
-  cudaSafeMalloc(confidence_cu_, sizeof(PointCloudStruct<T_Point>::confidence));
+  cudaSafeMalloc(frame_data_cu_, FRAME_DATA_LEN);
 }
 template <typename T_Point>
 Udp4_7ParserGpu<T_Point>::~Udp4_7ParserGpu() {
-  cudaSafeFree(raw_azimuths_cu_);
-  cudaSafeFree(raw_distances_cu_);
-  cudaSafeFree(raw_reflectivities_cu_);
-  cudaSafeFree(raw_sensor_timestamp_cu_);
-  cudaSafeFree(confidence_cu_);
+  cudaSafeFree(frame_data_cu_);
   if (corrections_loaded_) {
     cudaSafeFree(deles_cu);
     cudaSafeFree(channel_elevations_cu_);
@@ -60,13 +52,12 @@ Udp4_7ParserGpu<T_Point>::~Udp4_7ParserGpu() {
 template <typename T_Point>
 __global__ void compute_xyzs_v4_7_impl(
     T_Point *xyzs, const float* channel_elevations, const float* elevation_adjust,
-    const float* raw_azimuths, const uint16_t *raw_distances, const uint8_t *raw_reflectivities, const uint64_t *raw_sensor_timestamp, 
-    const uint8_t *confidence, const double raw_distance_unit, Transform transform, const uint16_t blocknum, const uint16_t lasernum, 
+    const uint8_t *frame_data, const double raw_distance_unit, Transform transform, const uint16_t blocknum, const uint16_t lasernum, 
     const uint8_t version, const uint16_t packet_index) {
   auto iscan = blockIdx.x;
   auto ichannel = threadIdx.x;
   if (iscan >= packet_index || ichannel >= blocknum * lasernum) return;
-  float azimuth = raw_azimuths[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] / kAllFineResolutionFloat;
+  float azimuth = AZIMUTH_GET[frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] / kAllFineResolutionFloat;
   float elevation = channel_elevations[ichannel % lasernum];
   
   if (version == 3) {
@@ -83,7 +74,7 @@ __global__ void compute_xyzs_v4_7_impl(
   auto phi = elevation * kResolutionFloat / kHalfCircleFloat * M_PI;
   auto theta = azimuth * kResolutionFloat / kHalfCircleFloat * M_PI;
 
-  auto rho = raw_distances[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] * raw_distance_unit;
+  auto rho = DISTANCES_GET[frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] * raw_distance_unit;
   float z = rho * sin(phi);
   auto r = rho * cosf(phi);
   float x = r * sin(theta);
@@ -104,37 +95,20 @@ __global__ void compute_xyzs_v4_7_impl(
   gpu::setX(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], x_);
   gpu::setY(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))],  y_);
   gpu::setZ(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], z_);
-  gpu::setIntensity(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], raw_reflectivities[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))]);
-  gpu::setTimestamp(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], double(raw_sensor_timestamp[iscan]) / kMicrosecondToSecond);
+  gpu::setIntensity(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], REFLECTIVITIES_GET[frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))]);
+  gpu::setTimestamp(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], double(SENSOR_TIMESTAMP_GET[frame_data, iscan]) / kMicrosecondToSecond);
   gpu::setRing(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], ichannel % lasernum);
-  gpu::setConfidence(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], confidence[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))]);
+  gpu::setConfidence(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], CONFIDENCE_GET[frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))]);
 }
 template <typename T_Point>
 int Udp4_7ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
   if (!corrections_loaded_) return int(ReturnCode::CorrectionsUnloaded);  
-  cudaSafeCall(cudaMemcpy(raw_azimuths_cu_, frame.azimuth,
-                          kMaxPacketNumPerFrame * kMaxPointsNumPerPacket * sizeof(float), cudaMemcpyHostToDevice),
-               ReturnCode::CudaMemcpyHostToDeviceError);
-  cudaSafeCall(cudaMemcpy(raw_distances_cu_, frame.distances,
-                          kMaxPacketNumPerFrame * kMaxPointsNumPerPacket * sizeof(uint16_t),
-                          cudaMemcpyHostToDevice),
-               ReturnCode::CudaMemcpyHostToDeviceError); 
-  cudaSafeCall(cudaMemcpy(raw_reflectivities_cu_, frame.reflectivities,
-                          kMaxPacketNumPerFrame * kMaxPointsNumPerPacket * sizeof(uint8_t),
-                          cudaMemcpyHostToDevice),
-               ReturnCode::CudaMemcpyHostToDeviceError);  
-  cudaSafeCall(cudaMemcpy(raw_sensor_timestamp_cu_, frame.sensor_timestamp,
-                          kMaxPacketNumPerFrame * sizeof(uint64_t),
-                          cudaMemcpyHostToDevice),
-               ReturnCode::CudaMemcpyHostToDeviceError);  
-  cudaSafeCall(cudaMemcpy(confidence_cu_, frame.confidence,
-                          kMaxPacketNumPerFrame * kMaxPointsNumPerPacket * sizeof(uint8_t),
-                          cudaMemcpyHostToDevice),
-               ReturnCode::CudaMemcpyHostToDeviceError);                                       
+  cudaSafeCall(cudaMemcpy(frame_data_cu_, frame.total_memory + FRAME_DATA_OFFSET,
+                          FRAME_DATA_LEN, cudaMemcpyHostToDevice),
+               ReturnCode::CudaMemcpyHostToDeviceError);                                          
 compute_xyzs_v4_7_impl<<<kMaxPacketNumPerFrame, kMaxPointsNumPerPacket>>>(
-    this->frame_.gpu()->points, channel_elevations_cu_, deles_cu,
-    raw_azimuths_cu_, raw_distances_cu_, raw_reflectivities_cu_, raw_sensor_timestamp_cu_, confidence_cu_,
-    frame.distance_unit, this->transform_, frame.block_num, frame.laser_num, m_ATX_corrections.header.version[1], frame.packet_index);
+    this->frame_.gpu()->points, channel_elevations_cu_, deles_cu, frame_data_cu_,
+    frame.distance_unit, this->transform_, frame.block_num, frame.laser_num, m_ATX_corrections.header.version[1], frame.packet_num);
   cudaSafeCall(cudaGetLastError(), ReturnCode::CudaXYZComputingError);
   this->frame_.DeviceToHost();
   std::memcpy(frame.points, this->frame_.cpu()->points, sizeof(T_Point) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket);
@@ -152,6 +126,10 @@ int Udp4_7ParserGpu<T_Point>::LoadCorrectionString(char *data) {
           auto channel_num = m_ATX_corrections.header.channel_number;
           uint16_t division = m_ATX_corrections.header.angle_division;
           p += sizeof(ATXCorrectionsHeader);
+          if (channel_num > ATX_LASER_NUM || division == 0) {
+            LogError("data error: channel_num is %u, division is %u", channel_num, division);
+            return -1;
+          }
           memcpy((void *)&m_ATX_corrections.raw_azimuths, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;
@@ -175,6 +153,10 @@ int Udp4_7ParserGpu<T_Point>::LoadCorrectionString(char *data) {
           auto channel_num = m_ATX_corrections.header.channel_number;
           uint16_t division = m_ATX_corrections.header.angle_division;
           p += sizeof(ATXCorrectionsHeader);
+          if (channel_num > ATX_LASER_NUM || division == 0) {
+            LogError("data error: channel_num is %u, division is %u", channel_num, division);
+            return -1;
+          }
           memcpy((void *)&m_ATX_corrections.raw_azimuths_even, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;       
@@ -202,6 +184,10 @@ int Udp4_7ParserGpu<T_Point>::LoadCorrectionString(char *data) {
           auto channel_num = m_ATX_corrections.header.channel_number;
           uint16_t division = m_ATX_corrections.header.angle_division;
           p += sizeof(ATXCorrectionsHeader);
+          if (channel_num > ATX_LASER_NUM || division == 0) {
+            LogError("data error: channel_num is %u, division is %u", channel_num, division);
+            return -1;
+          }
           memcpy((void *)&m_ATX_corrections.raw_azimuths_even, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;       
@@ -238,7 +224,7 @@ int Udp4_7ParserGpu<T_Point>::LoadCorrectionString(char *data) {
     }
     return -1;
   } catch (const std::exception &e) {
-    std::cerr << e.what() << '\n';
+    LogFatal("load correction error: %s", e.what());
     return -1;
   }
   return -1;
@@ -246,10 +232,10 @@ int Udp4_7ParserGpu<T_Point>::LoadCorrectionString(char *data) {
 template <typename T_Point>
 int Udp4_7ParserGpu<T_Point>::LoadCorrectionFile(std::string lidar_correction_file) {
   int ret = 0;
-  printf("load correction file from local correction.csv now!\n");
+  LogInfo("load correction file from local correction.csv now!");
   std::ifstream fin(lidar_correction_file);
   if (fin.is_open()) {
-    printf("Open correction file success\n");
+    LogDebug("Open correction file success");
     int length = 0;
     std::string str_lidar_calibration;
     fin.seekg(0, std::ios::end);
@@ -262,13 +248,13 @@ int Udp4_7ParserGpu<T_Point>::LoadCorrectionFile(std::string lidar_correction_fi
     ret = LoadCorrectionString(buffer);
     delete[] buffer;
     if (ret != 0) {
-      printf("Parse local Correction file Error\n");
+      LogError("Parse local Correction file Error");
     } else {
-      printf("Parse local Correction file Success!!!\n");
+      LogInfo("Parse local Correction file Success!!!");
       return 0;
     }
   } else {
-    printf("Open correction file failed\n");
+    LogError("Open correction file failed");
     return -1;
   }
   return -1;

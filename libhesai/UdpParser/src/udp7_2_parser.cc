@@ -43,16 +43,16 @@ Udp7_2Parser<T_Point>::Udp7_2Parser() {
   this->last_cloumn_id_ = -1;
 }
 template<typename T_Point>
-Udp7_2Parser<T_Point>::~Udp7_2Parser() { printf("release Udp7_2Parser \n"); }
+Udp7_2Parser<T_Point>::~Udp7_2Parser() { LogInfo("release Udp7_2Parser \n"); }
 
 
 template<typename T_Point>
 void Udp7_2Parser<T_Point>::LoadCorrectionFile(std::string correction_path) {
   int ret = 0;
-  printf("load correction file from local correction.csv now!\n");
+  LogInfo("load correction file from local correction.csv now!\n");
   std::ifstream fin(correction_path);
   if (fin.is_open()) {
-    printf("Open correction file success\n");
+    LogDebug("Open correction file success\n");
     int length = 0;
     std::string str_lidar_calibration;
     fin.seekg(0, std::ios::end);
@@ -65,13 +65,12 @@ void Udp7_2Parser<T_Point>::LoadCorrectionFile(std::string correction_path) {
     ret = LoadCorrectionString(buffer);
     delete[] buffer;
     if (ret != 0) {
-      printf("Parse local Correction file Error\n");
+      LogError("Parse local Correction file Error\n");
     } else {
-      
-      printf("Parse local Correction file Success!!!\n");
+      LogInfo("Parse local Correction file Success!!!\n");
     }
   } else {
-    printf("Open correction file failed\n");
+    LogError("Open correction file failed\n");
     return;
   }
 }
@@ -90,7 +89,7 @@ int Udp7_2Parser<T_Point>::LoadCorrectionCsvData(char *correction_string) {
 	std::string line;
   // first line "Laser id,Elevation,Azimuth"
 	if(std::getline(ifs, line)) {  
-		printf("Parse Lidar Correction...\n");
+		LogInfo("Parse Lidar Correction...\n");
 	}
 	int lineCounter = 0;
 	std::vector<std::string>  firstLine;
@@ -104,19 +103,23 @@ int Udp7_2Parser<T_Point>::LoadCorrectionCsvData(char *correction_string) {
     }
     float elev, azimuth;
     int lineId = 0;
-    int cloumnId = 0;
+    int columnId = 0;
     std::stringstream ss(line);
     std::string subline;
     std::getline(ss, subline, ',');
     std::stringstream(subline) >> lineId;
     std::getline(ss, subline, ',');
-    std::stringstream(subline) >> cloumnId;
+    std::stringstream(subline) >> columnId;
     std::getline(ss, subline, ',');
     std::stringstream(subline) >> elev;
     std::getline(ss, subline, ',');
     std::stringstream(subline) >> azimuth;
-    corrections_.elevations[lineId - 1][cloumnId - 1] = elev * kResolutionInt;
-    corrections_.azimuths[lineId - 1][cloumnId - 1] = azimuth * kResolutionInt;
+    if (lineId > CHANNEL_MAX || lineId <= 0 || columnId > COLUMN_MAX || columnId <= 0){
+      LogError("data error, lineId:%d, columnId:%d", lineId, columnId);
+      continue;
+    }
+    corrections_.elevations[lineId - 1][columnId - 1] = elev * kResolutionInt;
+    corrections_.azimuths[lineId - 1][columnId - 1] = azimuth * kResolutionInt;
   }
   this->get_correction_file_ = true;
 	return 0;
@@ -199,7 +202,7 @@ int Udp7_2Parser<T_Point>::LoadCorrectionDatData(char *correction_string) {
 
     return -1;
   } catch (const std::exception &e) {
-    std::cerr << e.what() << '\n';
+    LogFatal("load correction error: %s", e.what());
     return -1;
   }
 
@@ -258,7 +261,7 @@ int Udp7_2Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   if (!this->get_correction_file_) {
     static bool printErrorBool = true;
     if (printErrorBool) {
-      std::cout << "No available angle calibration files, prohibit parsing of point cloud packages" << std::endl;
+      LogInfo("No available angle calibration files, prohibit parsing of point cloud packages");
       printErrorBool = false;
     }
     return -1;

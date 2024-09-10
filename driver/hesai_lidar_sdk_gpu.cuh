@@ -217,14 +217,18 @@ public:
         int ret = gpu_parser_ptr_->ComputeXYZI(lidar_ptr_->frame_);  
 
         //log info, display frame message
-        if (lidar_ptr_->frame_.points_num > kMinPointsOfOneFrame) {
+        if (ret == 0 && lidar_ptr_->frame_.points_num > kMinPointsOfOneFrame) {
           // printf("frame:%d   points:%u  packet:%d  time:%lf\n", frame.frame_index, frame.points_num, packet_index, frame.points[0].timestamp);
           
           //publish point cloud topic
           if(point_cloud_cb_) point_cloud_cb_(lidar_ptr_->frame_);
 
           //publish upd packet topic
-          if(pkt_cb_) pkt_cb_(udp_packet_frame, lidar_ptr_->frame_.points[0].timestamp);
+          if(pkt_cb_) {
+            double timestamp = 0;
+            getTimestamp(lidar_ptr_->frame_.points[0], timestamp);
+            pkt_cb_(udp_packet_frame, timestamp);
+          }
 
           if (pkt_loss_cb_ )
           {

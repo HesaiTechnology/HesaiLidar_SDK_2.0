@@ -32,6 +32,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "socket_source.h"
+#include "logger.h" 
 #include <stdio.h>
 #include <iostream>
 using namespace hesai::lidar;
@@ -46,7 +47,7 @@ SocketSource::SocketSource(uint16_t port, std::string multicastIp) {
 SocketSource::~SocketSource() { Close(); }
 
 void SocketSource::Close() {
-  printf("SocketSource::Close()\n");
+  LogInfo("SocketSource::Close()");
 
   client_ip_.clear();
   udp_port_ = 0;
@@ -69,7 +70,7 @@ bool SocketSource::Open() {
     WORD version = MAKEWORD(2, 2);
     int res = WSAStartup(version, &wsaData);  // win sock start up
     if (res) {
-        std::cerr << "Initilize winsock error !" << std::endl;
+        LogError("Initilize winsock error !");
         return false;
     }
 #endif
@@ -96,9 +97,9 @@ bool SocketSource::Open() {
   socklen_t optlen = sizeof(curRcvBufSize);
   if (getsockopt(udp_sock_, SOL_SOCKET, SO_RCVBUF, (char*)&curRcvBufSize, &optlen) <
       0) {
-    printf("getsockopt error=%d(%s)!!!\n", errno, strerror(errno));
+    LogWarning("getsockopt error=%d(%s)!!!", errno, strerror(errno));
   }
-  printf("OS current udp socket recv buff size is: %d\n", curRcvBufSize);                 
+  LogInfo("OS current udp socket recv buff size is: %d", curRcvBufSize);                 
 
   if (retVal == 0) {
 #ifdef _MSC_VER
@@ -123,26 +124,26 @@ bool SocketSource::Open() {
           close(udp_sock_);
 #endif
           udp_sock_ = -1;
-          printf("SocketSource::Open(), bind failed, errno: %d\n", errno);
+          LogError("SocketSource::Open(), bind failed, errno: %d", errno);
           return false;
         }
       } else {
-        printf("SocketSource::Open succeed, sock:%d\n", udp_sock_);
+        LogInfo("SocketSource::Open succeed, sock:%d", udp_sock_);
       }
     } else {
-      printf("setsockopt SO_RCVTIMEO failed, errno:%d\n", errno);
+      LogError("setsockopt SO_RCVTIMEO failed, errno:%d", errno);
     }
   } else {
-    printf("setsockopt SO_REUSEADDR failed, errno:%d\n", errno);
+    LogError("setsockopt SO_REUSEADDR failed, errno:%d", errno);
   }
 #ifdef _MSC_VER
   unsigned long nonBlockingMode = 1;
   if (ioctlsocket(udp_sock_, FIONBIO, &nonBlockingMode) != 0) {
-      perror("non-block");
+      LogError("non-block");
   }
 #else
   if (fcntl(udp_sock_, F_SETFL, O_NONBLOCK | FASYNC) < 0) {
-    perror("non-block");
+    LogError("non-block");
   }
 #endif
 
@@ -156,10 +157,10 @@ bool SocketSource::Open() {
     mreq.imr_interface.s_addr = htonl(INADDR_ANY); 
     int ret = setsockopt(udp_sock_, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char *)&mreq, sizeof(mreq));
     if (ret < 0) {
-      perror("Multicast IP error,set correct multicast ip address or keep it empty\n");
+      LogError("Multicast IP error, set correct multicast ip address or keep it empty");
     } 
     else {
-      printf("Recive data from multicast ip address %s\n", multicast_ip_.c_str());
+      LogInfo("Recive data from multicast ip address %s", multicast_ip_.c_str());
     }
   }
   return retVal == 0;
@@ -170,7 +171,7 @@ bool SocketSource::IsOpened() {
 
   if (udp_port_ == 0 || udp_sock_ < 0) {
     ret = false;
-    printf("SocketSource::IsOpened(), port %d, sock %d\n", udp_port_,
+    LogInfo("SocketSource::IsOpened(), port %d, sock %d", udp_port_,
            udp_sock_);
   }
 
@@ -187,9 +188,9 @@ int SocketSource::Send(uint8_t* u8Buf, uint16_t u16Len, int flags) {
     int val = inet_pton(AF_INET, client_ip_.c_str(), &addr);
     if (val == 1) {
       len = sendto(udp_sock_, (char*)u8Buf, u16Len, flags, &addr, sizeof(addr));
-      if (len == -1) printf("SocketSource::Send, errno:%d\n", errno);
+      if (len == -1) LogError("SocketSource::Send, errno:%d", errno);
     } else {
-      printf("SocketSource::Send(), invalid IP %s\n", client_ip_.c_str());
+      LogError("SocketSource::Send(), invalid IP %s", client_ip_.c_str());
     }
   }
   return len;
@@ -236,7 +237,7 @@ int SocketSource::Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags,
         len = 0;
         udpPacket.is_timeout = true;        
       } else {
-        std::cout << "Select timeout error" << std::endl;
+        LogWarning("Select timeout error");
       }
     } 
   }

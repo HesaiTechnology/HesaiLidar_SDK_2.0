@@ -42,7 +42,7 @@ Udp3_1Parser<T_Point>::Udp3_1Parser() {
 }
 
 template<typename T_Point>
-Udp3_1Parser<T_Point>::~Udp3_1Parser() { printf("release general parser\n"); }
+Udp3_1Parser<T_Point>::~Udp3_1Parser() { LogInfo("release general parser\n"); }
 
 template<typename T_Point>
 int Udp3_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index) {
@@ -157,7 +157,7 @@ int Udp3_1Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   if (!this->get_correction_file_) {
     static bool printErrorBool = true;
     if (printErrorBool) {
-      std::cout << "No available angle calibration files, prohibit parsing of point cloud packages" << std::endl;
+      LogInfo("No available angle calibration files, prohibit parsing of point cloud packages");
       printErrorBool = false;
     }
     return -1;
@@ -214,7 +214,7 @@ int Udp3_1Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
         (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_QT_V1) +
         sizeof(HS_LIDAR_BODY_CHN_NNIT_QT_V1) * pHeader->GetLaserNum());
     for (int i = 0; i < pHeader->GetLaserNum(); i++) {
-      if (this->enable_firetime_correction_ && this->get_firetime_file_) {
+      if (this->get_firetime_file_) {
         frame.azimuth[index] = u16Azimuth + this->GetFiretimesCorrection(i, this->spin_speed_) * kResolutionFloat;
       } else {
         frame.azimuth[index] = u16Azimuth;

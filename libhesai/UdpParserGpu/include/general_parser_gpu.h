@@ -39,6 +39,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include "lidar_types.h"
 #include "plat_utils.h"
+#include "logger.h"
 #ifndef M_PI
 #define M_PI 3.1415926535898
 #endif
@@ -146,19 +147,17 @@ namespace gpu
 
 } // namespace gpu
 
+#define SENSOR_TIMESTAMP_GET[data, offset]          (*((uint64_t *)(data + SENSOR_TIMESTAMP_OFFSET + (offset) * sizeof(uint64_t))))
+#define AZIMUTH_GET[data, offset]                   (*((float *)(data + AZIMUTH_OFFSET + (offset) * sizeof(float))))
+#define ELEVATION_GET[data, offset]                 (*((float *)(data + ELEVATION_OFFSET + (offset) * sizeof(float))))
+#define DISTANCES_GET[data, offset]                 (*((uint16_t *)(data + DISTANCES_OFFSET + (offset) * sizeof(uint16_t))))
+#define REFLECTIVITIES_GET[data, offset]            (*((uint8_t *)(data + REFLECTIVITIES_OFFSET + (offset) * sizeof(uint8_t))))
+#define CONFIDENCE_GET[data, offset]                (*((uint8_t *)(data + CONFIDENCE_OFFSET + (offset) * sizeof(uint8_t))))
+#define CHN_INDEX_GET[data, offset]                 (*((uint8_t *)(data + CHN_INDEX_OFFSET + (offset) * sizeof(uint8_t))))
+#define MIRROR_INDEX_GET[data, offset]              (*((uint8_t *)(data + MIRROR_INDEX_OFFSET + (offset) * sizeof(uint8_t))))
+
 template <typename PointT>
 struct PointCloudStruct  {
-  uint32_t frame_id = 0;
-  int seq = 0;
-  uint64_t sensor_timestamp[kMaxPacketNumPerFrame];
-  uint8_t mirror_index[kMaxPacketNumPerFrame];
-  float azimuths[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
-  uint16_t distances[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
-  uint8_t reflectivities[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
-  uint8_t chn_index_cu_[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
-  uint8_t confidence[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
-  uint16_t spin_speed[kMaxPacketNumPerFrame];
-  float firetimes[kMaxPointsNumPerPacket];
   PointT points[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
 };
 // class GeneralParserGpu
@@ -169,15 +168,15 @@ class GeneralParserGpu {
  public:
   GeneralParserGpu();
   ~GeneralParserGpu();
-  virtual int LoadCorrectionFile(std::string correction_path);
-  virtual int LoadCorrectionString(char *correction_string);
+  virtual int LoadCorrectionFile(std::string correction_path) = 0;
+  virtual int LoadCorrectionString(char *correction_string) = 0;
   virtual void LoadFiretimesFile(std::string firetimes_path);
   virtual int LoadFiretimesString(char *firetimes_string);
   void SetOpticalCenterCoordinates(std::string lidar_type);
   
   // compute xyzi of points from decoded packet， use gpu device
   // param packet is the decoded packet; xyzi of points after computed is puted in frame  
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame) = 0;
   void SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
   int SetXtSpotCorrecion(std::string lidar_type);
   Transform transform_;

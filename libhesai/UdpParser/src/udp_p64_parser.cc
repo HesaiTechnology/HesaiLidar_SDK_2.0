@@ -43,7 +43,7 @@ UdpP64Parser<T_Point>::UdpP64Parser() {
 }
 
 template<typename T_Point>
-UdpP64Parser<T_Point>::~UdpP64Parser() { printf("release general parser\n"); }
+UdpP64Parser<T_Point>::~UdpP64Parser() { LogInfo("release general parser\n"); }
 
 template<typename T_Point>
 int UdpP64Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index) {
@@ -156,7 +156,7 @@ int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   if (!this->get_correction_file_) {
     static bool printErrorBool = true;
     if (printErrorBool) {
-      std::cout << "No available angle calibration files, prohibit parsing of point cloud packages" << std::endl;
+      LogInfo("No available angle calibration files, prohibit parsing of point cloud packages");
       printErrorBool = false;
     }
     return -1;

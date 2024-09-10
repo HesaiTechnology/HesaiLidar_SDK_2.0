@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include "logger.h"
 #include "lidar_types.h"
 #include "plat_utils.h"
 #include "fault_message.h"
@@ -161,7 +162,20 @@ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, confidence)>::type set
 {
   point.confidence = value;
 }
+// get command
+template <typename T_Point>
+inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, timestamp)>::type getTimestamp(T_Point& point,
+                                                                                      const double& value)
+{
+}
 
+template <typename T_Point>
+inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, timestamp)>::type getTimestamp(T_Point& point,
+                                                                                      double& value)
+{
+  value = point.timestamp;
+}
+// get end
 inline float deg2Rad(float deg)
 {
     return (float)(deg * 0.01745329251994329575);
@@ -270,7 +284,6 @@ class GeneralParser {
     elevation: 光心修正后的elevation
   */
   void GetDistanceCorrection(int &azimuth, int &elevation, float &distance, DistanceCorrectionType type);
-  void SetEnableFireTimeCorrection(bool enable);
   void SetEnableDistanceCorrection(bool enable);
   void SetOpticalCenterCoordinates(std::string lidar_type);
   void SetLidarType(std::string lidar_type);
@@ -328,8 +341,7 @@ class GeneralParser {
   bool use_angle_ = true;
   int32_t last_azimuth_;
   int32_t last_last_azimuth_;
-  double firetime_correction_[512];
-  bool enable_firetime_correction_;
+  double firetime_correction_[MAX_LASER_NUM];
   bool enable_distance_correction_;
   bool enable_packet_loss_tool_;
   bool enable_packet_timeloss_tool_;

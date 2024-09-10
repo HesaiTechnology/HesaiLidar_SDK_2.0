@@ -35,6 +35,7 @@
 #include <thread>
 #include <memory>
 #include <vector>
+#include "logger.h"
 
 #ifdef _MSC_VER
 #include <WinSock2.h>

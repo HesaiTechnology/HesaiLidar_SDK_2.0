@@ -76,7 +76,7 @@ public:
     if (nullptr != lidar_ptr_) {
       lidar_ptr_->Init(param_);
       lidar_ptr_->init_finish_[AllInitFinish] = true;
-      std::cout << "finish 3: Initialisation all complete !!!" << std::endl;
+      LogDebug("finish 3: Initialisation all complete !!!");
     }
   }
 
@@ -86,7 +86,7 @@ public:
    /*****************************Init decoder******************************************************/ 
     lidar_ptr_ = new Lidar<T_Point>;
     if (nullptr == lidar_ptr_) {
-      std::cout << "create Lidar fail" << std::endl;
+      printf("create Lidar fail\n");
       return false;
     }
     source_type_ = param.input_param.source_type;
@@ -152,7 +152,7 @@ public:
   // process thread
   void Run()
   {
-    printf("------begin to prase udp package------\n");
+    LogInfo("--------begin to prase udp package--------");
     is_thread_runing_ = true;
     UdpFrame_t udp_packet_frame;
     lidar_ptr_->frame_.use_timestamp_type = lidar_ptr_->use_timestamp_type_;
@@ -215,7 +215,11 @@ public:
           if(point_cloud_cb_) point_cloud_cb_(lidar_ptr_->frame_);
 
           //publish upd packet topic
-          if(pkt_cb_) pkt_cb_(udp_packet_frame, lidar_ptr_->frame_.points[0].timestamp);
+          if(pkt_cb_) {
+            double timestamp = 0;
+            getTimestamp(lidar_ptr_->frame_.points[0], timestamp);
+            pkt_cb_(udp_packet_frame, timestamp);
+          }
 
           if (pkt_loss_cb_ )
           {

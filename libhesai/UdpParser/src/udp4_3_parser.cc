@@ -51,10 +51,10 @@ void Udp4_3Parser<T_Point>::HandlePacketData(uint8_t *u8Buf, uint16_t u16Len) {
 template<typename T_Point>
 void Udp4_3Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file) {
   int ret = 0;
-  printf("load correction file from local correction.csv now!\n");
+  LogInfo("load correction file from local correction.csv now!");
   std::ifstream fin(lidar_correction_file);
   if (fin.is_open()) {
-    printf("Open correction file success\n");
+    LogDebug("Open correction file success");
     int length = 0;
     std::string str_lidar_calibration;
     fin.seekg(0, std::ios::end);
@@ -67,12 +67,12 @@ void Udp4_3Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
     ret = LoadCorrectionString(buffer);
     delete[] buffer;
     if (ret != 0) {
-      printf("Parse local Correction file Error\n");
+      LogError("Parse local Correction file Error");
     } else {
-      printf("Parse local Correction file Success!!!\n");
+      LogInfo("Parse local Correction file Success!!!");
     }
   } else {
-    printf("Open correction file failed\n");
+    LogError("Open correction file failed");
     return;
   }
 }
@@ -89,6 +89,10 @@ int Udp4_3Parser<T_Point>::LoadCorrectionString(char *data) {
           auto frame_num = m_PandarAT_corrections.header.frame_number;
           auto channel_num = m_PandarAT_corrections.header.channel_number;
           p += sizeof(PandarATCorrectionsHeader);
+          if (frame_num > 8 || channel_num > AT128_LASER_NUM) {
+            LogError("correction error, frame_num: %u, channel_num: %u", frame_num, channel_num);
+            return -1;
+          }
           memcpy((void *)&m_PandarAT_corrections.l.start_frame, p,
                  sizeof(uint32_t) * frame_num);
           p += sizeof(uint32_t) * frame_num;
@@ -144,21 +148,21 @@ int Udp4_3Parser<T_Point>::LoadCorrectionString(char *data) {
     }
     return -1;
   } catch (const std::exception &e) {
-    std::cerr << e.what() << '\n';
+    LogFatal("load correction error: %s", e.what());
     return -1;
   }
   return -1;
 }
 
 template<typename T_Point>
-Udp4_3Parser<T_Point>::~Udp4_3Parser() { printf("release Udp4_3Parser\n"); }
+Udp4_3Parser<T_Point>::~Udp4_3Parser() { LogInfo("release Udp4_3Parser\n"); }
 
 template<typename T_Point>
 int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket){
   if (!this->get_correction_file_) {
     static bool printErrorBool = true;
     if (printErrorBool) {
-      std::cout << "No available angle calibration files, prohibit parsing of point cloud packages" << std::endl;
+      LogInfo("No available angle calibration files, prohibit parsing of point cloud packages");
       printErrorBool = false;
     }
     return -1;
@@ -322,10 +326,10 @@ int Udp4_3Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
           continue;
         }
       }
-      float xyDistance = distance * m_PandarAT_corrections.cos_map[(elevation)];
-      float x = xyDistance * m_PandarAT_corrections.sin_map[(azimuth)];
-      float y = xyDistance * m_PandarAT_corrections.cos_map[(azimuth)];
-      float z = distance * m_PandarAT_corrections.sin_map[(elevation)];
+      float xyDistance = distance * this->cos_all_angle_[(elevation)];
+      float x = xyDistance * this->sin_all_angle_[(azimuth)];
+      float y = xyDistance * this->cos_all_angle_[(azimuth)];
+      float z = distance * this->sin_all_angle_[(elevation)];
       this->TransformPoint(x, y, z);
       setX(frame.points[point_index], x);
       setY(frame.points[point_index], y);
@@ -343,7 +347,7 @@ int Udp4_3Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
 template<typename T_Point>
 int16_t Udp4_3Parser<T_Point>::GetVecticalAngle(int channel) {
   if (this->get_correction_file_ == false) {
-    printf ("GetVecticalAngle: no correction file get, Error");
+    LogError("GetVecticalAngle: no correction file get, Error");
     return -1;
   }
   return m_PandarAT_corrections.elevation[channel];

@@ -98,7 +98,7 @@ bool TcpClient::TryOpen(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
   WORD version = MAKEWORD(2, 2);
   int res = WSAStartup(version, &wsaData);  // win sock start up
   if (res) {
-      std::cerr << "Initilize winsock error !" << std::endl;
+      LogError("Initilize winsock error !");
       return false;
   }
 #endif  
@@ -118,7 +118,7 @@ bool TcpClient::TryOpen(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
   serverAddr.sin_port = htons(ptc_port_);
   if (inet_pton(AF_INET, m_sServerIP.c_str(), &serverAddr.sin_addr) <= 0) {
     Close();
-    std::cout << __FUNCTION__ << "inet_pton error:" << m_sServerIP.c_str() << std::endl;
+    LogError("TryOpen inet_pton error:%s", m_sServerIP.c_str());
     return false;
   }
 
@@ -139,7 +139,7 @@ bool TcpClient::TryOpen(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
     if (errno != EINPROGRESS)  
 #endif  
     {
-      std::cout << "socket Connection error." << std::endl;  
+      LogError("socket Connection error.");  
       Close();
       return false;  
     }  
@@ -156,8 +156,7 @@ bool TcpClient::TryOpen(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
     Close();
     return false;  
   } 
-  std::cout << __FUNCTION__ << " succeed, IP" << m_sServerIP.c_str() << "port"
-           << ptc_port_ << std::endl;
+  LogInfo("TryOpen succeed, IP %s port %u", m_sServerIP.c_str(), ptc_port_);
   
 #ifdef _MSC_VER  
   mode = 0; // 0为阻塞模式  
@@ -177,11 +176,9 @@ bool TcpClient::Open(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
     return true;
   }
 #ifdef _MSC_VER
-  std::cout << __FUNCTION__ << "IP" << IPAddr.c_str() << "port"
-           << u16Port << std::endl;
+  LogInfo("Open() IP %s port %u", IPAddr.c_str(), u16Port);
 #else
-  std::cout << __PRETTY_FUNCTION__ << "IP" << IPAddr.c_str() << "port"
-           << u16Port << std::endl;
+  LogInfo("Open() IP %s port %u", IPAddr.c_str(), u16Port);
 #endif
   Close();
 
@@ -217,24 +214,23 @@ bool TcpClient::Open() {
   serverAddr.sin_port = htons(ptc_port_);
   if (inet_pton(AF_INET, m_sServerIP.c_str(), &serverAddr.sin_addr) <= 0) {
     Close();
-    std::cout << __FUNCTION__ << "inet_pton error:" << m_sServerIP.c_str() << std::endl;
+    LogError("Open inet_pton error:%s", m_sServerIP.c_str());
 
     return false;
   }
 
   if (::connect(m_tcpSock, (sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
     if (EINPROGRESS != errno && EWOULDBLOCK != errno) {
-      std::cout << __FUNCTION__ << "connect failed" << errno << std::endl;
+      LogError("connect failed %d", errno);
     } else if (EINPROGRESS == errno) {
-      std::cout << "connect lidar time out\n";
+      LogWarning("connect lidar time out");
     }
     Close();
-    std::cout << "connect lidar fail errno" << errno << std::endl;
+    LogError("connect lidar fail errno %d", errno);
     return false;
   }
   
-  std::cout << __FUNCTION__ << " succeed, IP" << m_sServerIP.c_str() << "port"
-           << ptc_port_ << std::endl;
+  LogInfo(" succeed, IP %s port %u", m_sServerIP.c_str(), ptc_port_);
 
   m_bLidarConnected = true;
 
@@ -242,8 +238,6 @@ bool TcpClient::Open() {
 }
 
 bool TcpClient::IsOpened() {
-  // std::cout << "is opened" << m_bLidarConnected;
-
   return m_bLidarConnected;
 }
 
@@ -261,7 +255,7 @@ int TcpClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
     len = send(m_tcpSock, (char*)u8Buf, u16Len, flags);
     if (len != u16Len && errno != EAGAIN && errno != EWOULDBLOCK &&
         errno != EINTR) {
-      std::cout << __FUNCTION__ << "errno" << errno << std::endl;
+      LogError("Send errno %d", errno);
       Close();
     }
   }
@@ -285,7 +279,7 @@ int TcpClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
     len = recv(m_tcpSock, (char*)u8Buf, u32Len, flags);
     if (len == 0 || (len == -1 && errno != EINTR && errno != EAGAIN &&
                      errno != EWOULDBLOCK)) {
-      std::cout << __FUNCTION__ << ", len: " << len << " errno: " << errno << std::endl;
+      LogError("Receive, len: %d errno: %d", len, errno);
       Close();
     }
   }
@@ -293,7 +287,7 @@ int TcpClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
   int delta = GetMicroTickCount() - tick;
 
   if (delta >= 1000000) {
-    std::cout << __FUNCTION__ << "execu:" << delta << "us" << std::endl;
+    LogWarning("Receive execu: %dus", delta);
   }
 
   return len;
@@ -302,7 +296,7 @@ int TcpClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
 
 bool TcpClient::SetReceiveTimeout(uint32_t u32Timeout) {
   if (m_tcpSock < 0) {
-    printf("TcpClient not open\n");
+    LogWarning("TcpClient not open");
     return false;
   }
 #ifdef _MSC_VER
@@ -324,7 +318,7 @@ bool TcpClient::SetReceiveTimeout(uint32_t u32Timeout) {
 int TcpClient::SetTimeout(uint32_t u32RecMillisecond,
                           uint32_t u32SendMillisecond) {
   if (m_tcpSock < 0) {
-    printf("TcpClient not open\n");
+    LogWarning("TcpClient not open");
     return -1;
   }
   m_u32RecTimeout = u32RecMillisecond;
@@ -364,7 +358,7 @@ int TcpClient::SetTimeout(uint32_t u32RecMillisecond,
 
 void TcpClient::SetReceiveBufferSize(const uint32_t &size) {
   if (m_tcpSock < 0) {
-    printf("TcpClient not open\n");
+    LogWarning("TcpClient not open");
     return;
   }
 

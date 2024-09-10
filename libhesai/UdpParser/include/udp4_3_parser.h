@@ -86,8 +86,6 @@ struct PandarATCorrections {
   int8_t elevation_offset[CIRCLE_ANGLE];
   uint8_t SHA256[32];
   PandarATFrameInfo l;  // V1.5
-  std::array<float, CIRCLE> sin_map;
-  std::array<float, CIRCLE> cos_map;
   PandarATCorrections()
   : header(), l()
   {
@@ -98,10 +96,6 @@ struct PandarATCorrections {
     memset(azimuth_offset, 0, sizeof(azimuth_offset));
     memset(elevation_offset, 0, sizeof(elevation_offset));
     memset(SHA256, 0, sizeof(SHA256));
-    for (int i = 0; i < CIRCLE; ++i) {
-      sin_map[i] = float(std::sin(2 * i * M_PI / CIRCLE));
-      cos_map[i] = float(std::cos(2 * i * M_PI / CIRCLE));
-    }
   }
 
   static const int STEP3 = CORRECTION_AZIMUTH_STEP * kFineResolutionInt;
