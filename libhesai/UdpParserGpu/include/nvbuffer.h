@@ -189,6 +189,8 @@ struct MemBufferClass {
   void Wait() { buf->Wait(); }
   void HostToDevice() { buf->HostToDevice(); }
   void DeviceToHost() { buf->DeviceToHost(); }
+  void HostToDevice(int start, int size) { buf->HostToDevice(start, size); };
+  void DeviceToHost(int start, int size) { buf->DeviceToHost(start, size); };
   uint64_t Size() const { return buf->Size(); }
   void flush(){buf->flush();}
 };

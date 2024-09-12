@@ -180,7 +180,7 @@ bool PcapSource::Open() {
     }
     catch (const std::exception& e)
     {
-        std::cerr << e.what() << std::endl;
+        LogError("%s", e.what());
         return false;
     }
 

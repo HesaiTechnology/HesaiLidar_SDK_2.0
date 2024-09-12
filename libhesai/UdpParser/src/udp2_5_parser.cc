@@ -335,8 +335,8 @@ int Udp2_5Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
   float apha =  corrections_.elevations[0];
   float beta =  corrections_.elevations[1];
   float gamma =  corrections_.elevations[2];
-  uint8_t mirror_index = (frame.mirror_index[packet_index] >> 4) & 0x0F;
-  uint8_t turn_index = frame.mirror_index[packet_index] & 0x0F;
+  uint8_t mirror_index = (frame.pointData[packet_index * frame.per_points_num].mirror_index >> 4) & 0x0F;
+  uint8_t turn_index = frame.pointData[packet_index * frame.per_points_num].mirror_index & 0x0F;
   if (corrections_.min_version == 4) {
     gamma = corrections_.gamma_f[mirror_index];
   }
@@ -349,9 +349,9 @@ int Udp2_5Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
     for (int i = 0; i < lasernum; i++) {
       int point_index = packet_index * frame.per_points_num + blockId * frame.laser_num + i; 
       // get phi and psi and distance
-      float raw_azimuth = frame.azimuth[point_index];
-      float raw_elevation = frame.elevation[point_index];
-      float distance = frame.distances[point_index] * frame.distance_unit;
+      float raw_azimuth = frame.pointData[point_index].azimuth;
+      float raw_elevation = frame.pointData[point_index].elevation;
+      float distance = frame.pointData[point_index].distances * frame.distance_unit;
       float phi = corrections_.azimuths[i + 3];
       float theta = corrections_.elevations[i + 3];
       float an = apha + phi;
@@ -387,7 +387,7 @@ int Udp2_5Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       setX(frame.points[point_index], x);
       setY(frame.points[point_index], y);
       setZ(frame.points[point_index], z);
-      setIntensity(frame.points[point_index], frame.reflectivities[point_index]);
+      setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
       setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
       setRing(frame.points[point_index], i);
     }
@@ -458,7 +458,7 @@ int Udp2_5Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   frame.scan_complete = false;
   frame.block_num = pHeader->GetBlockNum();
   frame.laser_num = pHeader->GetLaserNum();
-  frame.mirror_index[frame.packet_num] = pTail->GetMirrorIndex();
+  uint8_t mirror_index = pTail->GetMirrorIndex();
   
   int index = frame.packet_num * pHeader->GetBlockNum() * pHeader->GetLaserNum();
   for (int blockId = 0; blockId < pHeader->GetBlockNum(); blockId++) {
@@ -466,10 +466,11 @@ int Udp2_5Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
       int16_t horizontalAngle = pSeq3->GetHorizontalAngle();
       int16_t verticalAngle = pSeq3->GetVerticalAngle();
       for (int unitId = 0; unitId < (pHeader->GetLaserNum()/pHeader->GetSeqNum()); unitId++){
-        frame.reflectivities[index] = pUnit->GetReflectivity();
-        frame.distances[index] = pUnit->GetDistance();
-        frame.azimuth[index] = horizontalAngle/512.0f;
-        frame.elevation[index] = verticalAngle/512.0f;
+        frame.pointData[index].reflectivities = pUnit->GetReflectivity();
+        frame.pointData[index].distances = pUnit->GetDistance();
+        frame.pointData[index].azimuth = horizontalAngle/512.0f;
+        frame.pointData[index].elevation = verticalAngle/512.0f;
+        frame.pointData[index].mirror_index = mirror_index;
         index++;
         pUnit += 1;
       }

@@ -214,8 +214,8 @@ int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
 
     for (int i = 0; i < frame.laser_num; i++) {
       int point_index = packet_index * frame.per_points_num + blockid * frame.laser_num + i;  
-      float distance = frame.distances[point_index] * frame.distance_unit;
-      Azimuth = frame.azimuth[point_index];
+      float distance = frame.pointData[point_index].distances * frame.distance_unit;
+      Azimuth = frame.pointData[point_index].azimuth;
       if (this->get_correction_file_) {
         azimuth = (CIRCLE + Azimuth) % CIRCLE;
         if(m_ATX_corrections.header.version[1] == 1 || m_ATX_corrections.header.version[1] == 2) {
@@ -241,8 +241,8 @@ int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       setX(frame.points[point_index], x);
       setY(frame.points[point_index], y);
       setZ(frame.points[point_index], z);
-      setIntensity(frame.points[point_index], frame.reflectivities[point_index]);
-      setConfidence(frame.points[point_index], frame.confidence[point_index]);
+      setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
+      setConfidence(frame.points[point_index], frame.pointData[point_index].confidence);
       setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
       setRing(frame.points[point_index], i);
     }
@@ -352,18 +352,18 @@ int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     int azimuth = (u32Azimuth) * (kAllFineResolutionFloat  / m_ATX_corrections.header.angle_division);
     for (int i = 0; i < pHeader->GetLaserNum(); i++) {
       if (m_ATX_corrections.header.version[1] == 1) {
-        frame.azimuth[index] =  azimuth + m_ATX_corrections.azimuth[i] * kAllFineResolutionFloat;
+        frame.pointData[index].azimuth =  azimuth + m_ATX_corrections.azimuth[i] * kAllFineResolutionFloat;
       }
       else if (m_ATX_corrections.header.version[1] == 2 || m_ATX_corrections.header.version[1] == 3) {
-        frame.azimuth[index] =  azimuth + ((pTail->GetFrameID() % 2 == 0) ? m_ATX_corrections.raw_azimuths_even[i] : m_ATX_corrections.raw_azimuths_odd[i] ) * kAllFineResolutionFloat / m_ATX_corrections.header.angle_division;
+        frame.pointData[index].azimuth =  azimuth + ((pTail->GetFrameID() % 2 == 0) ? m_ATX_corrections.raw_azimuths_even[i] : m_ATX_corrections.raw_azimuths_odd[i] ) * kAllFineResolutionFloat / m_ATX_corrections.header.angle_division;
       }
       // printf("%d  %f\n", m_ATX_corrections.header.version[1], output.azimuth[index] / 256);
       if (this->get_firetime_file_) {
-        frame.azimuth[index] =  frame.azimuth[index] + ((pTail->GetFrameID() % 2 == 0) ? even_firetime_correction_[i] : -odd_firetime_correction_[i] ) * (abs(pTail->GetMotorSpeed()) * 1E-9 / 8) * kAllFineResolutionFloat;
+        frame.pointData[index].azimuth =  frame.pointData[index].azimuth + ((pTail->GetFrameID() % 2 == 0) ? even_firetime_correction_[i] : -odd_firetime_correction_[i] ) * (abs(pTail->GetMotorSpeed()) * 1E-9 / 8) * kAllFineResolutionFloat;
       }
-      frame.reflectivities[index] = pChnUnit->GetReflectivity();  
-      frame.distances[index] = pChnUnit->GetDistance();
-      frame.confidence[index] = pChnUnit->GetConfidenceLevel();
+      frame.pointData[index].reflectivities = pChnUnit->GetReflectivity();  
+      frame.pointData[index].distances = pChnUnit->GetDistance();
+      frame.pointData[index].confidence = pChnUnit->GetConfidenceLevel();
       pChnUnit = pChnUnit + 1;
       index++;
     }

@@ -200,9 +200,9 @@ int Udp2_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
     for (int i = 0; i < frame.laser_num; i++) {
       int point_index = packet_index * frame.per_points_num + blockId * frame.laser_num + i; 
       // get phi and psi and distance
-      float raw_azimuth = frame.azimuth[point_index];
-      float raw_elevation = frame.elevation[point_index];
-      float distance = frame.distances[point_index] * frame.distance_unit;
+      float raw_azimuth = frame.pointData[point_index].azimuth;
+      float raw_elevation = frame.pointData[point_index].elevation;
+      float distance = frame.pointData[point_index].distances * frame.distance_unit;
       float phi = m_ET_corrections.azimuths[i + 3];
       float theta = m_ET_corrections.elevations[i + 3];
       float an = apha + phi;
@@ -231,8 +231,8 @@ int Udp2_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       setX(frame.points[point_index], x);
       setY(frame.points[point_index], y);
       setZ(frame.points[point_index], z);
-      setIntensity(frame.points[point_index], frame.reflectivities[point_index]);
-      setConfidence(frame.points[point_index], frame.confidence[point_index]);
+      setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
+      setConfidence(frame.points[point_index], frame.pointData[point_index].confidence);
       setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
       setRing(frame.points[point_index], i);
     }
@@ -306,11 +306,11 @@ int Udp2_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
       int16_t horizontalAngle = pSeq2->GetHorizontalAngle();
       int16_t verticalAngle = pSeq2->GetVerticalAngle();
       for (int unitId = 0; unitId < (pHeader->GetLaserNum()/pHeader->GetSeqNum()); unitId++){
-        frame.reflectivities[index] = pUnit->GetReflectivity();
-        frame.confidence[index] = pUnit->GetConfidence();
-        frame.distances[index] = pUnit->GetDistance();
-        frame.azimuth[index] = horizontalAngle/512.0f;
-        frame.elevation[index] = verticalAngle/512.0f;
+        frame.pointData[index].reflectivities = pUnit->GetReflectivity();
+        frame.pointData[index].confidence = pUnit->GetConfidence();
+        frame.pointData[index].distances = pUnit->GetDistance();
+        frame.pointData[index].azimuth = horizontalAngle/512.0f;
+        frame.pointData[index].elevation = verticalAngle/512.0f;
         index++;
         pUnit += 1;
       }

@@ -210,8 +210,10 @@ public:
       }
 
       //one frame is receive completely, split frame
-      if (lidar_ptr_->frame_.scan_complete)
-      {
+      if (lidar_ptr_->frame_.scan_complete) {
+        // If it's not a timeout split frame, it will be one more packet
+        bool last_packet_is_valid = (lidar_ptr_->frame_.packet_num != packet_index);
+        lidar_ptr_->frame_.packet_num = packet_index;
         //compute xyzi of points in one frame, using gpu device
         int ret = gpu_parser_ptr_->ComputeXYZI(lidar_ptr_->frame_);  
 
@@ -255,7 +257,6 @@ public:
             correction_cb_(lidar_ptr_->correction_string_);
           }
         }
-        bool last_packet_is_valid = (lidar_ptr_->frame_.packet_num != packet_index);
         //reset frame variable
         lidar_ptr_->frame_.Update();
 

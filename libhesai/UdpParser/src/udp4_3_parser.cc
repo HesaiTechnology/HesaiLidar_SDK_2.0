@@ -256,13 +256,13 @@ int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     int field = 0;
     for (int i = 0; i < pHeader->GetLaserNum(); i++) {
       if (this->get_firetime_file_) {
-        frame.azimuth[index] = azimuth + this->GetFiretimesCorrection(i, this->spin_speed_) * kAllFineResolutionFloat * 2;
+        frame.pointData[index].azimuth = azimuth + this->GetFiretimesCorrection(i, this->spin_speed_) * kAllFineResolutionFloat * 2;
       }else {
-        frame.azimuth[index] = azimuth;
+        frame.pointData[index].azimuth = azimuth;
       }
-      frame.distances[index] = pChnUnit->GetDistance();
-      frame.reflectivities[index] = pChnUnit->GetReflectivity(); 
-      frame.confidence[index] = pChnUnit->GetConfidenceLevel(); 
+      frame.pointData[index].distances = pChnUnit->GetDistance();
+      frame.pointData[index].reflectivities = pChnUnit->GetReflectivity(); 
+      frame.pointData[index].confidence = pChnUnit->GetConfidenceLevel(); 
       pChnUnit = pChnUnit + 1;
       index++;
     }
@@ -288,7 +288,7 @@ template<typename T_Point>
 int Udp4_3Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index){
   for (int blockid = 0; blockid < frame.block_num; blockid++) {
     // T_Point point;
-    int Azimuth = frame.azimuth[packet_index * frame.per_points_num + blockid * frame.laser_num];
+    int Azimuth = frame.pointData[packet_index * frame.per_points_num + blockid * frame.laser_num].azimuth;
     int count = 0, field = 0;
     if ( this->get_correction_file_) {
       while (count < m_PandarAT_corrections.header.frame_number &&
@@ -307,8 +307,8 @@ int Udp4_3Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
 
     for (int i = 0; i < frame.laser_num; i++) {
       int point_index = packet_index * frame.per_points_num + blockid * frame.laser_num + i;  
-      float distance = frame.distances[point_index] * frame.distance_unit;
-      Azimuth = frame.azimuth[point_index];
+      float distance = frame.pointData[point_index].distances * frame.distance_unit;
+      Azimuth = frame.pointData[point_index].azimuth;
       if (this->get_correction_file_) {
         elevation = (m_PandarAT_corrections.l.elevation[i] +
                    m_PandarAT_corrections.GetElevationAdjustV3(i, Azimuth) *
@@ -334,8 +334,8 @@ int Udp4_3Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       setX(frame.points[point_index], x);
       setY(frame.points[point_index], y);
       setZ(frame.points[point_index], z);
-      setIntensity(frame.points[point_index], frame.reflectivities[point_index]);
-      setConfidence(frame.points[point_index], frame.confidence[point_index]);
+      setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
+      setConfidence(frame.points[point_index], frame.pointData[point_index].confidence);
       setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
       setRing(frame.points[point_index], i);
     }

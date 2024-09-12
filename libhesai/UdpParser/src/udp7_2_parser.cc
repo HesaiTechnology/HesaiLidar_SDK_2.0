@@ -215,12 +215,12 @@ int Udp7_2Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
   // T_Point point;
   for (int i = 0; i < frame.laser_num; i++) {
     int point_index = packet_index * frame.per_points_num + i;
-    float distance = frame.distances[point_index] * frame.distance_unit;
+    float distance = frame.pointData[point_index].distances * frame.distance_unit;
     int azimuth = 0;
     int elevation = 0;   
     if (this->get_correction_file_) {
-      azimuth = frame.azimuth[point_index] * kFineResolutionFloat;
-      elevation = frame.elevation[point_index] * kFineResolutionFloat;
+      azimuth = frame.pointData[point_index].azimuth * kFineResolutionFloat;
+      elevation = frame.pointData[point_index].elevation * kFineResolutionFloat;
       elevation = (CIRCLE + elevation) % CIRCLE;
       azimuth = (CIRCLE + azimuth) % CIRCLE;
     }
@@ -239,7 +239,7 @@ int Udp7_2Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
     setX(frame.points[point_index], x);
     setY(frame.points[point_index], y);
     setZ(frame.points[point_index], z);
-    setIntensity(frame.points[point_index], frame.reflectivities[point_index]);
+    setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
     setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
     setRing(frame.points[point_index], i);
   }
@@ -300,10 +300,10 @@ int Udp7_2Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
           (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_FT_V2));
   for (int blockid = 0; blockid < 1; blockid++) {
     for (int i = 0; i < pHeader->GetChannelNum(); i++) {
-      frame.azimuth[index] = corrections_.azimuths[i][pTail->column_id];
-      frame.elevation[index] = corrections_.elevations[i][pTail->column_id];
-      frame.reflectivities[index] = pChnUnit->GetReflectivity();  
-      frame.distances[index] = pChnUnit->GetDistance();
+      frame.pointData[index].azimuth = corrections_.azimuths[i][pTail->column_id];
+      frame.pointData[index].elevation = corrections_.elevations[i][pTail->column_id];
+      frame.pointData[index].reflectivities = pChnUnit->GetReflectivity();  
+      frame.pointData[index].distances = pChnUnit->GetDistance();
       pChnUnit = pChnUnit + 1;
       index++;
     }

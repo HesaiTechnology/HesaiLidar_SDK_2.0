@@ -57,7 +57,8 @@ class Udp2_6ParserGpu: public GeneralParserGpu<T_Point>{
   float* channel_elevations_cu_;
   float* channel_azimuths_adjust_cu_;
   float* channel_elevations_adjust_cu_;
-  uint8_t* frame_data_cu_;
+  PointDecodeData* point_data_cu_;
+  uint64_t* sensor_timestamp_cu_;
  public:
   Udp2_6ParserGpu();
   ~Udp2_6ParserGpu();

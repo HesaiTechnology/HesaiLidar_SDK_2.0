@@ -48,6 +48,12 @@ namespace hesai
 {
 namespace lidar
 {
+#ifdef _MSC_VER
+#define PACKED
+#pragma pack(push, 1)
+#else
+#define PACKED __attribute__((packed))
+#endif
 
 //max point num of one packet, laser_num * block_num <= kMaxPointsNumPerPacket
 static constexpr uint16_t kMaxPointsNumPerPacket = 512;
@@ -138,41 +144,33 @@ typedef struct _LidarDecodeConfig {
     }
 } LidarDecodeConfig;
 
-#define SENSOR_TIMESTAMP_OFFSET         (0)
+#define POINT_DATA_OFFSET               (0)
+#define POINT_DATA_LEN                  (sizeof(PointDecodeData) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)
+#define SENSOR_TIMESTAMP_OFFSET         (POINT_DATA_OFFSET + POINT_DATA_LEN)
 #define SENSOR_TIMESTAMP_LEN            (sizeof(uint64_t) * kMaxPacketNumPerFrame)
-#define AZIMUTH_OFFSET                  (SENSOR_TIMESTAMP_OFFSET + SENSOR_TIMESTAMP_LEN)
-#define AZIMUTH_LEN                     (sizeof(float) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)
-#define ELEVATION_OFFSET                (AZIMUTH_OFFSET + AZIMUTH_LEN)
-#define ELEVATION_LEN                   (sizeof(float) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)
-#define DISTANCES_OFFSET                (ELEVATION_OFFSET + ELEVATION_LEN)
-#define DISTANCES_LEN                   (sizeof(uint16_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)
-#define REFLECTIVITIES_OFFSET           (DISTANCES_OFFSET + DISTANCES_LEN)
-#define REFLECTIVITIES_LEN              (sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)
-#define CONFIDENCE_OFFSET               (REFLECTIVITIES_OFFSET + REFLECTIVITIES_LEN)
-#define CONFIDENCE_LEN                  (sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)
-#define CHN_INDEX_OFFSET                (CONFIDENCE_OFFSET + CONFIDENCE_LEN)
-#define CHN_INDEX_LEN                   (sizeof(uint8_t) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)
-#define MIRROR_INDEX_OFFSET             (CHN_INDEX_OFFSET + CHN_INDEX_LEN)
-#define MIRROR_INDEX_LEN                (sizeof(uint8_t) * kMaxPacketNumPerFrame)
-#define POINTS_OFFSET                   (MIRROR_INDEX_OFFSET + MIRROR_INDEX_LEN)
+#define POINTS_OFFSET                   (SENSOR_TIMESTAMP_OFFSET + SENSOR_TIMESTAMP_LEN)
 
-#define FRAME_DATA_LEN                  (SENSOR_TIMESTAMP_LEN + AZIMUTH_LEN + ELEVATION_LEN + DISTANCES_LEN +   \
-                                        REFLECTIVITIES_LEN + CONFIDENCE_LEN + CHN_INDEX_LEN + MIRROR_INDEX_LEN)
-#define FRAME_DATA_OFFSET               (0)
+struct PointDecodeData {
+  float azimuth;
+  float elevation;
+  uint16_t distances;
+  uint8_t reflectivities;
+  uint8_t confidence;
+  uint8_t chn_index;
+  uint8_t mirror_index;
+} PACKED;
+
 template <typename PointT>
 class LidarDecodedFrame
 {
     public:
     LidarDecodedFrame() {
-        total_memory = new uint8_t[FRAME_DATA_LEN + (sizeof(PointT) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket)];
+        total_memory = new uint8_t[sizeof(PointDecodeData) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket
+                                   + sizeof(uint64_t) * kMaxPacketNumPerFrame
+                                   + sizeof(PointT) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
+
+        pointData = reinterpret_cast<PointDecodeData* >(total_memory + POINT_DATA_OFFSET);
         sensor_timestamp = reinterpret_cast<uint64_t* >(total_memory + SENSOR_TIMESTAMP_OFFSET);
-        azimuth = reinterpret_cast<float* >(total_memory + AZIMUTH_OFFSET);
-        elevation = reinterpret_cast<float* >(total_memory + ELEVATION_OFFSET);
-        distances = reinterpret_cast<uint16_t* >(total_memory + DISTANCES_OFFSET);
-        reflectivities = reinterpret_cast<uint8_t* >(total_memory + REFLECTIVITIES_OFFSET);
-        confidence = reinterpret_cast<uint8_t* >(total_memory + CONFIDENCE_OFFSET);
-        chn_index = reinterpret_cast<uint8_t* >(total_memory + CHN_INDEX_OFFSET);
-        mirror_index = reinterpret_cast<uint8_t* >(total_memory + MIRROR_INDEX_OFFSET);
         points = reinterpret_cast <PointT* >(total_memory + POINTS_OFFSET);
 
         host_timestamp = 0;
@@ -198,14 +196,7 @@ class LidarDecodedFrame
           total_memory = nullptr;
           sensor_timestamp = nullptr;
           points = nullptr;
-          azimuths = nullptr;
-          reflectivities = nullptr;
-          azimuth = nullptr;
-          elevation = nullptr;
-          distances = nullptr;
-          chn_index = nullptr;
-          confidence = nullptr;
-          mirror_index = nullptr;
+          pointData = nullptr;
         }
     }
     LidarDecodedFrame(const LidarDecodedFrame&) = delete;
@@ -237,14 +228,7 @@ class LidarDecodedFrame
     uint32_t packet_num;
     uint8_t* total_memory = nullptr;                  
     PointT* points = nullptr;
-    uint32_t* azimuths = nullptr;
-    uint8_t* reflectivities = nullptr;
-    float* azimuth = nullptr;
-    float* elevation = nullptr;
-    uint16_t* distances = nullptr;
-    uint8_t* chn_index = nullptr;
-    uint8_t* confidence = nullptr;
-    uint8_t* mirror_index = nullptr;
+    PointDecodeData* pointData = nullptr;
     uint16_t block_num;
     uint16_t laser_num;
     uint32_t per_points_num; 
@@ -285,6 +269,9 @@ typedef std::vector<std::string> stringArray_t;
 typedef std::vector<UdpPacket> UdpFrame_t;
 typedef std::vector<UdpFrame_t> UdpFrameArray_t;
 
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 
 }  // namespace lidar
 }  // namespace hesai

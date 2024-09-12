@@ -38,11 +38,13 @@ using namespace hesai::lidar;
 template <typename T_Point>
 Udp4_7ParserGpu<T_Point>::Udp4_7ParserGpu() {
   corrections_loaded_ = false;
-  cudaSafeMalloc(frame_data_cu_, FRAME_DATA_LEN);
+  cudaSafeMalloc(point_data_cu_, POINT_DATA_LEN);
+  cudaSafeMalloc(sensor_timestamp_cu_, SENSOR_TIMESTAMP_LEN);
 }
 template <typename T_Point>
 Udp4_7ParserGpu<T_Point>::~Udp4_7ParserGpu() {
-  cudaSafeFree(frame_data_cu_);
+  cudaSafeFree(point_data_cu_);
+  cudaSafeFree(sensor_timestamp_cu_);
   if (corrections_loaded_) {
     cudaSafeFree(deles_cu);
     cudaSafeFree(channel_elevations_cu_);
@@ -52,12 +54,13 @@ Udp4_7ParserGpu<T_Point>::~Udp4_7ParserGpu() {
 template <typename T_Point>
 __global__ void compute_xyzs_v4_7_impl(
     T_Point *xyzs, const float* channel_elevations, const float* elevation_adjust,
-    const uint8_t *frame_data, const double raw_distance_unit, Transform transform, const uint16_t blocknum, const uint16_t lasernum, 
+    const PointDecodeData* point_data, const uint64_t* sensor_timestamp, const double raw_distance_unit, Transform transform, const uint16_t blocknum, const uint16_t lasernum, 
     const uint8_t version, const uint16_t packet_index) {
   auto iscan = blockIdx.x;
   auto ichannel = threadIdx.x;
   if (iscan >= packet_index || ichannel >= blocknum * lasernum) return;
-  float azimuth = AZIMUTH_GET(frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))) / kAllFineResolutionFloat;
+  int point_index = iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum));
+  float azimuth = point_data[point_index].azimuth / kAllFineResolutionFloat;
   float elevation = channel_elevations[ichannel % lasernum];
   
   if (version == 3) {
@@ -74,7 +77,7 @@ __global__ void compute_xyzs_v4_7_impl(
   auto phi = elevation * kResolutionFloat / kHalfCircleFloat * M_PI;
   auto theta = azimuth * kResolutionFloat / kHalfCircleFloat * M_PI;
 
-  auto rho = DISTANCES_GET(frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))) * raw_distance_unit;
+  auto rho = point_data[point_index].distances * raw_distance_unit;
   float z = rho * sin(phi);
   auto r = rho * cosf(phi);
   float x = r * sin(theta);
@@ -92,26 +95,29 @@ __global__ void compute_xyzs_v4_7_impl(
   float y_ = cosb * sinc * x + (cosa * cosc + sina * sinb * sinc) * y +
               (cosa * sinb * sinc - sina * cosc) * z + transform.y;
   float z_ = -sinb * x + sina * cosb * y + cosa * cosb * z + transform.z;
-  gpu::setX(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], x_);
-  gpu::setY(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))],  y_);
-  gpu::setZ(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], z_);
-  gpu::setIntensity(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], REFLECTIVITIES_GET(frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))));
-  gpu::setTimestamp(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], double(SENSOR_TIMESTAMP_GET(frame_data, iscan)) / kMicrosecondToSecond);
-  gpu::setRing(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], ichannel % lasernum);
-  gpu::setConfidence(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], CONFIDENCE_GET(frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))));
+  gpu::setX(xyzs[point_index], x_);
+  gpu::setY(xyzs[point_index],  y_);
+  gpu::setZ(xyzs[point_index], z_);
+  gpu::setIntensity(xyzs[point_index], point_data[point_index].reflectivities);
+  gpu::setTimestamp(xyzs[point_index], double(sensor_timestamp[iscan]) / kMicrosecondToSecond);
+  gpu::setRing(xyzs[point_index], ichannel % lasernum);
+  gpu::setConfidence(xyzs[point_index], point_data[point_index].confidence);
 }
 template <typename T_Point>
 int Udp4_7ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
   if (!corrections_loaded_) return int(ReturnCode::CorrectionsUnloaded);  
-  cudaSafeCall(cudaMemcpy(frame_data_cu_, frame.total_memory + FRAME_DATA_OFFSET,
-                          FRAME_DATA_LEN, cudaMemcpyHostToDevice),
-               ReturnCode::CudaMemcpyHostToDeviceError);                                          
-compute_xyzs_v4_7_impl<<<kMaxPacketNumPerFrame, kMaxPointsNumPerPacket>>>(
-    this->frame_.gpu()->points, channel_elevations_cu_, deles_cu, frame_data_cu_,
+  cudaSafeCall(cudaMemcpy(point_data_cu_, frame.pointData,
+                          frame.block_num * frame.laser_num * frame.packet_num * sizeof(PointDecodeData), 
+                          cudaMemcpyHostToDevice), ReturnCode::CudaMemcpyHostToDeviceError);
+  cudaSafeCall(cudaMemcpy(sensor_timestamp_cu_, frame.sensor_timestamp,
+                          frame.packet_num * sizeof(uint64_t), 
+                          cudaMemcpyHostToDevice), ReturnCode::CudaMemcpyHostToDeviceError);                                          
+compute_xyzs_v4_7_impl<<<frame.packet_num, frame.block_num * frame.laser_num>>>(
+    this->frame_.gpu()->points, channel_elevations_cu_, deles_cu, point_data_cu_, sensor_timestamp_cu_,
     frame.distance_unit, this->transform_, frame.block_num, frame.laser_num, m_ATX_corrections.header.version[1], frame.packet_num);
   cudaSafeCall(cudaGetLastError(), ReturnCode::CudaXYZComputingError);
-  this->frame_.DeviceToHost();
-  std::memcpy(frame.points, this->frame_.cpu()->points, sizeof(T_Point) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket);
+  this->frame_.DeviceToHost(0, frame.block_num * frame.laser_num * frame.packet_num * sizeof(T_Point));
+  std::memcpy(frame.points, this->frame_.cpu()->points, frame.block_num * frame.laser_num * frame.packet_num * sizeof(T_Point));
   return 0;
 }
 template <typename T_Point>

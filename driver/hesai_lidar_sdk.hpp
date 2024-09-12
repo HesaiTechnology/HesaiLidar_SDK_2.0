@@ -204,6 +204,9 @@ public:
 
       //one frame is receive completely, split frame
       if(lidar_ptr_->frame_.scan_complete) {
+        // If it's not a timeout split frame, it will be one more packet
+        bool last_packet_is_valid = (lidar_ptr_->frame_.packet_num != packet_index);
+        lidar_ptr_->frame_.packet_num = packet_index;
         //waiting for parser thread compute xyzi of points in the same frame
         while(!lidar_ptr_->ComputeXYZIComplete(packet_index)) std::this_thread::sleep_for(std::chrono::microseconds(100));
         // uint32_t end =  GetMicroTickCount();
@@ -247,8 +250,6 @@ public:
             correction_cb_(lidar_ptr_->correction_string_);
           }
         }
-
-        bool last_packet_is_valid = (lidar_ptr_->frame_.packet_num != packet_index);
         //reset frame variable
         lidar_ptr_->frame_.Update();
         //clear udp packet vector
