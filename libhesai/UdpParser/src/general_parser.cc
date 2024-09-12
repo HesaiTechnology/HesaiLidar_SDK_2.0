@@ -200,14 +200,11 @@ void GeneralParser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
       std::stringstream(subline) >> laserId;
       std::getline(ss, subline, ',');
       std::stringstream(subline) >> deltTime;
-      if (laserId != lineCount) {
-        LogError("laser id is wrong in correction file. laser Id: %d, line: %d", laserId, lineCount);
-      }
-      if (laserId >= MAX_LASER_NUM || laserId < 0) {
-        LogFatal("laser id is wrong in correction file. laser Id: %d, line: %d", laserId, lineCount);
+      if (laserId > MAX_LASER_NUM || laserId <= 0) {
+        LogFatal("laser id is wrong in firetime file. laser Id: %d, line: %d", laserId, lineCount);
         continue;
       }
-      firetime_correction_[laserId] = deltTime;
+      firetime_correction_[laserId - 1] = deltTime;
     }
     this->get_firetime_file_ = true;
     LogInfo("Open firetime file success!");
