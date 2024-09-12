@@ -1,9 +1,3 @@
-/*
- * @Description: 
- * @Date: 2024-09-05 14:19:37
- * @LastEditTime: 2024-09-05 17:44:44
- * @FilePath: /ROS1/src/HesaiLidar_ROS_2.0/src/driver/HesaiLidar_SDK_2.0/libhesai/UdpParser/include/udp6_1_parser.h
- */
 /************************************************************************************************
 Copyright (C) 2023 Hesai Technology Co., Ltd.
 Copyright (C) 2023 Original Authors

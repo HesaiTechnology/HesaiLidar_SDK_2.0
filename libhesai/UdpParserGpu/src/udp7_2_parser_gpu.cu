@@ -55,10 +55,10 @@ __global__ void compute_xyzs_7_2_impl(T_Point *xyzs, const float* channel_azimut
   auto iscan = blockIdx.x;
   auto ichannel = threadIdx.x;
   if (iscan >= packet_index || ichannel >= blocknum * lasernum) return;
-  float azimuth = AZIMUTH_GET[frame_data, iscan * blocknum * lasernum + ichannel] / HALF_CIRCLE * M_PI;
-  float elevation = ELEVATION_GET[frame_data, iscan * blocknum * lasernum + ichannel] / HALF_CIRCLE * M_PI;
+  float azimuth = AZIMUTH_GET(frame_data, iscan * blocknum * lasernum + ichannel) / HALF_CIRCLE * M_PI;
+  float elevation = ELEVATION_GET(frame_data, iscan * blocknum * lasernum + ichannel) / HALF_CIRCLE * M_PI;
 
-  auto rho = DISTANCES_GET[frame_data, iscan * blocknum * lasernum + ichannel] * raw_distance_unit;
+  auto rho = DISTANCES_GET(frame_data, iscan * blocknum * lasernum + ichannel) * raw_distance_unit;
   float z = rho * sin(elevation);
   auto r = rho * cosf(elevation);
   float x = r * sin(azimuth);
@@ -79,8 +79,8 @@ __global__ void compute_xyzs_7_2_impl(T_Point *xyzs, const float* channel_azimut
   gpu::setX(xyzs[iscan * blocknum * lasernum + ichannel], x_);
   gpu::setY(xyzs[iscan * blocknum * lasernum + ichannel],  y_);
   gpu::setZ(xyzs[iscan * blocknum * lasernum + ichannel], z_);
-  gpu::setIntensity(xyzs[iscan * blocknum * lasernum + ichannel], REFLECTIVITIES_GET[frame_data, iscan * blocknum * lasernum + ichannel]);
-  gpu::setTimestamp(xyzs[iscan * blocknum * lasernum + ichannel], double(SENSOR_TIMESTAMP_GET[frame_data, iscan]) / kMicrosecondToSecond);
+  gpu::setIntensity(xyzs[iscan * blocknum * lasernum + ichannel], REFLECTIVITIES_GET(frame_data, iscan * blocknum * lasernum + ichannel));
+  gpu::setTimestamp(xyzs[iscan * blocknum * lasernum + ichannel], double(SENSOR_TIMESTAMP_GET(frame_data, iscan)) / kMicrosecondToSecond);
   gpu::setRing(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], ichannel % lasernum);
 }
 

@@ -61,10 +61,10 @@ __global__ void compute_xyzs_2_6_impl(T_Point *xyzs, const float* channel_azimut
   float apha =  channel_elevations[0];
   float beta =  channel_elevations[1];
   float gamma =  channel_elevations[2];
-  float raw_azimuth = AZIMUTH_GET[frame_data, iscan * per_points_num + (ichannel % per_points_num)];
-  float raw_elevation = ELEVATION_GET[frame_data, iscan * per_points_num + (ichannel % per_points_num)];
-  float phi = channel_azimuths[CHN_INDEX_GET[frame_data, ichannel % per_points_num] + 3];
-  float theta = channel_elevations[CHN_INDEX_GET[frame_data, ichannel % per_points_num] + 3];
+  float raw_azimuth = AZIMUTH_GET(frame_data, iscan * per_points_num + (ichannel % per_points_num));
+  float raw_elevation = ELEVATION_GET(frame_data, iscan * per_points_num + (ichannel % per_points_num));
+  float phi = channel_azimuths[CHN_INDEX_GET(frame_data, ichannel % per_points_num) + 3];
+  float theta = channel_elevations[CHN_INDEX_GET(frame_data, ichannel % per_points_num) + 3];
   float an = apha + phi;
   float theta_n = (raw_elevation + theta / std::cos(an * M_PI / 180));
   float elv_v = raw_elevation * M_PI / 180 + theta * M_PI / 180 - std::tan(raw_elevation * M_PI / 180) * (1 - std::cos(an * M_PI / 180)) ;
@@ -101,7 +101,7 @@ __global__ void compute_xyzs_2_6_impl(T_Point *xyzs, const float* channel_azimut
     }
   }
 
-  auto rho = DISTANCES_GET[frame_data, iscan * per_points_num + (ichannel % per_points_num)] * raw_distance_unit;
+  auto rho = DISTANCES_GET(frame_data, iscan * per_points_num + (ichannel % per_points_num)) * raw_distance_unit;
   float z = rho * std::sin(elv_h * M_PI / 180);
   auto r = rho * std::cos(elv_h * M_PI / 180) ;
   float x = r * std::sin(azi_h * M_PI / 180);
@@ -122,9 +122,9 @@ __global__ void compute_xyzs_2_6_impl(T_Point *xyzs, const float* channel_azimut
   gpu::setX(xyzs[iscan * per_points_num + (ichannel % per_points_num)], x_);
   gpu::setY(xyzs[iscan * per_points_num + (ichannel % per_points_num)],  y_);
   gpu::setZ(xyzs[iscan * per_points_num + (ichannel % per_points_num)], z_);
-  gpu::setIntensity(xyzs[iscan * per_points_num + (ichannel % per_points_num)], REFLECTIVITIES_GET[frame_data, iscan * per_points_num + (ichannel % per_points_num)]);
-  gpu::setTimestamp(xyzs[iscan * per_points_num + (ichannel % per_points_num)], double(SENSOR_TIMESTAMP_GET[frame_data, iscan]) / kMicrosecondToSecond);
-  gpu::setRing(xyzs[iscan * per_points_num + (ichannel % per_points_num)], CHN_INDEX_GET[frame_data, ichannel % per_points_num]);
+  gpu::setIntensity(xyzs[iscan * per_points_num + (ichannel % per_points_num)], REFLECTIVITIES_GET(frame_data, iscan * per_points_num + (ichannel % per_points_num)));
+  gpu::setTimestamp(xyzs[iscan * per_points_num + (ichannel % per_points_num)], double(SENSOR_TIMESTAMP_GET(frame_data, iscan)) / kMicrosecondToSecond);
+  gpu::setRing(xyzs[iscan * per_points_num + (ichannel % per_points_num)], CHN_INDEX_GET(frame_data, ichannel % per_points_num));
 }
 template <typename T_Point>
 int Udp2_6ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {

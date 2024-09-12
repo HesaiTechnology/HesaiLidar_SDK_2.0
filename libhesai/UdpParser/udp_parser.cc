@@ -240,7 +240,7 @@ void UdpParser<T_Point>::CreatGeneralParser(const UdpPacket& packet) {
     return;
   }
   if (packet.buffer[0] != 0xEE || packet.buffer[1] != 0xFF) {
-    LogWarning("Packet with invaild delimiter\n");
+    LogWarning("Packet with invaild delimiter");
     return;
   }
   uint8_t UdpMajorVersion = packet.buffer[2];

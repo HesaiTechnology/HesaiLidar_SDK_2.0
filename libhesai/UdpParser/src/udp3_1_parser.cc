@@ -42,7 +42,7 @@ Udp3_1Parser<T_Point>::Udp3_1Parser() {
 }
 
 template<typename T_Point>
-Udp3_1Parser<T_Point>::~Udp3_1Parser() { LogInfo("release general parser\n"); }
+Udp3_1Parser<T_Point>::~Udp3_1Parser() { LogInfo("release general parser"); }
 
 template<typename T_Point>
 int Udp3_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index) {

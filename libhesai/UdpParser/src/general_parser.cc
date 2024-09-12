@@ -72,7 +72,7 @@ void GeneralParser<T_Point>::ParserFaultMessage(UdpPacket& udp_packet, FaultMess
 }
 
 template <typename T_Point>
-GeneralParser<T_Point>::~GeneralParser() { printf("release general Parser\n"); }
+GeneralParser<T_Point>::~GeneralParser() { LogInfo("release general parser"); }
 
 template <typename T_Point>
 void GeneralParser<T_Point>::SetFrameAzimuth(float frame_start_azimuth) {

@@ -44,7 +44,7 @@ UdpP40Parser<T_Point>::UdpP40Parser() {
 }
 
 template<typename T_Point>
-UdpP40Parser<T_Point>::~UdpP40Parser() { LogInfo("release general parser\n"); }
+UdpP40Parser<T_Point>::~UdpP40Parser() { LogInfo("release general parser"); }
 
 template<typename T_Point>
 int UdpP40Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index) {

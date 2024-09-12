@@ -147,14 +147,14 @@ namespace gpu
 
 } // namespace gpu
 
-#define SENSOR_TIMESTAMP_GET[data, offset]          (*((uint64_t *)(data + SENSOR_TIMESTAMP_OFFSET + (offset) * sizeof(uint64_t))))
-#define AZIMUTH_GET[data, offset]                   (*((float *)(data + AZIMUTH_OFFSET + (offset) * sizeof(float))))
-#define ELEVATION_GET[data, offset]                 (*((float *)(data + ELEVATION_OFFSET + (offset) * sizeof(float))))
-#define DISTANCES_GET[data, offset]                 (*((uint16_t *)(data + DISTANCES_OFFSET + (offset) * sizeof(uint16_t))))
-#define REFLECTIVITIES_GET[data, offset]            (*((uint8_t *)(data + REFLECTIVITIES_OFFSET + (offset) * sizeof(uint8_t))))
-#define CONFIDENCE_GET[data, offset]                (*((uint8_t *)(data + CONFIDENCE_OFFSET + (offset) * sizeof(uint8_t))))
-#define CHN_INDEX_GET[data, offset]                 (*((uint8_t *)(data + CHN_INDEX_OFFSET + (offset) * sizeof(uint8_t))))
-#define MIRROR_INDEX_GET[data, offset]              (*((uint8_t *)(data + MIRROR_INDEX_OFFSET + (offset) * sizeof(uint8_t))))
+#define SENSOR_TIMESTAMP_GET( data, offset )          (*((uint64_t *)(data + SENSOR_TIMESTAMP_OFFSET + (offset) * sizeof(uint64_t))))
+#define AZIMUTH_GET( data, offset )                   (*((float *)(data + AZIMUTH_OFFSET + (offset) * sizeof(float))))
+#define ELEVATION_GET( data, offset )                 (*((float *)(data + ELEVATION_OFFSET + (offset) * sizeof(float))))
+#define DISTANCES_GET( data, offset )                 (*((uint16_t *)(data + DISTANCES_OFFSET + (offset) * sizeof(uint16_t))))
+#define REFLECTIVITIES_GET( data, offset )            (*((uint8_t *)(data + REFLECTIVITIES_OFFSET + (offset) * sizeof(uint8_t))))
+#define CONFIDENCE_GET( data, offset )                (*((uint8_t *)(data + CONFIDENCE_OFFSET + (offset) * sizeof(uint8_t))))
+#define CHN_INDEX_GET( data, offset )                 (*((uint8_t *)(data + CHN_INDEX_OFFSET + (offset) * sizeof(uint8_t))))
+#define MIRROR_INDEX_GET( data, offset )              (*((uint8_t *)(data + MIRROR_INDEX_OFFSET + (offset) * sizeof(uint8_t))))
 
 template <typename PointT>
 struct PointCloudStruct  {

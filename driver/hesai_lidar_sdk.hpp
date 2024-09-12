@@ -280,7 +280,7 @@ public:
           lidar_ptr_->ClearPacketBuffer();
           std::this_thread::sleep_for(std::chrono::microseconds(100));
           lidar_ptr_->frame_.Update();
-          printf("fail to start a new frame\n");
+          LogError("fail to start a new frame\n");
         }
       }
     }

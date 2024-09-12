@@ -41,7 +41,7 @@ Udp3_2Parser<T_Point>::Udp3_2Parser() {
 }
 
 template<typename T_Point>
-Udp3_2Parser<T_Point>::~Udp3_2Parser() { LogInfo("release general parser\n"); }
+Udp3_2Parser<T_Point>::~Udp3_2Parser() { LogInfo("release general parser"); }
 
 template<typename T_Point>
 int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {

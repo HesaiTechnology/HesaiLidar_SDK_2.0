@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 
   //star process thread
   sample.Start();
-  while (!IsPlayEnded(sample))
+  while (!IsPlayEnded(sample) || GetMicroTickCount() - last_frame_time < 100000)
   {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }

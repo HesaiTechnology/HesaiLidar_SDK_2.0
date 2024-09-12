@@ -62,8 +62,8 @@ __global__ void compute_xyzs_v4_3_impl(
   auto iscan = blockIdx.x;
   auto ichannel = threadIdx.x;
   if (iscan >= packet_index || ichannel >= blocknum * lasernum) return;
-  float azimuth = AZIMUTH_GET[frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] / kFineResolutionInt;
-  int Azimuth = AZIMUTH_GET[frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))];
+  float azimuth = AZIMUTH_GET(frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))) / kFineResolutionInt;
+  int Azimuth = AZIMUTH_GET(frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum)));
   int count = 0, field = 0;
   while (count < 3 &&
           (((Azimuth + (kFineResolutionInt * kCircle) - raw_azimuth_begin[field]) % (kFineResolutionInt * kCircle) +
@@ -90,7 +90,7 @@ __global__ void compute_xyzs_v4_3_impl(
       beta * deles[(ichannel % lasernum) * (kHalfCircleInt / kResolutionInt) + i] + alpha * deles[(ichannel % lasernum) * (kHalfCircleInt / kResolutionInt) + j];
   auto phi = (channel_elevations[(ichannel % lasernum)] / kFineResolutionFloat + dele) * raw_correction_resolution / kHalfCircleFloat * M_PI;
 
-  auto rho = DISTANCES_GET[frame, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))] * raw_distance_unit;
+  auto rho = DISTANCES_GET(frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))) * raw_distance_unit;
   float z = rho * sin(phi);
   auto r = rho * cosf(phi);
   float x = r * sin(theta);
@@ -111,10 +111,10 @@ __global__ void compute_xyzs_v4_3_impl(
   gpu::setX(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], x_);
   gpu::setY(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))],  y_);
   gpu::setZ(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], z_);
-  gpu::setIntensity(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], REFLECTIVITIES_GET[frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))]);
-  gpu::setTimestamp(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], double(SENSOR_TIMESTAMP_GET[frame_data, iscan]) / kMicrosecondToSecond);
+  gpu::setIntensity(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], REFLECTIVITIES_GET(frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))));
+  gpu::setTimestamp(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], double(SENSOR_TIMESTAMP_GET(frame_data, iscan)) / kMicrosecondToSecond);
   gpu::setRing(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], ichannel % lasernum);
-  gpu::setConfidence(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], CONFIDENCE_GET[frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))]);
+  gpu::setConfidence(xyzs[iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))], CONFIDENCE_GET(frame_data, iscan * blocknum * lasernum + (ichannel % (lasernum * blocknum))));
 }
 template <typename T_Point>
 int Udp4_3ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {

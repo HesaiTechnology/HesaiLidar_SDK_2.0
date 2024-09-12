@@ -39,7 +39,7 @@ Source::Source() {}
 Source::~Source() { Close(); }
 
 void Source::Close() {
-  printf("Source::Close()\n");
+  LogInfo("Source::Close()\n");
 }
 
 

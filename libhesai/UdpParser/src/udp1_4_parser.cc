@@ -48,7 +48,7 @@ Udp1_4Parser<T_Point>::Udp1_4Parser() {
 }
 
 template<typename T_Point>
-Udp1_4Parser<T_Point>::~Udp1_4Parser() { LogInfo("release general parser\n"); }
+Udp1_4Parser<T_Point>::~Udp1_4Parser() { LogInfo("release general parser"); }
 
 template<typename T_Point>
 void Udp1_4Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {

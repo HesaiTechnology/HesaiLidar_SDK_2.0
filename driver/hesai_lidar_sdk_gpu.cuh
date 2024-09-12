@@ -95,7 +95,6 @@ public:
       return false;
     }
 
-    param.input_param.enable_parser_thread = false;
     //init lidar with param
     lidar_ptr_->Init(param);
 
@@ -285,7 +284,7 @@ public:
           packet_index = 0;
           udp_packet_frame.clear();
           lidar_ptr_->frame_.Update();
-          printf("fail to start a new frame\n");
+          LogError("fail to start a new frame\n");
         }
       }
     }

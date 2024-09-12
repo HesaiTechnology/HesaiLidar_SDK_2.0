@@ -298,7 +298,7 @@ int PcapSource::next(UdpPacket& udpPacket, uint16_t u16Len, int flags,
             }
             break;
         default:
-        printf("can not parser Ethernet data, type = %x \n", ((Ethernet*)payload_.data())->ether_type);
+        LogWarning("can not parser Ethernet data, type = %x ", ((Ethernet*)payload_.data())->ether_type);
             break;
         }
     }
