@@ -32,22 +32,19 @@ void Udp2_4Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
   }
   if (type == 1) {
     // print information
-    int ret = 0;
     LogInfo("load correction file from local correction.bin now!\n");
     std::ifstream fin(lidar_correction_file);
     if (fin.is_open()) {
       LogDebug("Open correction file success!\n");
-      int length = 0;
-      std::string str_lidar_calibration;
       fin.seekg(0, std::ios::end);
-      length = fin.tellg();
+      int len = fin.tellg();
       // return the begin of file
       fin.seekg(0, std::ios::beg);
-      char *buffer = new char[length];
+      char *buffer = new char[len];
       // file --> buffer
-      fin.read(buffer, length);
+      fin.read(buffer, len);
       fin.close();
-      ret = LoadCorrectionString(buffer);
+      int ret = LoadCorrectionString(buffer);
       delete[] buffer;
       if (ret != 0) {
         LogError("Parse local Correction file Error!\n");
@@ -63,9 +60,8 @@ void Udp2_4Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
 
   if (type == 2) {
     // print information
-    int ret = 0;
     LogInfo("load correction file from local correction.csv now!\n");
-    ret = LoadCorrectionString_csv(lidar_correction_file);
+    int ret = LoadCorrectionString_csv(lidar_correction_file);
     if (1 == ret) {
       LogInfo("Parse local Correction file Success!\n");
       this->get_correction_file_ = true;
@@ -156,7 +152,7 @@ int Udp2_4Parser<T_Point>::LoadCorrectionString(char *data) {
           return 0;
         } break;
         default:
-          LogError("min_version is wrong!\n");
+          LogError("min_version is wrong!");
           break;
       }
     } else {

@@ -50,21 +50,18 @@ void Udp4_3Parser<T_Point>::HandlePacketData(uint8_t *u8Buf, uint16_t u16Len) {
 
 template<typename T_Point>
 void Udp4_3Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file) {
-  int ret = 0;
   LogInfo("load correction file from local correction.csv now!");
   std::ifstream fin(lidar_correction_file);
   if (fin.is_open()) {
     LogDebug("Open correction file success");
     int length = 0;
-    std::string str_lidar_calibration;
     fin.seekg(0, std::ios::end);
     length = fin.tellg();
     fin.seekg(0, std::ios::beg);
     char *buffer = new char[length];
     fin.read(buffer, length);
     fin.close();
-    str_lidar_calibration = buffer;
-    ret = LoadCorrectionString(buffer);
+    int ret = LoadCorrectionString(buffer);
     delete[] buffer;
     if (ret != 0) {
       LogError("Parse local Correction file Error");
@@ -289,8 +286,9 @@ int Udp4_3Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
   for (int blockid = 0; blockid < frame.block_num; blockid++) {
     // T_Point point;
     int Azimuth = frame.pointData[packet_index * frame.per_points_num + blockid * frame.laser_num].azimuth;
-    int count = 0, field = 0;
+    int field = 0;
     if ( this->get_correction_file_) {
+      int count = 0;
       while (count < m_PandarAT_corrections.header.frame_number &&
              (((Azimuth + CIRCLE - m_PandarAT_corrections.l.start_frame[field]) % CIRCLE +
              (m_PandarAT_corrections.l.end_frame[field] + CIRCLE - Azimuth) % CIRCLE) !=

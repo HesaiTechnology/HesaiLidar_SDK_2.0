@@ -19,21 +19,18 @@ Udp2_5Parser<T_Point>::~Udp2_5Parser() { LogInfo("release Udp2_5Parser"); }
 // This function can read both .bin and .csv files.
 template<typename T_Point>
 void Udp2_5Parser<T_Point>::LoadCorrectionFile(std::string correction_path) {
-  int ret = 0;
   LogInfo("load correction file from local correction file now!");
   std::ifstream fin(correction_path);
   if (fin.is_open()) {
     LogDebug("Open correction file success\n");
     int length = 0;
-    std::string str_lidar_calibration;
     fin.seekg(0, std::ios::end);
     length = fin.tellg();
     fin.seekg(0, std::ios::beg);
     char *buffer = new char[length];
     fin.read(buffer, length);
     fin.close();
-    str_lidar_calibration = buffer;
-    ret = LoadCorrectionString(buffer);
+    int ret = LoadCorrectionString(buffer);
     delete[] buffer;
     if (ret != 0) {
       LogError("Parse local Correction file Error");
@@ -295,7 +292,7 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
           return 0;
         } break;
         default:
-          LogWarning("min_version is wrong!\n");
+          LogWarning("min_version is wrong!");
           break;
       }
     } else {

@@ -176,6 +176,9 @@ public:
     uint32_t start = GetMicroTickCount();
     uint32_t total_packet_count;
     uint32_t total_packet_loss_count;    
+    lidar_ptr_->frame_.use_timestamp_type = lidar_ptr_->use_timestamp_type_;
+    lidar_ptr_->frame_.config.fov_start = lidar_ptr_->fov_start_;
+    lidar_ptr_->frame_.config.fov_end = lidar_ptr_->fov_end_;
     while (is_thread_runing_)
     {
       UdpPacket packet;

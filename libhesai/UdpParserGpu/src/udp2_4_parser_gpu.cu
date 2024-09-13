@@ -230,21 +230,18 @@ int Udp2_4ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
 }
 template <typename T_Point>
 int Udp2_4ParserGpu<T_Point>::LoadCorrectionFile(std::string lidar_correction_file) {
-  int ret = 0;
   LogInfo("load correction file from local correction.csv now!");
   std::ifstream fin(lidar_correction_file);
   if (fin.is_open()) {
     LogDebug("Open correction file success");
     int length = 0;
-    std::string str_lidar_calibration;
     fin.seekg(0, std::ios::end);
     length = fin.tellg();
     fin.seekg(0, std::ios::beg);
     char *buffer = new char[length];
     fin.read(buffer, length);
     fin.close();
-    str_lidar_calibration = buffer;
-    ret = LoadCorrectionString(buffer);
+    int ret = LoadCorrectionString(buffer);
     if (ret != 0) {
       LogError("Parse local Correction file Error");
     } else {

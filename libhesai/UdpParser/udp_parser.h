@@ -64,12 +64,12 @@ template <typename T_Point>
 class UdpParser {
  public:
   UdpParser(uint8_t major, uint8_t minor);
-  UdpParser(std::string lidar_type);
-  UdpParser(UdpPacket &packet);
+  explicit UdpParser(const std::string &lidar_type);
+  explicit UdpParser(const UdpPacket &packet);
   UdpParser();
   virtual ~UdpParser();
   void CreatGeneralParser(uint8_t major, uint8_t minor);
-  void CreatGeneralParser(std::string lidar_type);
+  void CreatGeneralParser(const std::string& lidar_type);
   void CreatGeneralParser(const UdpPacket& packet);
   GeneralParser<T_Point> *GetGeneralParser();
   void SetGeneralParser(GeneralParser<T_Point> *Parser);

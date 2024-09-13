@@ -116,9 +116,9 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     /**********************************************************************************/
 
     /***************************Init source****************************************/
-    int packet_interval = 10;
     udp_port_ = param.input_param.udp_port;
     if (param.input_param.source_type == 2) {
+      int packet_interval = 10;
       source_ = new PcapSource(param.input_param.pcap_path, packet_interval);
       source_->Open();
     }
@@ -530,10 +530,9 @@ void Lidar<T_Point>::HandleThread(int nThreadNum) {
 #endif
   if(!parser_thread_running_) return;
   while (running_) {
-    int decoded_packet_index;
     mutex_list_[nThreadNum].lock();
     if (handle_thread_packet_buffer_[nThreadNum].size() > 0) {
-      decoded_packet_index = handle_thread_packet_buffer_[nThreadNum].front();
+      int decoded_packet_index = handle_thread_packet_buffer_[nThreadNum].front();
       handle_thread_packet_buffer_[nThreadNum].pop_front();
       udp_parser_->ComputeXYZI(frame_, decoded_packet_index);
     }

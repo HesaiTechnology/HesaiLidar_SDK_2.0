@@ -176,13 +176,13 @@ int tcp_open(const char* ipaddr, int port) {
 
 int sys_readn_by_ssl(SSL *ssl, void *vptr, int n)
 {
-    int nleft, nread;
+    int nleft;
     char *ptr;
 
     ptr = (char *)(vptr);
     nleft = n;
     while (nleft > 0) {
-      nread = SSL_read(ssl, ptr, nleft);
+      int nread = SSL_read(ssl, ptr, nleft);
       if (nread < 0) {
           if (errno == EINTR)
               nread = 0;
@@ -491,18 +491,18 @@ int TcpSslClient::SetTimeout(uint32_t u32RecMillisecond,
 #endif
   if (retVal == 0) {
 #ifdef _MSC_VER
-    int timeout_ms = u32SendMillisecond;
+    int send_timeout_ms = u32SendMillisecond;
     retVal = setsockopt(tcpsock_, SOL_SOCKET, SO_SNDTIMEO,
-                        (char*)&timeout_ms, sizeof(timeout_ms));  
+                        (char*)&send_timeout_ms, sizeof(send_timeout_ms));  
 #else
-    uint32_t sec = u32SendMillisecond / 1000;
-    uint32_t msec = u32SendMillisecond % 1000;
+    uint32_t send_sec = u32SendMillisecond / 1000;
+    uint32_t send_msec = u32SendMillisecond % 1000;
 
-    struct timeval timeout;
-    timeout.tv_sec = sec;
-    timeout.tv_usec = msec * 1000;
+    struct timeval send_timeout;
+    send_timeout.tv_sec = send_sec;
+    send_timeout.tv_usec = send_msec * 1000;
     retVal = setsockopt(tcpsock_, SOL_SOCKET, SO_SNDTIMEO,
-                        (const void *)&timeout, sizeof(timeval));
+                        (const void *)&send_timeout, sizeof(timeval));
 #endif
   }
   return retVal;

@@ -94,7 +94,6 @@ template <typename T_Point>
 uint16_t *GeneralParser<T_Point>::GetMonitorInfo3() { return this->monitor_info3_; }
 template <typename T_Point>
 void GeneralParser<T_Point>::LoadCorrectionFile(std::string correction_path) {
-  int ret = 0;
   std::ifstream fin(correction_path);
   if (fin.is_open()) {
     int length = 0;
@@ -104,7 +103,7 @@ void GeneralParser<T_Point>::LoadCorrectionFile(std::string correction_path) {
     char *buffer = new char[length];
     fin.read(buffer, length);
     fin.close();
-    ret = LoadCorrectionString(buffer);
+    int ret = LoadCorrectionString(buffer);
     delete[] buffer;
     if (ret != 0) {
       LogError("Parse local correction file Error");

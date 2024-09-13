@@ -48,21 +48,18 @@ Udp7_2Parser<T_Point>::~Udp7_2Parser() { LogInfo("release Udp7_2Parser \n"); }
 
 template<typename T_Point>
 void Udp7_2Parser<T_Point>::LoadCorrectionFile(std::string correction_path) {
-  int ret = 0;
   LogInfo("load correction file from local correction.csv now!\n");
   std::ifstream fin(correction_path);
   if (fin.is_open()) {
     LogDebug("Open correction file success\n");
     int length = 0;
-    std::string str_lidar_calibration;
     fin.seekg(0, std::ios::end);
     length = fin.tellg();
     fin.seekg(0, std::ios::beg);
     char *buffer = new char[length];
     fin.read(buffer, length);
     fin.close();
-    str_lidar_calibration = buffer;
-    ret = LoadCorrectionString(buffer);
+    int ret = LoadCorrectionString(buffer);
     delete[] buffer;
     if (ret != 0) {
       LogError("Parse local Correction file Error\n");

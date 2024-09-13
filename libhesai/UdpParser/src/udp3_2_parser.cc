@@ -98,7 +98,6 @@ int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
 }
 template<typename T_Point>
 void Udp3_2Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
-  int ret = 0;
   std::ifstream fin(firetimes_path);
   if (fin.is_open()) {
     int length = 0;
@@ -108,7 +107,7 @@ void Udp3_2Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
     char *buffer = new char[length];
     fin.read(buffer, length);
     fin.close();
-    ret = LoadFiretimesString(buffer);
+    int ret = LoadFiretimesString(buffer);
     delete[] buffer;
     if (ret != 0) {
       LogError("Parse local firetimes file Error");
@@ -178,7 +177,6 @@ int Udp3_2Parser<T_Point>::LoadChannelConfigString(char *channel_config_content)
 }
 template<typename T_Point>
 void Udp3_2Parser<T_Point>::LoadChannelConfigFile(std::string channel_config_path) {
-  int ret = 0;
   std::ifstream fin(channel_config_path);
   if (fin.is_open()) {
     int length = 0;
@@ -188,7 +186,7 @@ void Udp3_2Parser<T_Point>::LoadChannelConfigFile(std::string channel_config_pat
     char *buffer = new char[length];
     fin.read(buffer, length);
     fin.close();
-    ret = LoadChannelConfigString(buffer);
+    int ret = LoadChannelConfigString(buffer);
     delete[] buffer;
     if (ret != 0) {
       LogError("Parse local channel congfig file Error");
@@ -437,9 +435,9 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
                          pHeader->GetLaserNum()) *
                         pHeader->GetBlockNum() +
                     sizeof(HS_LIDAR_BODY_CRC_QT_V2) +
-                    pHeader->HasFunctionSafety()
+                    (pHeader->HasFunctionSafety()
                 ? sizeof(HS_LIDAR_FUNCTION_SAFETY)
-                : 0);
+                : 0));
     if (frame.use_timestamp_type == 0) {
       frame.sensor_timestamp[frame.packet_num] = pTail->GetMicroLidarTimeU64();
     } else {

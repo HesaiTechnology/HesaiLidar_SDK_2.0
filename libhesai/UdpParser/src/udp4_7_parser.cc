@@ -40,21 +40,18 @@ bool Udp4_7Parser<T_Point>::IsNeedFrameSplit(uint16_t frame_id) {
 
 template<typename T_Point>
 void Udp4_7Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file) {
-  int ret = 0;
   LogInfo("load correction file from local correction.dat now!");
   std::ifstream fin(lidar_correction_file);
   if (fin.is_open()) {
     LogDebug("Open correction file success");
     int length = 0;
-    std::string str_lidar_calibration;
     fin.seekg(0, std::ios::end);
     length = fin.tellg();
     fin.seekg(0, std::ios::beg);
     char *buffer = new char[length];
     fin.read(buffer, length);
     fin.close();
-    str_lidar_calibration = buffer;
-    ret = LoadCorrectionString(buffer);
+    int ret = LoadCorrectionString(buffer);
     delete[] buffer;
     if (ret != 0) {
       LogError("Parse local Correction file Error");

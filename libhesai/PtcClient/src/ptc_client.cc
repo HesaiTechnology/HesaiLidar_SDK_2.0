@@ -172,12 +172,12 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
   u8Array_t::pointer pHeaderBuf = u8HeaderBuf.data();
   //还要接收的数据长度
   int nLeft = ptc_parser_->GetPtcParserHeaderSize();
-  //是否已经找到连续的0x47和0x74
-  bool bHeaderFound = false;
-  int nValidDataLen = 0;
   int nPayLoadLen = 0;
 
   if (ret == 0) {
+    //是否已经找到连续的0x47和0x74
+    bool bHeaderFound = false;
+    int nValidDataLen = 0;
     while (nLeft > 0) {
       nOnceRecvLen = client_->Receive(pRecvHeaderBuf, nLeft);
       if (nOnceRecvLen <= 0) break;
@@ -371,7 +371,7 @@ int PtcClient::GetLidarStatus() {
     , systemp_uptime, motor_speed, temperature[0], temperature[1],temperature[2], temperature[3],
     temperature[4], temperature[5], temperature[6], temperature[7], gps_pps_lock, gps_gprmc_status,
     startup_times, total_operation_time, ptp_status);
-    printf("Lidar Status Size: %ld\n", offset);
+    printf("Lidar Status Size: %zu\n", offset);
     return 0;
   } else {
     return -1;
@@ -525,10 +525,10 @@ bool PtcClient::SetSpinSpeed(uint32_t speed)
 }
 
 void PtcClient::CRCInit() {
-  uint32_t i, j, k;
+  uint32_t i, j;
 
   for (i = 0; i < 256; i++) {
-    k = 0;
+    uint32_t k = 0;
     for (j = (i << 24) | 0x800000; j != 0x80000000; j <<= 1)
       k = (k << 1) ^ (((k ^ j) & 0x80000000) ? 0x04c11db7 : 0);
 

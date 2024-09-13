@@ -44,7 +44,7 @@ UdpParser<T_Point>::UdpParser(uint8_t major, uint8_t minor){
 }
 
 template<typename T_Point>
-UdpParser<T_Point>::UdpParser(UdpPacket& packet) {
+UdpParser<T_Point>::UdpParser(const UdpPacket& packet) {
   last_host_timestamp_ = 0;
   last_sensor_timestamp_ = 0;
   packet_count_ = 0;
@@ -57,7 +57,7 @@ UdpParser<T_Point>::UdpParser(UdpPacket& packet) {
 }
 
 template<typename T_Point>
-UdpParser<T_Point>::UdpParser(std::string lidar_type) {
+UdpParser<T_Point>::UdpParser(const std::string &lidar_type) {
   last_host_timestamp_ = 0;
   last_sensor_timestamp_ = 0;
   packet_count_ = 0;
@@ -141,6 +141,7 @@ void UdpParser<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
         case 4:
           parser_ = new Udp2_4Parser<T_Point>();
           lidar_type_decoded_ = "ET25-E1X";
+          break;
         case 5:
           parser_ = new Udp2_5Parser<T_Point>();  // ET25
           lidar_type_decoded_ = "ET25-E2X";
@@ -249,7 +250,7 @@ void UdpParser<T_Point>::CreatGeneralParser(const UdpPacket& packet) {
   return;
 }
 template<typename T_Point>
-void UdpParser<T_Point>::CreatGeneralParser(std::string lidar_type) {
+void UdpParser<T_Point>::CreatGeneralParser(const std::string& lidar_type) {
   if (parser_ != nullptr) {
     return;
   }

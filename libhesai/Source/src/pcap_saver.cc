@@ -121,10 +121,10 @@ void PcapSaver::TcpDump(const uint8_t* data, uint32_t data_len, uint32_t max_pkt
     std::this_thread::sleep_for(100ms); // delay to make sure Dump successful
 
     using namespace std::chrono_literals;
-    uint32_t remain_len = data_len, pkt_len = max_pkt_len;
+    uint32_t remain_len = data_len;
     int i = 0;
     while ( remain_len > 0 ) {
-        pkt_len = (remain_len > max_pkt_len) ? max_pkt_len : remain_len;
+        uint32_t pkt_len = (remain_len > max_pkt_len) ? max_pkt_len : remain_len;
             
         std::array<uint8_t, 1500> data_with_fake_header;
         *(PcapTCPHeader*)data_with_fake_header.data() = PcapTCPHeader(pkt_len, port);

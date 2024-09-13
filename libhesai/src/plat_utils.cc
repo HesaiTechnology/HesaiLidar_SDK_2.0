@@ -203,9 +203,9 @@ int GetAnglesFromFile(
 int GetCurrentTimeStamp(std::string &sTime, int nFormat) {
   time_t currentTime = time(NULL);
   struct tm *pLocalTime = localtime(&currentTime);
-  char sFormattedTime[kTimeStrLen];
 
   if (ISO_8601_FORMAT == nFormat) {
+    char sFormattedTime[kTimeStrLen];
     strftime(sFormattedTime, kTimeStrLen, "%FT%T%z", pLocalTime);
 
     sTime = std::string(sFormattedTime);
