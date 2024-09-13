@@ -56,12 +56,10 @@ class Udp4_3ParserGpu: public GeneralParserGpu<T_Point>{
   int32_t* channel_elevations_cu_;
   int8_t* dazis_cu;
   int8_t* deles_cu;
-  float* raw_azimuths_cu_;
-  uint16_t* raw_distances_cu_;
-  uint8_t* raw_reflectivities_cu_;
+  PointDecodeData* point_data_cu_;
+  uint64_t* sensor_timestamp_cu_;
   uint32_t* mirror_azi_begins_cu;
   uint32_t* mirror_azi_ends_cu;
-  uint64_t* raw_sensor_timestamp_cu_;
 
  public:
   Udp4_3ParserGpu();

@@ -35,6 +35,7 @@
 #include <thread>
 #include <memory>
 #include <vector>
+#include "logger.h"
 
 #ifdef _MSC_VER
 #include <WinSock2.h>
@@ -51,6 +52,8 @@ class ClientBase {
   virtual ~ClientBase(){}
   virtual bool Open(std::string IPAddr, uint16_t port, bool bAutoReceive = false, 
                     const char* cert  = nullptr, const char* private_key = nullptr, const char* ca = nullptr) = 0;
+  virtual bool TryOpen(std::string IPAddr, uint16_t port, bool bAutoReceive = false, 
+                    const char* cert  = nullptr, const char* private_key = nullptr, const char* ca = nullptr, uint32_t timeout = 1) = 0;
   virtual void Close() = 0;
   virtual bool IsOpened() = 0;
   virtual int Send(uint8_t *u8Buf, uint16_t u16Len, int flags = 0) = 0;

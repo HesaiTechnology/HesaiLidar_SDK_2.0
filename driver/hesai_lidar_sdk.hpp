@@ -76,7 +76,7 @@ public:
     if (nullptr != lidar_ptr_) {
       lidar_ptr_->Init(param_);
       lidar_ptr_->init_finish_[AllInitFinish] = true;
-      std::cout << "finish 3: Initialisation all complete !!!" << std::endl;
+      LogDebug("finish 3: Initialisation all complete !!!");
     }
   }
 
@@ -86,7 +86,7 @@ public:
    /*****************************Init decoder******************************************************/ 
     lidar_ptr_ = new Lidar<T_Point>;
     if (nullptr == lidar_ptr_) {
-      std::cout << "create Lidar fail" << std::endl;
+      printf("create Lidar fail\n");
       return false;
     }
     source_type_ = param.input_param.source_type;
@@ -152,14 +152,13 @@ public:
   // process thread
   void Run()
   {
-    printf("------begin to prase udp package------\n");
+    LogInfo("--------begin to prase udp package--------");
     is_thread_runing_ = true;
     UdpFrame_t udp_packet_frame;
-    LidarDecodedPacket<T_Point> decoded_packet;
-    decoded_packet.use_timestamp_type = lidar_ptr_->use_timestamp_type_;
-    decoded_packet.config.fov_start = lidar_ptr_->fov_start_;
-    decoded_packet.config.fov_end = lidar_ptr_->fov_end_;
-    int packet_index = 0;
+    lidar_ptr_->frame_.use_timestamp_type = lidar_ptr_->use_timestamp_type_;
+    lidar_ptr_->frame_.config.fov_start = lidar_ptr_->fov_start_;
+    lidar_ptr_->frame_.config.fov_end = lidar_ptr_->fov_end_;
+    uint32_t packet_index = 0;
     // uint32_t start = GetMicroTickCount();
     UdpPacket packet;
     FaultMessageInfo fault_message_info;
@@ -196,7 +195,7 @@ public:
         }
       }
       //get distance azimuth reflection, etc.and put them into decode_packet
-      if(lidar_ptr_->DecodePacket(decoded_packet, packet) != 0) {
+      if(lidar_ptr_->DecodePacket(lidar_ptr_->frame_, packet) != 0) {
         continue;
       }
 
@@ -204,7 +203,10 @@ public:
       // if(packet_loss_tool_ == true) continue;
 
       //one frame is receive completely, split frame
-      if(decoded_packet.scan_complete) {
+      if(lidar_ptr_->frame_.scan_complete) {
+        // If it's not a timeout split frame, it will be one more packet
+        bool last_packet_is_valid = (lidar_ptr_->frame_.packet_num != packet_index);
+        lidar_ptr_->frame_.packet_num = packet_index;
         //waiting for parser thread compute xyzi of points in the same frame
         while(!lidar_ptr_->ComputeXYZIComplete(packet_index)) std::this_thread::sleep_for(std::chrono::microseconds(100));
         // uint32_t end =  GetMicroTickCount();
@@ -216,7 +218,11 @@ public:
           if(point_cloud_cb_) point_cloud_cb_(lidar_ptr_->frame_);
 
           //publish upd packet topic
-          if(pkt_cb_) pkt_cb_(udp_packet_frame, lidar_ptr_->frame_.points[0].timestamp);
+          if(pkt_cb_) {
+            double timestamp = 0;
+            getTimestamp(lidar_ptr_->frame_.points[0], timestamp);
+            pkt_cb_(udp_packet_frame, timestamp);
+          }
 
           if (pkt_loss_cb_ )
           {
@@ -246,24 +252,24 @@ public:
         }
         //reset frame variable
         lidar_ptr_->frame_.Update();
-
         //clear udp packet vector
         udp_packet_frame.clear();
         packet_index = 0;
 
-        //if the packet which contains split frame msgs is vaild, it will be the first packet of new frame
-        if(decoded_packet.IsDecodedPacketValid()) {
-          decoded_packet.packet_index = packet_index;
-          lidar_ptr_->ComputeXYZI(decoded_packet);
+        //if the packet which contains split frame msgs is valid, it will be the first packet of new frame
+        if(last_packet_is_valid) {
+          lidar_ptr_->DecodePacket(lidar_ptr_->frame_, packet);
+          lidar_ptr_->ComputeXYZI(packet_index);
+          lidar_ptr_->frame_.points_num += lidar_ptr_->frame_.per_points_num;
           udp_packet_frame.emplace_back(packet);
           packet_index++;
         }
       }
       else {
         //new decoded packet of one frame, put it into decoded_packets_buffer_ and compute xyzi of points
-        if(decoded_packet.IsDecodedPacketValid()) {
-          decoded_packet.packet_index = packet_index;
-          lidar_ptr_->ComputeXYZI(decoded_packet);
+        if(lidar_ptr_->frame_.packet_num != packet_index) {
+          lidar_ptr_->ComputeXYZI(packet_index);
+          lidar_ptr_->frame_.points_num += lidar_ptr_->frame_.per_points_num;
           udp_packet_frame.emplace_back(packet);
           packet_index++;
         } 
@@ -275,7 +281,7 @@ public:
           lidar_ptr_->ClearPacketBuffer();
           std::this_thread::sleep_for(std::chrono::microseconds(100));
           lidar_ptr_->frame_.Update();
-          printf("fail to start a new frame\n");
+          LogError("fail to start a new frame\n");
         }
       }
     }

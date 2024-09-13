@@ -54,11 +54,8 @@ class Udp4_7ParserGpu: public GeneralParserGpu<T_Point>{
   bool corrections_loaded_;
   float* channel_elevations_cu_;
   float* deles_cu;
-  float* raw_azimuths_cu_;
-  uint16_t* raw_distances_cu_;
-  uint8_t* raw_reflectivities_cu_;
-  uint64_t* raw_sensor_timestamp_cu_;
-  uint8_t* confidence_cu_;
+  PointDecodeData* point_data_cu_;
+  uint64_t* sensor_timestamp_cu_;
 
  public:
   Udp4_7ParserGpu();

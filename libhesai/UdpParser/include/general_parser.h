@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include "logger.h"
 #include "lidar_types.h"
 #include "plat_utils.h"
 #include "fault_message.h"
@@ -161,7 +162,20 @@ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, confidence)>::type set
 {
   point.confidence = value;
 }
+// get command
+template <typename T_Point>
+inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, timestamp)>::type getTimestamp(T_Point& point,
+                                                                                      const double& value)
+{
+}
 
+template <typename T_Point>
+inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, timestamp)>::type getTimestamp(T_Point& point,
+                                                                                      double& value)
+{
+  value = point.timestamp;
+}
+// get end
 inline float deg2Rad(float deg)
 {
     return (float)(deg * 0.01745329251994329575);
@@ -243,9 +257,6 @@ struct PacketTimeLossMessage{
 template <typename T_Point>
 class GeneralParser {
  public:
-  using Mutex = std::mutex;
-  using LockS = std::lock_guard<Mutex>;
- public:
   GeneralParser();
   virtual ~GeneralParser();
 
@@ -273,22 +284,17 @@ class GeneralParser {
     elevation: 光心修正后的elevation
   */
   void GetDistanceCorrection(int &azimuth, int &elevation, float &distance, DistanceCorrectionType type);
-  void SetEnableFireTimeCorrection(bool enable);
   void SetEnableDistanceCorrection(bool enable);
   void SetOpticalCenterCoordinates(std::string lidar_type);
   void SetLidarType(std::string lidar_type);
-  // covert a origin udp packet to decoded packet, the decode function is in UdpParser module
-  // udp_packet is the origin udp packet, output is the decoded packet
-  virtual int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket); 
-
   // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
   virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket); 
    
   // compute xyzi of points from decoded packet
   // param packet is the decoded packet; xyzi of points after computed is puted in frame  
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
   // Under thread safety, increase the points_num in the frame
-  void FrameNumAdd(LidarDecodedFrame<T_Point> &frame, uint32_t points_num);
+  void FrameNumAdd();
 
   // parse the detailed content of the fault message message
   virtual void ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info);
@@ -300,8 +306,10 @@ class GeneralParser {
   virtual void EnablePacketLossTool(bool enable);
   virtual void EnablePacketTimeLossTool(bool enable);
   virtual void PacketTimeLossToolContinue(bool enable);
-  void CalPktLoss(uint32_t &PacketSeqnum);
-  void CalPktTimeLoss(uint64_t &PacketTimestamp);
+  void CalPktLoss(uint32_t PacketSeqnum);
+  void CalPktTimeLoss(uint64_t PacketTimestamp);
+  uint32_t getComputePacketNum() { return compute_packet_num; }
+  void setComputePacketNumToZero() { compute_packet_num = 0; }
 
   void TransformPoint(float& x, float& y, float& z);
   void SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
@@ -317,7 +325,6 @@ class GeneralParser {
   PacketTimeLossMessage time_loss_message_;
 
  protected:
-  Mutex _mutex;
   uint16_t monitor_info1_[256];
   uint16_t monitor_info2_[256];
   uint16_t monitor_info3_[256];
@@ -334,8 +341,7 @@ class GeneralParser {
   bool use_angle_ = true;
   int32_t last_azimuth_;
   int32_t last_last_azimuth_;
-  double firetime_correction_[512];
-  bool enable_firetime_correction_;
+  double firetime_correction_[MAX_LASER_NUM];
   bool enable_distance_correction_;
   bool enable_packet_loss_tool_;
   bool enable_packet_timeloss_tool_;
@@ -344,6 +350,7 @@ class GeneralParser {
   Transform transform_;
   float frame_start_azimuth_;
   LidarOpticalCenter optical_center;
+  std::atomic<uint32_t> compute_packet_num;
 };
 }
 }

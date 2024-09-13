@@ -61,6 +61,9 @@ const uint8_t  kPTCSetFpgaRegister = 0x0D;
 
 class PtcClient {
  public:
+  using Mutex = std::mutex;
+  using LockS = std::lock_guard<Mutex>;
+ public:
   PtcClient(std::string IP = kLidarIPAddr
             , uint16_t u16TcpPort = kTcpPort
             , bool bAutoReceive = false
@@ -71,13 +74,15 @@ class PtcClient {
             , const char* ca = nullptr
             , uint32_t u32RecvTimeoutMs = 500
             , uint32_t u32SendTimeoutMs = 500);
-  ~PtcClient() {}
+  ~PtcClient();
 
   PtcClient(const PtcClient &orig) = delete;
 
   bool IsValidRsp(u8Array_t &byteStreamIn);
+  bool IsOpen() { return client_->IsOpened(); }
 
   void TcpFlushIn();
+  void TryOpen();
   int QueryCommand(u8Array_t &byteStreamIn, u8Array_t &byteStreamOut, uint8_t u8Cmd );
   int SendCommand(u8Array_t &byteStreamIn, uint8_t u8Cmd);
   bool GetValFromOutput(uint8_t cmd, uint8_t retcode, const u8Array_t &payload, int start_pos, int length, u8Array_t &res);
@@ -179,6 +184,7 @@ class PtcClient {
   uint32_t m_CRCTable[256];                                              
 
  private:
+  Mutex _mutex;
   static const std::string kLidarIPAddr;
   static const uint16_t kTcpPort = 9347;
   uint16_t m_u16PtcPort;
@@ -187,6 +193,16 @@ class PtcClient {
   uint8_t ptc_version_;
   std::shared_ptr<ClientBase> client_;
   std::shared_ptr<PtcParser> ptc_parser_;
+  std::thread *open_thread_ptr_;
+  bool InitOpen = true;
+  std::string lidar_ip_;
+  uint16_t tcp_port_;
+  bool auto_receive_;
+  const char* cert_;
+  const char* private_key_;
+  const char* ca_;
+  uint32_t recv_timeout_ms_;
+  uint32_t send_timeout_ms_;
 };
 }
 }

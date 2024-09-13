@@ -38,21 +38,13 @@ using namespace hesai::lidar;
 template <typename T_Point>
 Udp2_6ParserGpu<T_Point>::Udp2_6ParserGpu() {
   corrections_loaded_ = false;
-  cudaSafeMalloc(raw_azimuths_cu_, kMaxPacketNumPerFrame * kMaxPointsNumPerPacket * sizeof(float));
-  cudaSafeMalloc(raw_elevations_cu_, kMaxPacketNumPerFrame * kMaxPointsNumPerPacket * sizeof(float));
-  cudaSafeMalloc(raw_distances_cu_, sizeof(PointCloudStruct<T_Point>::distances));
-  cudaSafeMalloc(raw_reflectivities_cu_, sizeof(PointCloudStruct<T_Point>::reflectivities));
-  cudaSafeMalloc(raw_sensor_timestamp_cu_, sizeof(PointCloudStruct<T_Point>::sensor_timestamp));
-  cudaSafeMalloc(chn_index_cu_, sizeof(PointCloudStruct<T_Point>::chn_index_cu_));
+  cudaSafeMalloc(point_data_cu_, POINT_DATA_LEN);
+  cudaSafeMalloc(sensor_timestamp_cu_, SENSOR_TIMESTAMP_LEN);
 }
 template <typename T_Point>
 Udp2_6ParserGpu<T_Point>::~Udp2_6ParserGpu() {
-  cudaSafeFree(raw_azimuths_cu_);
-  cudaSafeFree(raw_elevations_cu_);
-  cudaSafeFree(raw_distances_cu_);
-  cudaSafeFree(raw_reflectivities_cu_);
-  cudaSafeFree(raw_sensor_timestamp_cu_);
-  cudaSafeFree(chn_index_cu_);
+  cudaSafeFree(point_data_cu_);
+  cudaSafeFree(sensor_timestamp_cu_);
   if (corrections_loaded_) {
     cudaSafeFree(channel_elevations_cu_);
     cudaSafeFree(channel_azimuths_cu_);
@@ -64,18 +56,18 @@ Udp2_6ParserGpu<T_Point>::~Udp2_6ParserGpu() {
 template <typename T_Point>
 __global__ void compute_xyzs_2_6_impl(T_Point *xyzs, const float* channel_azimuths, const float* channel_elevations,
     const float* azimuth_adjust, const float* elevation_adjust, const uint8_t azimuth_adjust_interval, const uint8_t elevation_adjust_interval,
-    const float* raw_azimuths, const float* raw_elevations, const uint16_t *raw_distances, const uint8_t *raw_reflectivities, const uint64_t *raw_sensor_timestamp, 
-    const uint8_t *chn_index_cu_, const double raw_distance_unit, Transform transform, uint32_t per_points_num, uint16_t packet_index) {
+    const PointDecodeData* point_data, const uint64_t* sensor_timestamp, const double raw_distance_unit, Transform transform, const uint32_t per_points_num, const uint16_t packet_index) {
   auto iscan = blockIdx.x;
   auto ichannel = threadIdx.x;
   if (iscan >= packet_index || ichannel >= per_points_num) return;
+  int point_index = iscan * per_points_num + (ichannel % per_points_num);
   float apha =  channel_elevations[0];
   float beta =  channel_elevations[1];
   float gamma =  channel_elevations[2];
-  float raw_azimuth = raw_azimuths[iscan * per_points_num + (ichannel % per_points_num)];
-  float raw_elevation = raw_elevations[iscan * per_points_num + (ichannel % per_points_num)];
-  float phi = channel_azimuths[chn_index[ichannel % per_points_num] + 3];
-  float theta = channel_elevations[chn_index[ichannel % per_points_num] + 3];
+  float raw_azimuth = point_data[point_index].azimuth;
+  float raw_elevation = point_data[point_index].elevation;
+  float phi = channel_azimuths[point_data[point_index].chn_index + 3];
+  float theta = channel_elevations[point_data[point_index].chn_index + 3];
   float an = apha + phi;
   float theta_n = (raw_elevation + theta / std::cos(an * M_PI / 180));
   float elv_v = raw_elevation * M_PI / 180 + theta * M_PI / 180 - std::tan(raw_elevation * M_PI / 180) * (1 - std::cos(an * M_PI / 180)) ;
@@ -112,7 +104,7 @@ __global__ void compute_xyzs_2_6_impl(T_Point *xyzs, const float* channel_azimut
     }
   }
 
-  auto rho = raw_distances[iscan * per_points_num + (ichannel % per_points_num)] * raw_distance_unit;
+  auto rho = point_data[point_index].distances * raw_distance_unit;
   float z = rho * std::sin(elv_h * M_PI / 180);
   auto r = rho * std::cos(elv_h * M_PI / 180) ;
   float x = r * std::sin(azi_h * M_PI / 180);
@@ -130,46 +122,28 @@ __global__ void compute_xyzs_2_6_impl(T_Point *xyzs, const float* channel_azimut
   float y_ = cosb * sinc * x + (cosa * cosc + sina * sinb * sinc) * y +
               (cosa * sinb * sinc - sina * cosc) * z + transform.y;
   float z_ = -sinb * x + sina * cosb * y + cosa * cosb * z + transform.z;
-  gpu::setX(xyzs[iscan * per_points_num + (ichannel % per_points_num)], x_);
-  gpu::setY(xyzs[iscan * per_points_num + (ichannel % per_points_num)],  y_);
-  gpu::setZ(xyzs[iscan * per_points_num + (ichannel % per_points_num)], z_);
-  gpu::setIntensity(xyzs[iscan * per_points_num + (ichannel % per_points_num)], raw_reflectivities[iscan * per_points_num + (ichannel % per_points_num)]);
-  gpu::setTimestamp(xyzs[iscan * per_points_num + (ichannel % per_points_num)], double(raw_sensor_timestamp[iscan]) / kMicrosecondToSecond);
-  gpu::setRing(xyzs[iscan * per_points_num + (ichannel % per_points_num)], chn_index[ichannel % per_points_num]);
+  gpu::setX(xyzs[point_index], x_);
+  gpu::setY(xyzs[point_index],  y_);
+  gpu::setZ(xyzs[point_index], z_);
+  gpu::setIntensity(xyzs[point_index], point_data[point_index].reflectivities);
+  gpu::setTimestamp(xyzs[point_index], double(sensor_timestamp[iscan]) / kMicrosecondToSecond);
+  gpu::setRing(xyzs[point_index], point_data[point_index].chn_index);
 }
 template <typename T_Point>
 int Udp2_6ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
   if (!corrections_loaded_) return int(ReturnCode::CorrectionsUnloaded);          
-  cudaSafeCall(cudaMemcpy(raw_azimuths_cu_, frame.azimuth,
-                          kMaxPacketNumPerFrame *  kMaxPointsNumPerPacket * sizeof(float), cudaMemcpyHostToDevice),
-               ReturnCode::CudaMemcpyHostToDeviceError);
-  cudaSafeCall(cudaMemcpy(raw_elevations_cu_, frame.elevation,
-                          kMaxPacketNumPerFrame *  kMaxPointsNumPerPacket * sizeof(float), cudaMemcpyHostToDevice),
-               ReturnCode::CudaMemcpyHostToDeviceError);             
-  cudaSafeCall(cudaMemcpy(raw_distances_cu_, frame.distances,
-                          kMaxPacketNumPerFrame * kMaxPointsNumPerPacket * sizeof(uint16_t),
-                          cudaMemcpyHostToDevice),
-               ReturnCode::CudaMemcpyHostToDeviceError); 
-  cudaSafeCall(cudaMemcpy(raw_reflectivities_cu_, frame.reflectivities,
-                          kMaxPacketNumPerFrame * kMaxPointsNumPerPacket * sizeof(uint8_t),
-                          cudaMemcpyHostToDevice),
-               ReturnCode::CudaMemcpyHostToDeviceError);  
-  cudaSafeCall(cudaMemcpy(raw_sensor_timestamp_cu_, frame.sensor_timestamp,
-                          kMaxPacketNumPerFrame * sizeof(uint64_t),
-                          cudaMemcpyHostToDevice),
-               ReturnCode::CudaMemcpyHostToDeviceError);   
-  cudaSafeCall(cudaMemcpy(chn_index_cu_, frame.chn_index_cu_,
-                          kMaxPacketNumPerFrame * kMaxPointsNumPerPacket * sizeof(uint8_t),
-                          cudaMemcpyHostToDevice),
-               ReturnCode::CudaMemcpyHostToDeviceError);                                  
-
-compute_xyzs_2_6_impl<<<kMaxPacketNumPerFrame, kMaxPointsNumPerPacket>>>(this->frame_.gpu()->points, channel_azimuths_cu_, channel_elevations_cu_, 
+  cudaSafeCall(cudaMemcpy(point_data_cu_, frame.pointData,
+                          frame.per_points_num * frame.packet_num * sizeof(PointDecodeData), 
+                          cudaMemcpyHostToDevice), ReturnCode::CudaMemcpyHostToDeviceError);
+  cudaSafeCall(cudaMemcpy(sensor_timestamp_cu_, frame.sensor_timestamp,
+                          frame.packet_num * sizeof(uint64_t), 
+                          cudaMemcpyHostToDevice), ReturnCode::CudaMemcpyHostToDeviceError);                             
+compute_xyzs_2_6_impl<<<frame.packet_num, frame.per_points_num>>>(this->frame_.gpu()->points, channel_azimuths_cu_, channel_elevations_cu_, 
   channel_azimuths_adjust_cu_, channel_elevations_adjust_cu_, corrections_.azimuth_adjust_interval, corrections_.elevation_adjust_interval,
-  raw_azimuths_cu_, raw_elevations_cu_, raw_distances_cu_, raw_reflectivities_cu_, raw_sensor_timestamp_cu_, chn_index_cu_, frame.distance_unit, 
-  this->transform_, frame.per_points_num, frame.packet_index);
+  point_data_cu_, sensor_timestamp_cu_, frame.distance_unit, this->transform_, frame.per_points_num, frame.packet_num);
   cudaSafeCall(cudaGetLastError(), ReturnCode::CudaXYZComputingError);
-  this->frame_.DeviceToHost();
-  std::memcpy(frame.points, this->frame_.cpu()->points, sizeof(T_Point) * kMaxPacketNumPerFrame * kMaxPointsNumPerPacket);
+  this->frame_.DeviceToHost(0, frame.per_points_num * frame.packet_num * sizeof(T_Point));
+  std::memcpy(frame.points, this->frame_.cpu()->points, frame.per_points_num * frame.packet_num * sizeof(T_Point));
   return 0;
 }
 template<typename T_Point>
@@ -221,10 +195,12 @@ int  Udp2_6ParserGpu<T_Point>::LoadCorrectionCsvData(char *correction_string)
     std::getline(ss, subline, ',');
     std::stringstream(subline) >> azimuth;
 
-    if (laserId != lineCount || laserId >= MAX_LASER_NUM) {
-      std::cout << "laser id is wrong in correction file. laser Id:"
-                  << laserId << ", line" << lineCount << std::endl;
-      // return -1;
+    if (laserId > MAX_LASER_NUM || laserId <= 0) {
+      LogFatal("laser id is wrong in correction file. laser Id: %d, line: %d", laserId, lineCount);
+      continue;
+    }
+    if (laserId != lineCount) {
+      LogError("laser id is wrong in correction file. laser Id: %d, line: %d", laserId, lineCount);
     }
     elevation_list[laserId - 1] = elevation;
     azimuth_list[laserId - 1] = azimuth;
@@ -258,6 +234,10 @@ int Udp2_6ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
           p += sizeof(ETCorrectionsHeader_V1V2);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
+          if ((channel_num > ET_MAX_CHANNEL_NUM - 3) || division == 0) {
+            LogError("data error: channel_num is %u, division is %u", channel_num, division);
+            return -1;
+          }
           memcpy((void *)&corrections_.raw_azimuths, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;
@@ -267,11 +247,11 @@ int Udp2_6ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
           corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
           corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
           corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;
-          printf("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
+          LogDebug("apha:%f, beta:%f, gamma:%f", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
           for (int i = 0; i < channel_num; i++) {
             corrections_.azimuths[i + 3] = ((float)(corrections_.raw_azimuths[i])) / division;
             corrections_.elevations[i + 3] = ((float)(corrections_.raw_elevations[i])) / division;
-            printf("%d %f %f \n",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
+            LogDebug("%d %f %f",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
           }
           corrections_.azimuth_adjust_interval = 0;
           corrections_.elevation_adjust_interval = 0;
@@ -280,6 +260,8 @@ int Udp2_6ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
           // successed
           CUDACheck(cudaMalloc(&channel_azimuths_cu_, sizeof(corrections_.azimuths)));
           CUDACheck(cudaMalloc(&channel_elevations_cu_, sizeof(corrections_.elevations)));
+          CUDACheck(cudaMalloc(&channel_azimuths_adjust_cu_, sizeof(corrections_.azimuth_adjust_f)));
+          CUDACheck(cudaMalloc(&channel_elevations_adjust_cu_, sizeof(corrections_.elevation_adjust_f)));
           CUDACheck(cudaMemcpy(channel_azimuths_cu_, corrections_.azimuths, sizeof(corrections_.azimuths), cudaMemcpyHostToDevice));
           CUDACheck(cudaMemcpy(channel_elevations_cu_, corrections_.elevations, sizeof(corrections_.elevations), cudaMemcpyHostToDevice));
           corrections_loaded_ = true;
@@ -292,6 +274,10 @@ int Udp2_6ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
           p += sizeof(ETCorrectionsHeader_V1V2);
           auto channel_num = corrections_.header.channel_number;
           uint16_t division = corrections_.header.angle_division;
+          if ((channel_num > ET_MAX_CHANNEL_NUM - 3) || division == 0) {
+            LogError("data error: channel_num is %u, division is %u", channel_num, division);
+            return -1;
+          }
           memcpy((void *)&corrections_.raw_azimuths, p,
                  sizeof(int16_t) * channel_num);
           p += sizeof(int16_t) * channel_num;
@@ -301,11 +287,11 @@ int Udp2_6ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
           corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
           corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
           corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;
-          printf("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
+          LogDebug("apha:%f, beta:%f, gamma:%f", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
           for (int i = 0; i < channel_num; i++) {
             corrections_.azimuths[i + 3] = ((float)(corrections_.raw_azimuths[i])) / division;
             corrections_.elevations[i + 3] = ((float)(corrections_.raw_elevations[i])) / division;
-            printf("%d %f %f \n",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
+            LogDebug("%d %f %f",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
           }
           corrections_.azimuth_adjust_interval = *((char*)p);
           p = p + 1;
@@ -335,43 +321,41 @@ int Udp2_6ParserGpu<T_Point>::LoadCorrectionDatData(char *data) {
           return 0;
         } break;
         default:
-          printf("min_version is wrong!\n");
+          LogWarning("min_version is wrong!");
           break;
       }
     } else {
         return -1;
     }
   } catch (const std::exception &e) {
-    std::cerr << e.what() << '\n';
+    LogFatal("load correction error: %s", e.what());
     return -1;
   }
   return -1;
 }
 template <typename T_Point>
 int Udp2_6ParserGpu<T_Point>::LoadCorrectionFile(std::string lidar_correction_file) {
-  int ret = 0;
-  printf("load correction file from local correction.csv now!\n");
+  LogInfo("load correction file from local correction.csv now!");
   std::ifstream fin(lidar_correction_file);
   if (fin.is_open()) {
-    printf("Open correction file success\n");
+    LogDebug("Open correction file success");
     int length = 0;
-    std::string str_lidar_calibration;
     fin.seekg(0, std::ios::end);
     length = fin.tellg();
     fin.seekg(0, std::ios::beg);
     char *buffer = new char[length];
     fin.read(buffer, length);
     fin.close();
-    str_lidar_calibration = buffer;
-    ret = LoadCorrectionString(buffer);
+    int ret = LoadCorrectionString(buffer);
+    delete[] buffer;
     if (ret != 0) {
-      printf("Parse local Correction file Error\n");
+      LogError("Parse local Correction file Error");
     } else {
-      printf("Parse local Correction file Success!!!\n");
+      LogInfo("Parse local Correction file Success!!!");
       return 0;
     }
   } else {
-    printf("Open correction file failed\n");
+    LogError("Open correction file failed");
     return -1;
   }
   return -1;

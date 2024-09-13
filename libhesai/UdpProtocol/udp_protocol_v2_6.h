@@ -170,20 +170,7 @@ namespace hesai
       uint32_t m_u32SeqNum;
       uint32_t GetSeqNum() const { return little_to_native(m_u32SeqNum); }
       static uint32_t GetSeqNumSize() { return sizeof(m_u32SeqNum); }
-      void CalPktLoss(uint32_t &u32StartSeqNum, uint32_t &u32LastSeqNum, uint32_t &u32LossCount, uint32_t &u32StartTime) const {
-        // bool print = false;
-        if (m_u32SeqNum - u32LastSeqNum > 1) {
-          u32LossCount += (m_u32SeqNum - u32LastSeqNum - 1);
-          // print = true;
-        }
-       if (GetMicroTickCount() - u32StartTime >= 1 * 1000 * 1000) {
-          printf("pkt loss freq: %u/%u\n", u32LossCount, m_u32SeqNum - u32StartSeqNum);
-          u32LossCount = 0;
-          u32StartTime = GetMicroTickCount();
-          u32StartSeqNum = m_u32SeqNum;
-        }
-        u32LastSeqNum = m_u32SeqNum;
-      }
+
       void Print() const {
         printf("HS_LIDAR_TAIL_SEQ_NUM_ET_V6:\n");
         printf("SeqNum: %u\n", GetSeqNum());

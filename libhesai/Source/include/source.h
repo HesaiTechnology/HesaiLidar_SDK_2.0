@@ -39,6 +39,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include <string>
 #include <lidar_types.h>
+#include <logger.h>
 
 #ifdef _MSC_VER
 #include <winsock2.h>

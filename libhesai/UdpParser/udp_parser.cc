@@ -44,7 +44,7 @@ UdpParser<T_Point>::UdpParser(uint8_t major, uint8_t minor){
 }
 
 template<typename T_Point>
-UdpParser<T_Point>::UdpParser(UdpPacket& packet) {
+UdpParser<T_Point>::UdpParser(const UdpPacket& packet) {
   last_host_timestamp_ = 0;
   last_sensor_timestamp_ = 0;
   packet_count_ = 0;
@@ -57,7 +57,7 @@ UdpParser<T_Point>::UdpParser(UdpPacket& packet) {
 }
 
 template<typename T_Point>
-UdpParser<T_Point>::UdpParser(std::string lidar_type) {
+UdpParser<T_Point>::UdpParser(const std::string &lidar_type) {
   last_host_timestamp_ = 0;
   last_sensor_timestamp_ = 0;
   packet_count_ = 0;
@@ -141,6 +141,7 @@ void UdpParser<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
         case 4:
           parser_ = new Udp2_4Parser<T_Point>();
           lidar_type_decoded_ = "ET25-E1X";
+          break;
         case 5:
           parser_ = new Udp2_5Parser<T_Point>();  // ET25
           lidar_type_decoded_ = "ET25-E2X";
@@ -240,7 +241,7 @@ void UdpParser<T_Point>::CreatGeneralParser(const UdpPacket& packet) {
     return;
   }
   if (packet.buffer[0] != 0xEE || packet.buffer[1] != 0xFF) {
-    printf("Packet with invaild delimiter\n");
+    LogWarning("Packet with invaild delimiter");
     return;
   }
   uint8_t UdpMajorVersion = packet.buffer[2];
@@ -249,7 +250,7 @@ void UdpParser<T_Point>::CreatGeneralParser(const UdpPacket& packet) {
   return;
 }
 template<typename T_Point>
-void UdpParser<T_Point>::CreatGeneralParser(std::string lidar_type) {
+void UdpParser<T_Point>::CreatGeneralParser(const std::string& lidar_type) {
   if (parser_ != nullptr) {
     return;
   }
@@ -343,44 +344,42 @@ uint16_t *UdpParser<T_Point>::GetMonitorInfo3() {
 }
 
 template<typename T_Point>
-int UdpParser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
+int UdpParser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index) {
   if (parser_ == nullptr) {
     return -1;
   } else {
-    return parser_->ComputeXYZI(frame, packet);
+    return parser_->ComputeXYZI(frame, packet_index);
   }
 }
 
 template<typename T_Point>
-int UdpParser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket) {
+int UdpParser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket) {
   if(pcap_saver_ == nullptr){
     pcap_saver_ = new PcapSaver;
   }
   if (udpPacket.packet_len < 6) {   // sizeof(HS_LIDAR_PRE_HEADER)
-    output.scan_complete = false;
-    output.block_num = 0;
+    frame.scan_complete = false;
     return -1;
   }
   if (parser_ == nullptr) {
     // Udp raw_udp_packet
     this->CreatGeneralParser(udpPacket);
-    output.block_num = 0;
     return 0;
   } else {
-    int res = parser_->DecodePacket(output, udpPacket);
+    int res = parser_->DecodePacket(frame, udpPacket);
     //data from pcap and play rate synchronize with the host time
-    if (source_type_ == 2 && pcap_time_synchronization_ == true) {
+    if (source_type_ == 2 && pcap_time_synchronization_ == true && res == 0) {
       if(fisrt_packet_ == true) {
-        last_host_timestamp_ = output.host_timestamp;
-        last_sensor_timestamp_ = output.sensor_timestamp;
+        last_host_timestamp_ = frame.host_timestamp;
+        last_sensor_timestamp_ = frame.sensor_timestamp[frame.packet_num - 1];
         packet_count_ = 1;
         fisrt_packet_ = false;
       } else {
         packet_count_ += 1;
         if (packet_count_ >= kPcapPlaySynchronizationCount) {
-          int reset_time = static_cast<int>((output.sensor_timestamp - last_sensor_timestamp_) - (output.host_timestamp - last_host_timestamp_));
-          last_host_timestamp_ = output.host_timestamp;
-          last_sensor_timestamp_ = output.sensor_timestamp;
+          int reset_time = static_cast<int>((frame.sensor_timestamp[frame.packet_num - 1] - last_sensor_timestamp_) - (frame.host_timestamp - last_host_timestamp_));
+          last_host_timestamp_ = frame.host_timestamp;
+          last_sensor_timestamp_ = frame.sensor_timestamp[frame.packet_num - 1];
           packet_count_ = 0;
           if (reset_time > 0) {
             std::this_thread::sleep_for(std::chrono::microseconds(reset_time));
@@ -390,22 +389,6 @@ int UdpParser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, const 
     }
     return res;
   }
-}
-
-template<typename T_Point>
-int UdpParser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket) {
-  if (parser_ == nullptr) {
-    uint8_t UdpMajorVersion = udpPacket.buffer[2];
-    uint8_t UdpMinorVersion = udpPacket.buffer[3];
-    this->CreatGeneralParser(UdpMajorVersion, UdpMinorVersion);
-  }
-  if(pcap_saver_ == nullptr){
-    pcap_saver_ = new PcapSaver;
-  }
-  if (parser_ != nullptr) {
-    return parser_->DecodePacket(frame, udpPacket);
-  }
-  return -1;
 }
 
 template<typename T_Point>
@@ -450,7 +433,7 @@ void UdpParser<T_Point>::SetFrameAzimuth(float frame_start_azimuth) {
   if (parser_ != nullptr) {
     parser_->SetFrameAzimuth(frame_start_azimuth);
   } else {
-    printf("parser is nullptr\n");
+    LogWarning("parser is nullptr\n");
   }
   return;
 }

@@ -44,7 +44,7 @@ namespace lidar
 // PtcParser mainly parsers ptc packets and get values the request want.
 class PtcParser {
 public:
-  PtcParser(uint8_t ptc_version);
+  explicit PtcParser(uint8_t ptc_version);
   PtcParser(){};
   virtual ~PtcParser();
   PtcParser(const PtcParser&) = delete;

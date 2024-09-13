@@ -30,13 +30,13 @@ namespace lidar
     uint8_t reserved1;
     uint8_t reserved2;
     uint8_t channel_number;
-    uint8_t mirror_nummber_reserved3;
+    uint8_t mirror_number_reserved3;
     uint16_t angle_division;
     int16_t apha;
     int16_t beta;
     int16_t gamma;
     ETCorrectionsHeader_V1V2():delimiter(), reserved1(), reserved2(), channel_number(), 
-    mirror_nummber_reserved3(), angle_division(1), apha(), beta(), gamma()
+    mirror_number_reserved3(), angle_division(1), apha(), beta(), gamma()
     {
       major_version = 0;
       min_version = 0;
@@ -68,7 +68,7 @@ namespace lidar
     uint8_t reserved1;
     uint8_t reserved2;
     uint16_t channel_number;
-    uint8_t mirror_nummber_reserved3;
+    uint8_t mirror_number_reserved3;
     uint16_t angle_division;
     int16_t apha;
     int16_t beta;
@@ -86,7 +86,7 @@ namespace lidar
       reserved1 = header.reserved1;
       reserved2 = header.reserved2;
       channel_number = header.channel_number;
-      mirror_nummber_reserved3 = header.mirror_nummber_reserved3;
+      mirror_number_reserved3 = header.mirror_number_reserved3;
       angle_division = header.angle_division;
       apha = header.apha;
       beta = header.beta;
@@ -100,7 +100,7 @@ namespace lidar
       reserved1 = header.reserved1;
       reserved2 = header.reserved2;
       channel_number = header.channel_number;
-      mirror_nummber_reserved3 = header.mirror_nummber;
+      mirror_number_reserved3 = header.mirror_nummber;
       angle_division = header.angle_division;
       apha = header.apha;
       beta = header.beta;
@@ -233,17 +233,13 @@ namespace lidar
       virtual int LoadCorrectionString(char *correction_string);
       int LoadCorrectionDatData(char *correction_string);
       int LoadCorrectionCsvData(char *correction_string);
-  
-      // covert a origin udp packet to decoded packet, the decode function is in UdpParser module
-      // udp_packet is the origin udp packet, output is the decoded packet
-      virtual int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket);  
 
       // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
       virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket);
 
       // compute xyzi of points from decoded packet
       // param packet is the decoded packet; xyzi of points after computed is puted in frame    
-      virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
+      virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
       ETCorrections corrections_;      
 
     // 类维护的成员变量 

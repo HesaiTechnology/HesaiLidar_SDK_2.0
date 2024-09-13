@@ -55,19 +55,13 @@ GeneralParser<T_Point>::GeneralParser() {
 
 
 template <typename T_Point>
-int GeneralParser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet) {
+int GeneralParser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index) {
   return 0;
 }
 template <typename T_Point>
-void GeneralParser<T_Point>::FrameNumAdd(LidarDecodedFrame<T_Point> &frame, uint32_t points_num) {
-  LockS lock(this->_mutex);
-  frame.points_num += points_num;
-  frame.packet_num++;
+void GeneralParser<T_Point>::FrameNumAdd() {
+  this->compute_packet_num++;
 }
-template <typename T_Point>
-int GeneralParser<T_Point>::DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket) {
-  return 0;
-}  
 template <typename T_Point>
 int GeneralParser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket) {
   return 0;
@@ -78,7 +72,7 @@ void GeneralParser<T_Point>::ParserFaultMessage(UdpPacket& udp_packet, FaultMess
 }
 
 template <typename T_Point>
-GeneralParser<T_Point>::~GeneralParser() { printf("release general Parser\n"); }
+GeneralParser<T_Point>::~GeneralParser() { LogInfo("release general parser"); }
 
 template <typename T_Point>
 void GeneralParser<T_Point>::SetFrameAzimuth(float frame_start_azimuth) {
@@ -100,7 +94,6 @@ template <typename T_Point>
 uint16_t *GeneralParser<T_Point>::GetMonitorInfo3() { return this->monitor_info3_; }
 template <typename T_Point>
 void GeneralParser<T_Point>::LoadCorrectionFile(std::string correction_path) {
-  int ret = 0;
   std::ifstream fin(correction_path);
   if (fin.is_open()) {
     int length = 0;
@@ -110,15 +103,15 @@ void GeneralParser<T_Point>::LoadCorrectionFile(std::string correction_path) {
     char *buffer = new char[length];
     fin.read(buffer, length);
     fin.close();
-    ret = LoadCorrectionString(buffer);
+    int ret = LoadCorrectionString(buffer);
     delete[] buffer;
     if (ret != 0) {
-      std::cout << "Parse local correction file Error\n";
+      LogError("Parse local correction file Error");
     } else {
-      std::cout << "Parser correction file success!" << std::endl;
+      LogInfo("Parser correction file success!");
     }
   } else {
-    std::cout << "Open correction file failed\n";
+    LogError("Open correction file failed");
     return;
   }
 }
@@ -160,10 +153,12 @@ int GeneralParser<T_Point>::LoadCorrectionString(char *correction_content) {
     std::getline(ss, subline, ',');
     std::stringstream(subline) >> azimuth;
 
-    if (laserId != lineCount || laserId >= MAX_LASER_NUM) {
-      std::cout << "laser id is wrong in correction file. laser Id:"
-                  << laserId << ", line" << lineCount << std::endl;
-      // return -1;
+    if (laserId > MAX_LASER_NUM || laserId <= 0) {
+      LogFatal("laser id is wrong in correction file. laser Id: %d, line: %d", laserId, lineCount);
+      continue;
+    }
+    if (laserId != lineCount) {
+      LogError("laser id is wrong in correction file. laser Id: %d, line: %d", laserId, lineCount);
     }
     elevation_list[laserId - 1] = elevation;
     azimuth_list[laserId - 1] = azimuth;
@@ -186,18 +181,36 @@ void GeneralParser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
     std::string lineStr;
     //skip first line
     std::getline(inFile, lineStr); 
+    int lineCount = 0;
     while (getline(inFile, lineStr)) {
+      std::vector<std::string> vLineSplit;
+      split_string(vLineSplit, lineStr, ',');
+      // skip error line or hash value line
+      if (vLineSplit.size() < 2) {  
+        continue;
+      } else {
+        lineCount++;
+      }
+      float deltTime;
+      int laserId = 0;
       std::stringstream ss(lineStr);
-      std::string index, deltTime;
-      std::getline(ss, index, ',');
-      std::getline(ss, deltTime, ',');
+      std::string subline;
+      std::getline(ss, subline, ',');
+      std::stringstream(subline) >> laserId;
+      std::getline(ss, subline, ',');
+      std::stringstream(subline) >> deltTime;
+      if (laserId > MAX_LASER_NUM || laserId <= 0) {
+        LogFatal("laser id is wrong in firetime file. laser Id: %d, line: %d", laserId, lineCount);
+        continue;
+      }
+      firetime_correction_[laserId - 1] = deltTime;
     }
     this->get_firetime_file_ = true;
-    std::cout << "Open firetime file success!" << std::endl;
+    LogInfo("Open firetime file success!");
     inFile.close();
     return;
   } else {
-    std::cout << "Open firetime file failed" << std::endl;
+    LogWarning("Open firetime file failed");
     this->get_firetime_file_ = false;
     return;
   }
@@ -223,10 +236,6 @@ void GeneralParser<T_Point>::SetLidarType(std::string type) {
   this->lidar_type = type;
 }
 
-template <typename T_Point>
-void GeneralParser<T_Point>::SetEnableFireTimeCorrection(bool enable) {
-  this->enable_firetime_correction_ = enable;
-}
 template <typename T_Point>
 void GeneralParser<T_Point>::SetEnableDistanceCorrection(bool enable) {
   this->enable_distance_correction_ = enable;
@@ -264,12 +273,12 @@ void GeneralParser<T_Point>::SetOpticalCenterCoordinates(std::string lidar_type)
     optical_center.z = 0.0 / 1000.0;
   } else {
     SetEnableDistanceCorrection(false);
-    printf("Parameter(distance_correction_lidar_type) is set to null or error to not enable distance correction\n");
+    LogWarning("Parameter(distance_correction_lidar_type) is set to null or error to not enable distance correction");
   }
 }
 template <typename T_Point>
 int GeneralParser<T_Point>::LoadFiretimesString(char *correction_string) {
-  printf("load firetimes string\n");
+  LogInfo("load firetimes string");
   return 0;
 }
 
@@ -352,7 +361,7 @@ void GeneralParser<T_Point>::SetTransformPara(float x, float y, float z, float r
 }
 
 template <typename T_Point>
-  void GeneralParser<T_Point>::CalPktLoss(uint32_t &PacketSeqnum) {
+  void GeneralParser<T_Point>::CalPktLoss(uint32_t PacketSeqnum) {
     if (this->enable_packet_loss_tool_ == false) {
       return;
     }
@@ -376,7 +385,7 @@ template <typename T_Point>
     }
     // print log every 1s
     if (this->seqnum_loss_message_.loss_count != 0 && GetMicroTickCount() - this->seqnum_loss_message_.start_time >= 1 * 1000 * 1000) {
-      printf("pkt loss freq: %u/%u\n", this->seqnum_loss_message_.loss_count,
+      LogWarning("pkt loss freq: %u/%u", this->seqnum_loss_message_.loss_count,
              PacketSeqnum - this->seqnum_loss_message_.start_seqnum);
       this->seqnum_loss_message_.loss_count = 0;
       this->seqnum_loss_message_.start_time = GetMicroTickCount();
@@ -386,7 +395,7 @@ template <typename T_Point>
   }
 
 template <typename T_Point>
-void GeneralParser<T_Point>::CalPktTimeLoss(uint64_t &PacketTimestamp) {
+void GeneralParser<T_Point>::CalPktTimeLoss(uint64_t PacketTimestamp) {
   if(this->enable_packet_timeloss_tool_ == false){
     return;
   } 
@@ -404,7 +413,7 @@ void GeneralParser<T_Point>::CalPktTimeLoss(uint64_t &PacketTimestamp) {
   }
   // packet time loss reset
   else if(this->seqnum_loss_message_.is_packet_loss){
-    printf("pkt time loss freq: %u/%u\n", this->time_loss_message_.timeloss_count, this->total_packet_count_ - this->time_loss_message_.last_total_package_count);
+    LogWarning("pkt time loss freq: %u/%u", this->time_loss_message_.timeloss_count, this->total_packet_count_ - this->time_loss_message_.last_total_package_count);
     this->time_loss_message_.timeloss_count = 0;
     this->time_loss_message_.timeloss_start_time = GetMicroTickCount();
     this->time_loss_message_.start_timestamp = PacketTimestamp;
@@ -418,7 +427,7 @@ void GeneralParser<T_Point>::CalPktTimeLoss(uint64_t &PacketTimestamp) {
   }
   // print log every 1s
   if (this->time_loss_message_.timeloss_count != 0 && GetMicroTickCount() - this->time_loss_message_.timeloss_start_time >= 1 * 1000 * 1000) {
-    printf("pkt time loss freq: %u/%u\n", this->time_loss_message_.timeloss_count,
+    LogWarning("pkt time loss freq: %u/%u", this->time_loss_message_.timeloss_count,
            this->total_packet_count_ - this->time_loss_message_.last_total_package_count);
     this->time_loss_message_.timeloss_count = 0;
     this->time_loss_message_.timeloss_start_time = GetMicroTickCount();

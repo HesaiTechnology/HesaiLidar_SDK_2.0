@@ -171,7 +171,7 @@ typedef struct DriverParam
   ///< Lidar type
   //XT spot correction support: 6_1: PandarXT32M1, PandarXT16M1
   std::string lidar_type = "";  
-  int log_level = LOG_DEBUG | LOG_INFO; //
+  int log_level = LOG_INFO | LOG_WARNING | LOG_ERROR | LOG_FATAL; //
   int log_Target = LOG_TARGET_CONSOLE | LOG_TARGET_FILE;
   std::string log_path = "./log.log";
 } DriverParam;

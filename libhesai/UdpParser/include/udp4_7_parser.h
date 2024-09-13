@@ -75,8 +75,6 @@ struct ATXCorrections {
   float elevation[ATX_LASER_NUM];
   float elevation_adjust[ATX_LASER_NUM];
   uint8_t SHA_value[32];
-  std::array<float, CIRCLE> sin_map;
-  std::array<float, CIRCLE> cos_map;
   static constexpr float kBegElevationAdjust = 20.0;
   static constexpr float kStepElevationAdjust = 2.0;
   static constexpr uint32_t kLenElevationAdjust = 70;
@@ -93,10 +91,6 @@ struct ATXCorrections {
     memset(elevation, 0, sizeof(elevation));
     memset(elevation_adjust, 0, sizeof(elevation_adjust));
     memset(SHA_value, 0, sizeof(SHA_value));
-    for (int i = 0; i < CIRCLE; ++i) {
-      sin_map[i] = std::sin(2 * i * M_PI / CIRCLE);
-      cos_map[i] = std::cos(2 * i * M_PI / CIRCLE);
-    }
   }
   double GetEndElevationAdjust() {return kBegElevationAdjust + kStepElevationAdjust * double(kLenElevationAdjust - 1); }
   float ElevationAdjust(int azimuth)
@@ -135,10 +129,9 @@ public:
   virtual int LoadCorrectionString(char *correction_string);
   virtual void LoadFiretimesFile(std::string firetimes_path);
 
-  virtual int DecodePacket(LidarDecodedPacket<T_Point> &output, const UdpPacket& udpPacket);  
   virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket); 
     
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, LidarDecodedPacket<T_Point> &packet);
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
 
   virtual void ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info);
   ATXCorrections m_ATX_corrections;

@@ -34,6 +34,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ptc_client.h"
 
 #include <plat_utils.h>
+#include <unistd.h>
 #ifdef _MSC_VER
 #ifndef MSG_DONTWAIT
 #define MSG_DONTWAIT (0x40)
@@ -52,6 +53,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace hesai::lidar;
 const std::string PtcClient::kLidarIPAddr("192.168.1.201");
 
+PtcClient::~PtcClient() {
+  InitOpen = false;
+  if (nullptr != open_thread_ptr_) {
+    open_thread_ptr_->join();
+    delete open_thread_ptr_;
+    open_thread_ptr_ = nullptr;
+  } 
+}
+
 PtcClient::PtcClient(std::string ip
                     , uint16_t u16TcpPort
                     , bool bAutoReceive
@@ -64,26 +74,40 @@ PtcClient::PtcClient(std::string ip
                     , uint32_t u32SendTimeoutMs)
   : client_mode_(client_mode)
   , ptc_version_(ptc_version) {
-  std::cout << "PtcClient::PtcClient()" << ip.c_str()
-           << u16TcpPort << std::endl;
-  // TcpClient::Open(ip, u16TcpPort);
-  if(client_mode == PtcMode::tcp) {
-    client_ = std::make_shared<TcpClient>();
-    client_->Open(ip, u16TcpPort, bAutoReceive);
-  } else if(client_mode == PtcMode::tcp_ssl) {
-    client_ = std::make_shared<TcpSslClient>();
-    client_->Open(ip, u16TcpPort, bAutoReceive, cert, private_key, ca);
-  }
-  if (u32RecvTimeoutMs != 0 && u32SendTimeoutMs != 0) {
-    std::cout << "u32RecvTimeoutMs " << u32RecvTimeoutMs << std::endl;
-    std::cout << "u32SendTimeoutMs " << u32SendTimeoutMs << std::endl;    
-    client_->SetTimeout(u32RecvTimeoutMs, u32SendTimeoutMs);
-  }
+  lidar_ip_ = ip;
+  tcp_port_ =  u16TcpPort;
+  auto_receive_ = bAutoReceive;
+  cert_  = cert;
+  private_key_ = private_key;
+  ca_ = ca;
+  recv_timeout_ms_ = u32RecvTimeoutMs;
+  send_timeout_ms_ = u32SendTimeoutMs;
 
+  open_thread_ptr_ = new std::thread(std::bind(&PtcClient::TryOpen, this));
   // init ptc parser
   ptc_parser_ = std::make_shared<PtcParser>(ptc_version);
 
   CRCInit();
+}
+
+void PtcClient::TryOpen() {
+  LogInfo("PtcClient::PtcClient() %s %u", lidar_ip_.c_str(), tcp_port_);
+  if(client_mode_ == PtcMode::tcp) {
+    client_ = std::make_shared<TcpClient>();
+    while (InitOpen && !client_->TryOpen(lidar_ip_, tcp_port_, auto_receive_)) {
+      usleep(50000);
+    }
+  } else if(client_mode_ == PtcMode::tcp_ssl) {
+    client_ = std::make_shared<TcpSslClient>();
+    while(InitOpen && !client_->TryOpen(lidar_ip_, tcp_port_, auto_receive_, cert_, private_key_, ca_)) {
+      usleep(50000);
+    }
+  }
+  if (recv_timeout_ms_ != 0 && send_timeout_ms_ != 0) {
+    LogInfo("u32RecvTimeoutMs %u", recv_timeout_ms_);
+    LogInfo("u32SendTimeoutMs %u", send_timeout_ms_);    
+    client_->SetTimeout(recv_timeout_ms_, send_timeout_ms_);
+  }
 }
 
 bool PtcClient::IsValidRsp(u8Array_t &byteStreamIn) {
@@ -116,7 +140,7 @@ void PtcClient::TcpFlushIn() {
   do {
     len = client_->Receive(u8Buf.data(), u8Buf.size(), MSG_DONTWAIT);
     if (len > 0) {
-      std::cout << "TcpFlushIn, len" << len << std::endl;
+      std::cout << "TcpFlushIn, len " << len << std::endl;
       for(size_t i = 0; i<u8Buf.size(); i++) {
         printf("%x ", u8Buf[i]);
       }
@@ -127,6 +151,7 @@ void PtcClient::TcpFlushIn() {
 int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
                                        u8Array_t &byteStreamOut,
                                        uint8_t u8Cmd) {
+  LockS lock(_mutex);
   int ret = 0;
   u8Array_t encoded;
   uint32_t tick = GetMicroTickCount();
@@ -147,12 +172,12 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
   u8Array_t::pointer pHeaderBuf = u8HeaderBuf.data();
   //还要接收的数据长度
   int nLeft = ptc_parser_->GetPtcParserHeaderSize();
-  //是否已经找到连续的0x47和0x74
-  bool bHeaderFound = false;
-  int nValidDataLen = 0;
   int nPayLoadLen = 0;
 
   if (ret == 0) {
+    //是否已经找到连续的0x47和0x74
+    bool bHeaderFound = false;
+    int nValidDataLen = 0;
     while (nLeft > 0) {
       nOnceRecvLen = client_->Receive(pRecvHeaderBuf, nLeft);
       if (nOnceRecvLen <= 0) break;
@@ -178,15 +203,13 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
     }
     //因超时退出而导致数据未接收完全
     if (nLeft > 0) {
-      // std::cout << "PtcClient::QueryCommand, invalid Header, nLeft:"
-      //          << nLeft << ", u8HeaderBuf:" << std::hex << u8HeaderBuf;
       ret = -1;
     } else {
       //开始接收body
       if(ptc_version_ == 1) {
         PTCHeader_1_0 *pPTCHeader = reinterpret_cast<PTCHeader_1_0 *>(u8HeaderBuf.data());
         if (!pPTCHeader->IsValidReturnCode() || pPTCHeader->cmd_ != u8Cmd) {
-          std::cout << "PtcClient::QueryCommand,RspCode invalid:" << pPTCHeader->return_code_ << ", u8HeaderBuf: " << std::endl;
+          LogWarning("PtcClient::QueryCommand, RspCode invalid:%u", pPTCHeader->return_code_);
           ret = -1;
         } else {
           nPayLoadLen = pPTCHeader->GetPayloadLen();
@@ -194,7 +217,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
       } else {
         PTCHeader_2_0 *pPTCHeader = reinterpret_cast<PTCHeader_2_0 *>(u8HeaderBuf.data());
         if (!pPTCHeader->IsValidReturnCode() || pPTCHeader->cmd_ != u8Cmd) {
-          std::cout << "PtcClient::QueryCommand,RspCode invalid:" << pPTCHeader->return_code_ << ", u8HeaderBuf: " << std::endl;
+          LogWarning("PtcClient::QueryCommand,RspCode invalid:%u", pPTCHeader->return_code_);
           ret = -1;
         } else {
           nPayLoadLen = pPTCHeader->GetPayloadLen();
@@ -202,12 +225,11 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
       }
     }
   }
-  // std::cout << "nPayLoadLen = " << nPayLoadLen << std::endl;
   if (ret == 0 && nPayLoadLen > 0) {
     //对payLoad进行一个判断，避免负载过长申请过大的空间 目前指定为10K
     const int kMaxPayloadBuffSize = 10240;
     if (nPayLoadLen > kMaxPayloadBuffSize)
-      std::cout << "PtcClient::QueryCommand, warning, nPayLoadLen too large:" << nPayLoadLen << std::endl;
+      LogWarning("PtcClient::QueryCommand, warning, nPayLoadLen too large:%d", nPayLoadLen);
 
     // tmp code to allow LiDAR bug
     // const int kExtraBufLen = 4;
@@ -227,9 +249,6 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
     }
 
     if (nLeft > 0) {
-      // std::cout << "PtcClient::QueryCommand,Body "
-      //           <<"incomplete:nPayLoadLen:"
-      //           << nPayLoadLen << " nLeft:" << nLeft << std::endl;
       ret = -1;
     } else {
       //将收到的bodyBuf拷贝到最终要传出的buf
@@ -239,17 +258,12 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
     }
   }
 
-  // std::cout << "PtcClient::QueryCommand,rsp, header:" << std::hex
-  //          << u8HeaderBuf << "byteStreamOut:" << byteStreamOut;
-
-  printf("exec time: %fms\n", (GetMicroTickCount() - tick) / 1000.f);
+  LogDebug("exec time: %fms", (GetMicroTickCount() - tick) / 1000.f);
 
   return ret;
 }
 
 int PtcClient::SendCommand(u8Array_t &byteStreamIn, uint8_t u8Cmd) {
-  // std::cout << "PtcClient::SendCommand, cmd:" << u8Cmd
-  //          << "data:" << std::hex << byteStreamIn;
 
   u8Array_t byteStreamOut;
 
@@ -269,13 +283,10 @@ u8Array_t PtcClient::GetCorrectionInfo() {
   ret = this->QueryCommand(dataIn, dataOut,
                            kPTCGetLidarCalibration);
 
-  // ret = this->QueryCommand(dataIn, dataOut,
-  //                          PtcClient::kPTCGetInventoryInfo);
-
   if (ret == 0 && !dataOut.empty()) {
-    std::cout << "Read correction file from lidar success" << std::endl;
+    LogInfo("Read correction file from lidar success");
   } else {
-    std::cout << "Read correction file from lidar fail" << std::endl;
+    LogWarning("Read correction file from lidar fail");
   }
 
   return dataOut;
@@ -360,7 +371,7 @@ int PtcClient::GetLidarStatus() {
     , systemp_uptime, motor_speed, temperature[0], temperature[1],temperature[2], temperature[3],
     temperature[4], temperature[5], temperature[6], temperature[7], gps_pps_lock, gps_gprmc_status,
     startup_times, total_operation_time, ptp_status);
-    printf("Lidar Status Size: %ld\n", offset);
+    printf("Lidar Status Size: %zu\n", offset);
     return 0;
   } else {
     return -1;
@@ -374,8 +385,10 @@ int PtcClient::GetCorrectionInfo(u8Array_t &dataOut) {
                            kPTCGetLidarCalibration);
 
   if (ret == 0 && !dataOut.empty()) {
+    LogInfo("Read correction file from lidar success");
     return 0;
   } else {
+    LogWarning("Read correction file from lidar fail");
     return -1;
   }
 }
@@ -512,10 +525,10 @@ bool PtcClient::SetSpinSpeed(uint32_t speed)
 }
 
 void PtcClient::CRCInit() {
-  uint32_t i, j, k;
+  uint32_t i, j;
 
   for (i = 0; i < 256; i++) {
-    k = 0;
+    uint32_t k = 0;
     for (j = (i << 24) | 0x800000; j != 0x80000000; j <<= 1)
       k = (k << 1) ^ (((k ^ j) & 0x80000000) ? 0x04c11db7 : 0);
 
