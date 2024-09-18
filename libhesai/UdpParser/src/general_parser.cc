@@ -158,7 +158,8 @@ int GeneralParser<T_Point>::LoadCorrectionString(char *correction_content) {
       continue;
     }
     if (laserId != lineCount) {
-      LogError("laser id is wrong in correction file. laser Id: %d, line: %d", laserId, lineCount);
+      LogWarning("laser id is wrong in correction file. laser Id: %d, line: %d.  continue", laserId, lineCount);
+      continue;
     }
     elevation_list[laserId - 1] = elevation;
     azimuth_list[laserId - 1] = azimuth;

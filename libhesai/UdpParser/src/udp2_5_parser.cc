@@ -22,7 +22,7 @@ void Udp2_5Parser<T_Point>::LoadCorrectionFile(std::string correction_path) {
   LogInfo("load correction file from local correction file now!");
   std::ifstream fin(correction_path);
   if (fin.is_open()) {
-    LogDebug("Open correction file success\n");
+    LogDebug("Open correction file success");
     int length = 0;
     fin.seekg(0, std::ios::end);
     length = fin.tellg();
@@ -96,7 +96,8 @@ int  Udp2_5Parser<T_Point>::LoadCorrectionCsvData(char *correction_string)
       continue;
     }
     if (laserId != lineCount) {
-      LogError("laser id is wrong in correction file. laser Id: %d, line: %d", laserId, lineCount);
+      LogWarning("laser id is wrong in correction file. laser Id: %d, line: %d.  continue", laserId, lineCount);
+      continue;
     }
     elevation_list[laserId - 1] = elevation;
     azimuth_list[laserId - 1] = azimuth;
@@ -214,11 +215,11 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
           corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
           corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
           corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;
-          LogDebug("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
+          LogDebug("apha:%f, beta:%f, gamma:%f", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
           for (int i = 0; i < channel_num; i++) {
             corrections_.azimuths[i + 3] = ((float)(corrections_.raw_azimuths[i])) / division;
             corrections_.elevations[i + 3] = ((float)(corrections_.raw_elevations[i])) / division;
-            LogDebug("%d %f %f \n",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
+            LogDebug("%d %f %f ",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
           }
           corrections_.azimuth_adjust_interval = *((char*)p);
           p = p + 1;

@@ -212,7 +212,7 @@ public:
         // uint32_t end =  GetMicroTickCount();
         //log info, display frame message
         if (lidar_ptr_->frame_.points_num > kMinPointsOfOneFrame) {
-          // LogInfo("frame:%d   points:%u  packet:%d  time:%lf %lf\n",lidar_ptr_->frame_.frame_index,  lidar_ptr_->frame_.points_num, packet_index, lidar_ptr_->frame_.points[0].timestamp, lidar_ptr_->frame_.points[lidar_ptr_->frame_.points_num - 1].timestamp) ;
+          // LogInfo("frame:%d   points:%u  packet:%d  time:%lf %lf",lidar_ptr_->frame_.frame_index,  lidar_ptr_->frame_.points_num, packet_index, lidar_ptr_->frame_.points[0].timestamp, lidar_ptr_->frame_.points[lidar_ptr_->frame_.points_num - 1].timestamp) ;
 
           //publish point cloud topic
           if(point_cloud_cb_) point_cloud_cb_(lidar_ptr_->frame_);
@@ -238,7 +238,7 @@ public:
             int ret_offset = lidar_ptr_->ptc_client_->GetPTPLockOffset(ptp_lock_offset);
             if (ret_status != 0 || ret_offset != 0)
             {
-              printf("-->%d %d %zu %zu\n", ret_status, ret_offset, ptp_status.size(), ptp_lock_offset.size());
+              LogInfo("-->%d %d %zu %zu", ret_status, ret_offset, ptp_status.size(), ptp_lock_offset.size());
             }
             else
             {
@@ -281,7 +281,7 @@ public:
           lidar_ptr_->ClearPacketBuffer();
           std::this_thread::sleep_for(std::chrono::microseconds(100));
           lidar_ptr_->frame_.Update();
-          LogError("fail to start a new frame\n");
+          LogError("fail to start a new frame");
         }
       }
     }

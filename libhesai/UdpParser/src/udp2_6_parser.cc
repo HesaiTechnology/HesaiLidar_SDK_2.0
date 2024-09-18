@@ -94,7 +94,8 @@ int  Udp2_6Parser<T_Point>::LoadCorrectionCsvData(char *correction_string)
       continue;
     }
     if (laserId != lineCount) {
-      LogError("laser id is wrong in correction file. laser Id: %d, line: %d", laserId, lineCount);
+      LogWarning("laser id is wrong in correction file. laser Id: %d, line: %d.  continue", laserId, lineCount);
+      continue;
     }
     elevation_list[laserId - 1] = elevation;
     azimuth_list[laserId - 1] = azimuth;
@@ -103,7 +104,7 @@ int  Udp2_6Parser<T_Point>::LoadCorrectionCsvData(char *correction_string)
   for (int i = 0; i < lineCount; ++i) {
     corrections_.azimuths[i] = azimuth_list[i];
     corrections_.elevations[i] = elevation_list[i];
-    LogDebug("%d %f %f \n", i, corrections_.azimuths[i], corrections_.elevations[i]);
+    LogDebug("%d %f %f ", i, corrections_.azimuths[i], corrections_.elevations[i]);
   }
   this->get_correction_file_ = true;
   return 0;
@@ -138,7 +139,7 @@ int Udp2_6Parser<T_Point>::LoadCorrectionDatData(char *data) {
           corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
           corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
           corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;
-          LogDebug("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
+          LogDebug("apha:%f, beta:%f, gamma:%f", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
           for (int i = 0; i < channel_num; i++) {
             corrections_.azimuths[i + 3] = ((float)(corrections_.raw_azimuths[i])) / division;
             corrections_.elevations[i + 3] = ((float)(corrections_.raw_elevations[i])) / division;
@@ -170,11 +171,11 @@ int Udp2_6Parser<T_Point>::LoadCorrectionDatData(char *data) {
           corrections_.elevations[0] = ((float)(corrections_.header.apha)) / division;
           corrections_.elevations[1] = ((float)(corrections_.header.beta)) / division;
           corrections_.elevations[2] = ((float)(corrections_.header.gamma)) / division;
-          LogDebug("apha:%f, beta:%f, gamma:%f\n", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
+          LogDebug("apha:%f, beta:%f, gamma:%f", corrections_.elevations[0], corrections_.elevations[1], corrections_.elevations[2]);
           for (int i = 0; i < channel_num; i++) {
             corrections_.azimuths[i + 3] = ((float)(corrections_.raw_azimuths[i])) / division;
             corrections_.elevations[i + 3] = ((float)(corrections_.raw_elevations[i])) / division;
-            LogDebug("%d %f %f \n",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
+            LogDebug("%d %f %f ",i, corrections_.azimuths[i + 3], corrections_.elevations[i + 3]);
           }
           corrections_.azimuth_adjust_interval = *((char*)p);
           p = p + 1;

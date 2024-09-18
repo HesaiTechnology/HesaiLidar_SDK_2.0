@@ -43,7 +43,7 @@ Udp6_1Parser<T_Point>::Udp6_1Parser() {
   block_num_ = 6; 
 }
 template<typename T_Point>
-Udp6_1Parser<T_Point>::~Udp6_1Parser() { LogInfo("release Udp6_1parser\n"); }
+Udp6_1Parser<T_Point>::~Udp6_1Parser() { LogInfo("release Udp6_1parser"); }
 
 template<typename T_Point>
 int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index) {

@@ -45,13 +45,12 @@ Udp3_2Parser<T_Point>::~Udp3_2Parser() { LogInfo("release general parser"); }
 
 template<typename T_Point>
 int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
-  // printf("%s\n",firetimes_string);
   std::string firetimes_content_str = firetimes_string;
   std::istringstream fin(firetimes_content_str);
   std::string line;
   // first line sequence,chn id,firetime/us
   if (std::getline(fin, line)) {  
-    LogInfo("Parse Lidar firetime now...\n");
+    LogInfo("Parse Lidar firetime now...");
   }
   std::vector<std::string> firstLine;
   split_string(firstLine, line, ',');
@@ -81,8 +80,8 @@ int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
           int laserId = atoi(ChannelLine[j * 2].c_str()) - 1;
           if (laserId >= 0 && laserId < HS_LIDAR_QT128_LASER_NUM)
             firetimes[j][laserId] = std::stof(ChannelLine[j * 2 + 1].c_str());
-          else 
-            LogError("firetimes laserId is error : %d", laserId);
+          else if (std::stof(ChannelLine[j * 2 + 1].c_str()) != 0)
+            LogWarning("firetimes laserId is invalid : %d", laserId);
         } else {
           LogError("loop num is not equal to the first channel line");
           return -1;

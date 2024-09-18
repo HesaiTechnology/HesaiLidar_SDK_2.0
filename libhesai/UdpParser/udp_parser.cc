@@ -433,7 +433,7 @@ void UdpParser<T_Point>::SetFrameAzimuth(float frame_start_azimuth) {
   if (parser_ != nullptr) {
     parser_->SetFrameAzimuth(frame_start_azimuth);
   } else {
-    LogWarning("parser is nullptr\n");
+    LogWarning("parser is nullptr");
   }
   return;
 }
