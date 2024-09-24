@@ -11,10 +11,6 @@ using namespace hesai::lidar;
 template<typename T_Point>
 Udp4_7Parser<T_Point>::Udp4_7Parser() {
   this->get_correction_file_ = false;
-  for (int i = 0; i < 512; i++) {
-    even_firetime_correction_[i] = 0;
-    odd_firetime_correction_[i] = 0;
-  }
 }
 
 template<typename T_Point>
@@ -159,7 +155,7 @@ int Udp4_7Parser<T_Point>::LoadCorrectionString(char *data) {
           memcpy((void*)&m_ATX_corrections.SHA_value, p, 32);
           this->get_correction_file_ = true;
           return 0;
-        }
+        } break;
         default:
           break;
       }
@@ -174,31 +170,119 @@ int Udp4_7Parser<T_Point>::LoadCorrectionString(char *data) {
 
 template <typename T_Point>
 void Udp4_7Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
-  std::ifstream inFile(firetimes_path, std::ios::in);
-  if (inFile.is_open()) {
-    std::string lineStr;
-    //skip first line
-    std::getline(inFile, lineStr); 
-    while (getline(inFile, lineStr)) {
-      std::stringstream ss(lineStr);
-      std::string index, deltTime1, deltTime2;
-      std::getline(ss, index, ',');
-      std::getline(ss, deltTime1, ',');
-      std::getline(ss, deltTime2, ',');
-      // std::cout << index << "  "  << deltTime1 << " " << deltTime2 << std::endl;
-      even_firetime_correction_[std::stoi(index) - 1] = std::stod(deltTime1);
-      odd_firetime_correction_[std::stoi(index) - 1] = std::stod(deltTime2);
-      
-    }
-    this->get_firetime_file_ = true;
-    LogInfo("Open firetime file success!");
-    inFile.close();
-    return;
-  } else {
-    LogWarning("Open firetime file failed");
-    this->get_firetime_file_ = false;
+  int type = 0;
+  int length = firetimes_path.length();
+  if (length >= 4) {
+    std::string extension = firetimes_path.substr(length - 4);
+    if (extension == ".bin" || extension == ".dat") {
+      type = 1; //  .bin
+    } else if (extension == ".csv") {
+      type = 2; //  .csv
+    } else {
+      type = 0; //  wrong
+    }   
+  }
+
+  if (type == 0) {
+    LogError("firetime name is error(not .dat / .bin / .csv)\n");
     return;
   }
+
+  if (type == 2) {
+    std::ifstream inFile(firetimes_path, std::ios::in);
+    if (inFile.is_open()) {
+      std::string lineStr;
+      //skip first line
+      std::getline(inFile, lineStr); 
+      while (getline(inFile, lineStr)) {
+        std::stringstream ss(lineStr);
+        std::string index, deltTime1, deltTime2;
+        std::getline(ss, index, ',');
+        std::getline(ss, deltTime1, ',');
+        std::getline(ss, deltTime2, ',');
+        // std::cout << index << "  "  << deltTime1 << " " << deltTime2 << std::endl;
+        m_ATX_firetimes.even_firetime_correction_[std::stoi(index) - 1] = std::stod(deltTime1);
+        m_ATX_firetimes.odd_firetime_correction_[std::stoi(index) - 1] = std::stod(deltTime2);
+      }
+      this->get_firetime_file_ = true;
+      LogInfo("Open firetime file success!");
+      inFile.close();
+      return;
+    } else {
+      LogWarning("Open firetime file failed");
+      this->get_firetime_file_ = false;
+      return;
+    }
+  } 
+  else if (type == 1) {
+    std::ifstream fin(firetimes_path);
+    if (fin.is_open()) {
+      LogDebug("Open firetime file success");
+      int length = 0;
+      fin.seekg(0, std::ios::end);
+      length = fin.tellg();
+      fin.seekg(0, std::ios::beg);
+      char *buffer = new char[length];
+      fin.read(buffer, length);
+      fin.close();
+      int ret = LoadFiretimesString(buffer);
+      delete[] buffer;
+      if (ret != 0) {
+        LogError("Parse local firetime file Error");
+      } else {
+        LogInfo("Parse local firetime file Success!!!");
+      }
+    } else {
+      LogError("Open firetime file failed");
+      return;
+    }
+  } else {
+    LogError("firetime name is error(not .dat / .bin / .csv)\n");
+  }
+}
+
+template<typename T_Point>
+int Udp4_7Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
+  try {
+    char *p = firetimes_string;
+    ATXFiretimesHeader header = *(ATXFiretimesHeader *)p;
+    if (0xee == header.delimiter[0] && 0xff == header.delimiter[1]) {
+      switch (header.version[1])
+      {
+        case 1: {
+          m_ATX_firetimes.header = header;
+          auto channel_num = m_ATX_firetimes.header.channel_number;
+          auto division = m_ATX_firetimes.header.angle_division;
+          if (channel_num > ATX_LASER_NUM || division == 0) {
+            LogError("data error: channel_num is %u, division is %u", channel_num, division);
+            return -1;
+          }
+          p += sizeof(ATXFiretimesHeader);
+          memcpy((void *)&m_ATX_firetimes.raw_even_firetime_correction_, p,
+                 sizeof(uint16_t) * channel_num);
+          p += sizeof(uint16_t) * channel_num;       
+          memcpy((void *)&m_ATX_firetimes.raw_odd_firetime_correction_, p,
+                 sizeof(uint16_t) * channel_num);       
+          p += sizeof(uint16_t) * channel_num;
+          for (int i = 0; i < channel_num; i++) {
+            m_ATX_firetimes.even_firetime_correction_[i] = (double)(m_ATX_firetimes.raw_even_firetime_correction_[i]);
+            m_ATX_firetimes.odd_firetime_correction_[i] = (double)(m_ATX_firetimes.raw_odd_firetime_correction_[i]);
+            LogDebug("%d %f %f", i, m_ATX_firetimes.even_firetime_correction_[i], m_ATX_firetimes.odd_firetime_correction_[i]);
+          } 
+          memcpy((void*)&m_ATX_firetimes.SHA_value, p, 32);
+          this->get_firetime_file_ = true;
+          return 0;
+        } break;
+        default:
+          break;
+      }
+    }
+    return -1;
+  } catch (const std::exception &e) {
+    LogFatal("load firetimes error: %s", e.what());
+    return -1;
+  }
+  return -1;
 }
 
 template<typename T_Point>
@@ -356,7 +440,7 @@ int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
       }
       // printf("%d  %f\n", m_ATX_corrections.header.version[1], output.azimuth[index] / 256);
       if (this->get_firetime_file_) {
-        frame.pointData[index].azimuth =  frame.pointData[index].azimuth + ((pTail->GetFrameID() % 2 == 0) ? even_firetime_correction_[i] : -odd_firetime_correction_[i] ) * (abs(pTail->GetMotorSpeed()) * 1E-9 / 8) * kAllFineResolutionFloat;
+        frame.pointData[index].azimuth =  frame.pointData[index].azimuth + ((pTail->GetFrameID() % 2 == 0) ? m_ATX_firetimes.even_firetime_correction_[i] : -m_ATX_firetimes.odd_firetime_correction_[i] ) * (abs(pTail->GetMotorSpeed()) * 1E-9 / 8) * kAllFineResolutionFloat;
       }
       frame.pointData[index].reflectivities = pChnUnit->GetReflectivity();  
       frame.pointData[index].distances = pChnUnit->GetDistance();

@@ -134,6 +134,7 @@ void UdpParserGpu<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
       switch (minor) {
         case 1:
           m_generalParserGpu = new Udp3_1ParserGpu<T_Point>();
+          break;
         case 2:
           m_generalParserGpu = new Udp3_2ParserGpu<T_Point>();
           break;

@@ -222,7 +222,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
 template <typename T_Point>
 void Lidar<T_Point>::InitSetPtc(const DriverParam param) {
   while(running_) {
-    sleep(1);
+    usleep(10000);
     if (!ptc_client_->IsOpen()) continue;
     init_finish_[PtcInitFinish] = true;
     LogDebug("finish 1: ptc connection successfully");

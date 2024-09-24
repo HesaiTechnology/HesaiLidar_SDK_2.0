@@ -53,6 +53,24 @@ namespace lidar
 #define PACKED __attribute__((packed))
 #endif
 
+struct ATXFiretimesHeader {
+  uint8_t delimiter[2];
+  uint8_t version[2];
+  uint8_t reserved1;
+  uint8_t reserved2;
+  uint8_t channel_number;
+  uint16_t angle_division;
+} PACKED;
+
+struct ATXFiretimes {
+  ATXFiretimesHeader header;
+  uint16_t raw_even_firetime_correction_[ATX_LASER_NUM];
+  uint16_t raw_odd_firetime_correction_[ATX_LASER_NUM];
+  double even_firetime_correction_[ATX_LASER_NUM];
+  double odd_firetime_correction_[ATX_LASER_NUM];
+  uint8_t SHA_value[32];
+};
+
 struct ATXCorrectionsHeader {
   uint8_t delimiter[2];
   uint8_t version[2];
@@ -60,7 +78,7 @@ struct ATXCorrectionsHeader {
   uint8_t reserved2;
   uint8_t channel_number;
   uint16_t angle_division;
-}PACKED;
+} PACKED;
 
 struct ATXCorrections {
   ATXCorrectionsHeader header;
@@ -128,6 +146,7 @@ public:
   virtual void LoadCorrectionFile(std::string correction_path);
   virtual int LoadCorrectionString(char *correction_string);
   virtual void LoadFiretimesFile(std::string firetimes_path);
+  virtual int LoadFiretimesString(char *firetimes_string);
 
   virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket); 
     
@@ -135,14 +154,13 @@ public:
 
   virtual void ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info);
   ATXCorrections m_ATX_corrections;
+  ATXFiretimes m_ATX_firetimes;
 
 protected:
   // std::string pcap_file_;
   // std::string lidar_correction_file_;
   bool get_correction_file_;
   int last_frameid_ = -1;
-  double even_firetime_correction_[512];
-  double odd_firetime_correction_[512];
 };
 }  // namespace lidar
 }  // namespace hesai

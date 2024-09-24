@@ -223,7 +223,7 @@ int Udp4_7ParserGpu<T_Point>::LoadCorrectionString(char *data) {
           CUDACheck(cudaMemcpy(deles_cu, m_ATX_corrections.elevation_adjust, sizeof(m_ATX_corrections.elevation_adjust), cudaMemcpyHostToDevice));
           corrections_loaded_ = true;
           return 0;
-        }
+        } break;
         default:
           break;
       }
