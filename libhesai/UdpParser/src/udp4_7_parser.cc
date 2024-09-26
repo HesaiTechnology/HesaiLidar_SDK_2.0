@@ -171,9 +171,9 @@ int Udp4_7Parser<T_Point>::LoadCorrectionString(char *data) {
 template <typename T_Point>
 void Udp4_7Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
   int type = 0;
-  int length = firetimes_path.length();
-  if (length >= 4) {
-    std::string extension = firetimes_path.substr(length - 4);
+  int length_f = firetimes_path.length();
+  if (length_f >= 4) {
+    std::string extension = firetimes_path.substr(length_f - 4);
     if (extension == ".bin" || extension == ".dat") {
       type = 1; //  .bin
     } else if (extension == ".csv") {
@@ -218,9 +218,8 @@ void Udp4_7Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
     std::ifstream fin(firetimes_path);
     if (fin.is_open()) {
       LogDebug("Open firetime file success");
-      int length = 0;
       fin.seekg(0, std::ios::end);
-      length = fin.tellg();
+      int length = fin.tellg();
       fin.seekg(0, std::ios::beg);
       char *buffer = new char[length];
       fin.read(buffer, length);
@@ -311,6 +310,7 @@ int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       {
         int fov_transfer = azimuth / 256 / 100;
         if (fov_transfer < frame.config.fov_start || fov_transfer > frame.config.fov_end){//不在fov范围continue
+          memset(&frame.points[point_index], 0, sizeof(T_Point));
           continue;
         }
       }

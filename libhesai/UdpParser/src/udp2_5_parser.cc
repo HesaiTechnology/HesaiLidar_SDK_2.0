@@ -374,6 +374,7 @@ int Udp2_5Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       {
         int fov_transfer = azimuth / 256 / 100;
         if (fov_transfer < frame.config.fov_start || fov_transfer > frame.config.fov_end){//不在fov范围continue
+          memset(&frame.points[point_index], 0, sizeof(T_Point));
           continue;
         }
       }       
