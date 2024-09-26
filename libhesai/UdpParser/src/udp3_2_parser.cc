@@ -45,13 +45,12 @@ Udp3_2Parser<T_Point>::~Udp3_2Parser() { LogInfo("release general parser"); }
 
 template<typename T_Point>
 int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
-  // printf("%s\n",firetimes_string);
   std::string firetimes_content_str = firetimes_string;
   std::istringstream fin(firetimes_content_str);
   std::string line;
   // first line sequence,chn id,firetime/us
   if (std::getline(fin, line)) {  
-    LogInfo("Parse Lidar firetime now...\n");
+    LogInfo("Parse Lidar firetime now...");
   }
   std::vector<std::string> firstLine;
   split_string(firstLine, line, ',');
@@ -81,8 +80,8 @@ int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
           int laserId = atoi(ChannelLine[j * 2].c_str()) - 1;
           if (laserId >= 0 && laserId < HS_LIDAR_QT128_LASER_NUM)
             firetimes[j][laserId] = std::stof(ChannelLine[j * 2 + 1].c_str());
-          else 
-            LogError("firetimes laserId is error : %d", laserId);
+          else if (std::stof(ChannelLine[j * 2 + 1].c_str()) != 0)
+            LogWarning("firetimes laserId is invalid : %d", laserId);
         } else {
           LogError("loop num is not equal to the first channel line");
           return -1;
@@ -228,6 +227,7 @@ int Udp3_2Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       {
         int fov_transfer = azimuth / 256 / 100;
         if (fov_transfer < frame.config.fov_start || fov_transfer > frame.config.fov_end){//不在fov范围continue
+          memset(&frame.points[point_index], 0, sizeof(T_Point));
           continue;
         }
       }             
@@ -257,7 +257,7 @@ bool Udp3_2Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
   // The first two packet dont have the information of last_azimuth_  and last_last_azimuth, so do not need split frame
   // The initial value of last_azimuth_ is -1
   // Determine the rotation direction and division
-  int8_t rotation_flag = 1;
+  
   uint16_t division = 0;
   // If last_last_azimuth_ != -1，the packet is the third, so we can determine whether the current packet requires framing
   if (this->last_last_azimuth_ != -1) 
@@ -272,13 +272,15 @@ bool Udp3_2Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
     // The same is true for FOV
     if( this->last_last_azimuth_ - this->last_azimuth_ == division || this->last_azimuth_ -azimuth == division)
     {
-      rotation_flag = 0;
+      this->rotation_flag = -1;
+    } else {
+      this->rotation_flag = 1;
     }
   } else {
     // The first  and second packet do not need split frame
     return false;
   }
-  if (rotation_flag) {
+  if (this->rotation_flag == 1) {
     // When an angle jump occurs, it maybe 359.9-0 or 39.9-40-10.0(consired FOV)
     if (this->last_azimuth_- azimuth > division)
     {
@@ -398,7 +400,7 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
                   ? pandarQT_channel_config_.m_vChannelConfigTable[loopIndex][j] - 1
                   : j;
         if (this->get_firetime_file_) {
-          frame.pointData[index].azimuth = u16Azimuth + GetFiretimesCorrection(
+          frame.pointData[index].azimuth = u16Azimuth + this->rotation_flag * GetFiretimesCorrection(
                                     laserId, pTail->GetMotorSpeed(), loopIndex) * kResolutionFloat;
         } else {
           frame.pointData[index].azimuth = u16Azimuth;
@@ -468,7 +470,7 @@ int Udp3_2Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
                   ? pandarQT_channel_config_.m_vChannelConfigTable[loopIndex][j] - 1
                   : j;
         if (this->get_firetime_file_) {
-          frame.pointData[index].azimuth = u16Azimuth + GetFiretimesCorrection(
+          frame.pointData[index].azimuth = u16Azimuth + this->rotation_flag * GetFiretimesCorrection(
                                     laserId, pTail->GetMotorSpeed(), loopIndex) * kResolutionFloat;
         } else {
           frame.pointData[index].azimuth = u16Azimuth;

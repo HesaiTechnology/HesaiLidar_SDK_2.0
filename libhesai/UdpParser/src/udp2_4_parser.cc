@@ -11,7 +11,7 @@ Udp2_4Parser<T_Point>::Udp2_4Parser() {
 }
 
 template<typename T_Point>
-Udp2_4Parser<T_Point>::~Udp2_4Parser() { LogInfo("release Udp2_4Parser\n"); }
+Udp2_4Parser<T_Point>::~Udp2_4Parser() { LogInfo("release Udp2_4Parser"); }
 
 // The main purpose of this function is to open, read, and parse a lidar calibration file, and print appropriate messages based on the parsing results.
 // This function can read both .bin and .csv files.
@@ -26,16 +26,16 @@ void Udp2_4Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
         } else if (extension == ".csv") {
             type = 2; //  .csv
         } else {
-            type = 0; //  wrong
+            // type = 0; //  wrong
             return;
         }   
   }
   if (type == 1) {
     // print information
-    LogInfo("load correction file from local correction.bin now!\n");
+    LogInfo("load correction file from local correction.bin now!");
     std::ifstream fin(lidar_correction_file);
     if (fin.is_open()) {
-      LogDebug("Open correction file success!\n");
+      LogDebug("Open correction file success!");
       fin.seekg(0, std::ios::end);
       int len = fin.tellg();
       // return the begin of file
@@ -47,26 +47,26 @@ void Udp2_4Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
       int ret = LoadCorrectionString(buffer);
       delete[] buffer;
       if (ret != 0) {
-        LogError("Parse local Correction file Error!\n");
+        LogError("Parse local Correction file Error!");
       } else {
-        LogInfo("Parse local Correction file Success!!!\n");
+        LogInfo("Parse local Correction file Success!!!");
         this->get_correction_file_ = true;
       }
     } else { // open failed
-      LogError("Open correction file failed\n");
+      LogError("Open correction file failed");
       return;
     }
   } 
 
   if (type == 2) {
     // print information
-    LogInfo("load correction file from local correction.csv now!\n");
+    LogInfo("load correction file from local correction.csv now!");
     int ret = LoadCorrectionString_csv(lidar_correction_file);
     if (1 == ret) {
-      LogInfo("Parse local Correction file Success!\n");
+      LogInfo("Parse local Correction file Success!");
       this->get_correction_file_ = true;
     } else {
-      LogError("Parse local Correction file faild!\n");
+      LogError("Parse local Correction file faild!");
     }
     return;
   }
@@ -216,6 +216,7 @@ int Udp2_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       {
         int fov_transfer = azimuth / 256 / 100;
         if (fov_transfer < frame.config.fov_start || fov_transfer > frame.config.fov_end){//不在fov范围continue
+          memset(&frame.points[point_index], 0, sizeof(T_Point));
           continue;
         }
       } 

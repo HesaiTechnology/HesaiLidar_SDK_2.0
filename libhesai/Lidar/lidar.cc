@@ -53,6 +53,7 @@ Lidar<T_Point>::Lidar() {
   ptc_port_ = 0;
   udp_port_ = 0;
   parser_thread_ptr_ = nullptr;
+  init_set_ptc_ptr_ = nullptr;
 }
 
 template <typename T_Point>
@@ -60,13 +61,23 @@ Lidar<T_Point>::~Lidar() {
   running_ = false;
   udp_thread_running_ = false;
   parser_thread_running_ = false;
-  if (recieve_packet_thread_ptr_) recieve_packet_thread_ptr_->join();
+  if (recieve_packet_thread_ptr_) {
+    recieve_packet_thread_ptr_->join();
     delete recieve_packet_thread_ptr_;
-  recieve_packet_thread_ptr_ = nullptr;
+    recieve_packet_thread_ptr_ = nullptr;
+  }
 
-  if (parser_thread_ptr_) parser_thread_ptr_->join();
-  delete parser_thread_ptr_;
-  parser_thread_ptr_ = nullptr;
+  if (parser_thread_ptr_) {
+    parser_thread_ptr_->join();
+    delete parser_thread_ptr_;
+    parser_thread_ptr_ = nullptr;
+  }
+
+  if (init_set_ptc_ptr_) {
+    init_set_ptc_ptr_->join();
+    delete init_set_ptc_ptr_;
+    init_set_ptc_ptr_ = nullptr;
+  }
   if (handle_thread_count_ > 1) {
     for (int i = 0; i < handle_thread_count_; i++) {
       if (handle_thread_vec_[i]) {
@@ -149,12 +160,13 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
                                                   , param.input_param.caFile
                                                   , 2000
                                                   , 2000);
+      init_set_ptc_ptr_ = new std::thread(std::bind(&Lidar<T_Point>::InitSetPtc, this, param));
     }
     // clock_t start_time, end_time;
     // double time_interval = 0;
     UdpPacket udp_packet;
     // start_time = clock();
-    while (udp_parser_->GetParser() == nullptr) {
+    while (udp_parser_->GetParser() == nullptr && running_) {
       int ret = this->GetOnePacket(udp_packet);
       if (ret == -1) continue;
       this->DecodePacket(frame_, udp_packet);
@@ -185,23 +197,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     switch (param.input_param.source_type)
     {
     case 1: {
-        while (!ptc_client_->IsOpen()) usleep(50000);
-        init_finish_[PtcInitFinish] = true;
-        LogDebug("finish 1: ptc connection successfully");
-        if (param.input_param.standby_mode != -1) {
-          if(!SetStandbyMode(ptc_client_, param.input_param.standby_mode)) {
-            LogInfo("set standby mode successed!");
-          } else {
-            LogWarning("set standby mode failed!");
-          }
-        }
-        if (param.input_param.speed != -1) {
-          if(!SetSpinSpeed(ptc_client_, param.input_param.speed)) {
-            LogInfo("set speed successed!");
-          } else {
-            LogWarning("set speed failed!");
-          }
-        }
+        while ((!ptc_client_->IsOpen()) && running_) usleep(50000);
         if (LoadCorrectionForUdpParser() == -1) {
           LogWarning("---Failed to obtain correction file from lidar!---");
           LoadCorrectionFile(param.input_param.correction_file_path);
@@ -222,6 +218,31 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     /********************************************************************************/
     res = 0;
     return res;
+}
+
+template <typename T_Point>
+void Lidar<T_Point>::InitSetPtc(const DriverParam param) {
+  while(running_) {
+    usleep(10000);
+    if (!ptc_client_->IsOpen()) continue;
+    init_finish_[PtcInitFinish] = true;
+    LogDebug("finish 1: ptc connection successfully");
+    if (param.input_param.standby_mode != -1) {
+      if(!SetStandbyMode(ptc_client_, param.input_param.standby_mode)) {
+        LogInfo("set standby mode successed!");
+      } else {
+        LogWarning("set standby mode failed!");
+      }
+    }
+    if (param.input_param.speed != -1) {
+      if(!SetSpinSpeed(ptc_client_, param.input_param.speed)) {
+        LogInfo("set speed successed!");
+      } else {
+        LogWarning("set speed failed!");
+      }
+    }
+    break;
+  }
 }
 
 template <typename T_Point>

@@ -93,6 +93,7 @@ public:
   Lidar& operator=(const Lidar&) = delete;
   // init lidar with param. init logger, udp parser, source, ptc client, start receive/parser thread
   int Init(const DriverParam& param);
+  void InitSetPtc(const DriverParam param);
   int GetGeneralParser(GeneralParser<T_Point> **parser);
   // set lidar type for Lidar object and udp parser, udp parser will initialize the corresponding subclass
   int SetLidarType(std::string lidar_type);
@@ -178,6 +179,7 @@ private:
   bool parser_thread_running_;
   std::thread *recieve_packet_thread_ptr_;
   std::thread *parser_thread_ptr_;
+  std::thread *init_set_ptc_ptr_;
   std::mutex *mutex_list_;
   std::vector<std::list<int>> handle_thread_packet_buffer_;
   std::vector<std::thread *> handle_thread_vec_;

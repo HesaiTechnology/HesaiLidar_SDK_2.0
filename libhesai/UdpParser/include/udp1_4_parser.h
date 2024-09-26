@@ -69,7 +69,7 @@ class Udp1_4Parser : public GeneralParser<T_Point> {
 
   using GeneralParser<T_Point>::GetFiretimesCorrection;
   // compute lidar firetime correciton
-  double GetFiretimesCorrection(int laserId, double speed, uint8_t optMode, uint8_t angleState,uint16_t dist);
+  double GetFiretimesCorrection(int laserId, double speed, uint8_t optMode, uint8_t angleState, float dist);
   
   // determine whether frame splitting is needed
   bool IsNeedFrameSplit(uint16_t azimuth); 

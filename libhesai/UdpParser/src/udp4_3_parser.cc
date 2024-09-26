@@ -152,7 +152,7 @@ int Udp4_3Parser<T_Point>::LoadCorrectionString(char *data) {
 }
 
 template<typename T_Point>
-Udp4_3Parser<T_Point>::~Udp4_3Parser() { LogInfo("release Udp4_3Parser\n"); }
+Udp4_3Parser<T_Point>::~Udp4_3Parser() { LogInfo("release Udp4_3Parser"); }
 
 template<typename T_Point>
 int Udp4_3Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket){
@@ -321,6 +321,7 @@ int Udp4_3Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       {
         int fov_transfer = azimuth / 256 / 100;
         if (fov_transfer < frame.config.fov_start || fov_transfer > frame.config.fov_end){//不在fov范围continue
+          memset(&frame.points[point_index], 0, sizeof(T_Point));
           continue;
         }
       }

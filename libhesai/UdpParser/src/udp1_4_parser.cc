@@ -52,72 +52,108 @@ Udp1_4Parser<T_Point>::~Udp1_4Parser() { LogInfo("release general parser"); }
 
 template<typename T_Point>
 void Udp1_4Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
-  std::ifstream inFile(firetimes_path, std::ios::in);
-  if (inFile.is_open()) {
-    int uselessLine = 0;
-    int count = 0;
-    std::string lineStr;
-    while (std::getline(inFile, lineStr)) {
-      std::stringstream ss(lineStr);
-      std::string str;
-      std::vector<std::string> strList;
-      strList.reserve(20);
-      while(std::getline(ss, str, ',')){
-        strList.push_back(str);
-      }
-      if(uselessLine == 0) {
-        std::string dist;
-        for (auto e : strList[0]) {
-          if (e == '.' || (e >= '0' && e <= '9')) {
-            dist.push_back(e);
+  try {
+    std::ifstream inFile(firetimes_path, std::ios::in);
+    if (inFile.is_open()) {
+      int uselessLine = 0;
+      int count = 0;
+      bool is_OT = false;
+      std::string lineStr;
+      while (std::getline(inFile, lineStr)) {
+        std::stringstream ss(lineStr);
+        std::string str;
+        std::vector<std::string> strList;
+        strList.reserve(20);
+        while(std::getline(ss, str, ',')){
+          strList.push_back(str);
+        }
+        if (uselessLine == 0 && strList[0] == "Operational State") {
+          is_OT = true;
+        } else if(uselessLine == 0) {
+          std::string dist;
+          for (auto e : strList[0]) {
+            if (e == '.' || (e >= '0' && e <= '9')) {
+              dist.push_back(e);
+            }
+          }
+          if (dist.size() != 0) {
+            section_distance = std::stod(dist);
+          } 
+        }
+        if (is_OT == false) {
+          if(uselessLine < 3) {
+            uselessLine++;
+            continue;
+          }
+          if (lineStr[lineStr.size() - 1] == '\n') {
+            lineStr = lineStr.substr(lineStr.size() - 1);
+          }
+          if (strList.size() < 17) {
+            LogError("invalid firetime input file!(list)");
+            this->get_firetime_file_ = false;
+            return;
+          }
+          int idx = std::stoi(strList[0]) - 1;
+          if (idx >= kLaserNum || idx < 0) {
+            LogFatal("laser id is wrong in correction file. laser Id: %d", idx);
+            continue;
+          }
+          for (int i = 1; i <= 15; i += 2) {
+            int a = std::stoi(strList[i]);
+            int b = std::stoi(strList[i + 1]);
+            firetime_section_values[idx].section_values[i / 2].firetime[0] = a;
+            firetime_section_values[idx].section_values[i / 2].firetime[1] = b;
+          }
+        } else {
+          if(uselessLine < 2) {
+            uselessLine++;
+            continue;
+          }
+          if (lineStr[lineStr.size() - 1] == '\n') {
+            lineStr = lineStr.substr(lineStr.size() - 1);
+          }
+          if (strList.size() < 7) {
+            LogError("invalid firetime input file!(list)");
+            this->get_firetime_file_ = false;
+            return;
+          }
+          int idx = std::stoi(strList[0]) - 1;
+          if (idx >= kLaserNum || idx < 0) {
+            LogFatal("laser id is wrong in correction file. laser Id: %d", idx);
+            continue;
+          }
+          for (int i = 1; i <= 6; i++) {
+            float a = 0;
+            if (strList[i] != "-") {
+              a = std::stof(strList[i]) * 1000;
+            }
+            firetime_section_values[idx].section_values[i - 1].firetime[0] = a;
+            firetime_section_values[idx].section_values[i - 1].firetime[1] = a;
           }
         }
-        if (dist.size() != 0) {
-          section_distance = std::stod(dist);
+        count++;
+        if (count > 128) {
+          LogError("invalid firetime input file!(count)");
+          this->get_firetime_file_ = false;
+          return;
         }
       }
-      if(uselessLine < 3) {
-        uselessLine++;
-        continue;
-      }
-      if (lineStr[lineStr.size() - 1] == '\n') {
-        lineStr = lineStr.substr(lineStr.size() - 1);
-      }
-      if (strList.size() < 17) {
-        LogError("invalid firetime input file!(list)");
-        this->get_firetime_file_ = false;
-        return;
-      }
-      int idx = std::stoi(strList[0]) - 1;
-      if (idx >= kLaserNum || idx < 0) {
-        LogFatal("laser id is wrong in correction file. laser Id: %d", idx);
-        continue;
-      }
-      for (int i = 1; i <= 15; i += 2) {
-        int a = std::stoi(strList[i]);
-        int b = std::stoi(strList[i + 1]);
-        firetime_section_values[idx].section_values[i / 2].firetime[0] = a;
-        firetime_section_values[idx].section_values[i / 2].firetime[1] = b;
-      }
-      count++;
-      if (count > 128) {
-        LogError("invalid firetime input file!(count)");
-        this->get_firetime_file_ = false;
-        return;
-      }
+    } else {
+      LogWarning("Open firetime file failed");
+      this->get_firetime_file_ = false;
+      return;
     }
-  } else {
-    LogWarning("Open firetime file failed");
+    this->get_firetime_file_ = true;
+    LogInfo("Open firetime file success!");
+  } catch (const std::exception &e) {
+    LogFatal("load firetimes error: %s", e.what());
     this->get_firetime_file_ = false;
-    return;
   }
-  this->get_firetime_file_ = true;
-  LogInfo("Open firetime file success!");
   return;
 }
 
 template<typename T_Point>
-double Udp1_4Parser<T_Point>::GetFiretimesCorrection(int laserId, double speed, uint8_t optMode, uint8_t angleState,uint16_t dist){
+double Udp1_4Parser<T_Point>::GetFiretimesCorrection(int laserId, double speed, uint8_t optMode, uint8_t angleState, float dist){
   int idx = 0;
   switch (optMode)
   {
@@ -164,6 +200,7 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       {
         int fov_transfer = azimuth / 256 / 100;
         if (fov_transfer < frame.config.fov_start || fov_transfer > frame.config.fov_end){//不在fov范围continue
+          memset(&frame.points[point_index], 0, sizeof(T_Point));
           continue;
         }
       } 
@@ -195,7 +232,7 @@ bool Udp1_4Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
   // The first two packet dont have the information of last_azimuth_  and last_last_azimuth, so do not need split frame
   // The initial value of last_azimuth_ is -1
   // Determine the rotation direction and division
-  int8_t rotation_flag = 1;
+  
   uint16_t division = 0;
   // If last_last_azimuth_ != -1，the packet is the third, so we can determine whether the current packet requires framing
   if (this->last_last_azimuth_ != -1) 
@@ -210,13 +247,15 @@ bool Udp1_4Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
     // The same is true for FOV
     if( this->last_last_azimuth_ - this->last_azimuth_ == division || this->last_azimuth_ -azimuth == division)
     {
-      rotation_flag = 0;
+      this->rotation_flag = -1;
+    } else {
+      this->rotation_flag = 1;
     }
   } else {
     // The first  and second packet do not need split frame
     return false;
   }
-  if (rotation_flag) {
+  if (this->rotation_flag == 1) {
     // When an angle jump occurs
     if (this->last_azimuth_- azimuth > division)
     {
@@ -359,7 +398,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
       auto elevation = 0;
       for (int j = 0; j < pHeader->GetLaserNum(); ++j) {
         if (this->get_firetime_file_) {
-          float fireTimeCollection = GetFiretimesCorrection(i, this->spin_speed_, optMode, angleState, pChnUnit->GetDistance());
+          float fireTimeCollection = this->rotation_flag * GetFiretimesCorrection(j, this->spin_speed_, optMode, angleState, pChnUnit->GetDistance() * pHeader->GetDistUnit());
           frame.pointData[index].azimuth = u16Azimuth + fireTimeCollection * kResolutionFloat;
         }else {
           frame.pointData[index].azimuth = u16Azimuth;
@@ -386,7 +425,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
       auto elevation = 0;
       for (int j = 0; j < pHeader->GetLaserNum(); ++j) {
         if (this->get_firetime_file_) {
-          float fireTimeCollection = GetFiretimesCorrection(i, this->spin_speed_, optMode, angleState, pChnUnitNoConf->GetDistance());
+          float fireTimeCollection = this->rotation_flag * GetFiretimesCorrection(j, this->spin_speed_, optMode, angleState, pChnUnitNoConf->GetDistance() * pHeader->GetDistUnit());
           frame.pointData[index].azimuth = u16Azimuth + fireTimeCollection * kResolutionFloat;
         } else {
           frame.pointData[index].azimuth = u16Azimuth;

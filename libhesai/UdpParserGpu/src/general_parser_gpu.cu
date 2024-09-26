@@ -60,7 +60,7 @@ void GeneralParserGpu<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
 
 template <typename T_Point>
 int GeneralParserGpu<T_Point>::LoadFiretimesString(char *correction_string) {
-  LogInfo("load firetimes string\n");
+  LogInfo("load firetimes string");
   return 0;
 }
 

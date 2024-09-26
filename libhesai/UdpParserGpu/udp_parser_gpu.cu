@@ -44,7 +44,7 @@ int UdpParserGpu<T_Point>::LoadCorrectionString(char *correction_content) {
     return m_generalParserGpu->LoadCorrectionString(correction_content);
   }
   else {
-    printf("m_generalParserGpu is nullptr\n");
+    LogWarning("m_generalParserGpu is nullptr");
     return -1;
   }
   return 0;
@@ -55,7 +55,7 @@ int UdpParserGpu<T_Point>::LoadCorrectionFile(std::string correction_path) {
     return m_generalParserGpu->LoadCorrectionFile(correction_path);
   }
   else {
-    printf("m_generalParserGpu is nullptr\n");
+    LogWarning("m_generalParserGpu is nullptr");
     return -1;
   }
   return 0;
@@ -68,7 +68,7 @@ int UdpParserGpu<T_Point>::LoadFiretimesString(char *correction_string) {
     m_generalParserGpu->LoadFiretimesString(correction_string);
   }
   else {
-    printf("m_generalParserGpu is nullptr\n");
+    LogWarning("m_generalParserGpu is nullptr");
     return -1;
   }
   return 0;
@@ -79,7 +79,7 @@ void UdpParserGpu<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
     m_generalParserGpu->LoadFiretimesFile(firetimes_path);
   }
   else {
-    printf("m_generalParserGpu is nullptr\n");
+    LogWarning("m_generalParserGpu is nullptr");
   }
 }
 template <typename T_Point>
@@ -134,6 +134,7 @@ void UdpParserGpu<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
       switch (minor) {
         case 1:
           m_generalParserGpu = new Udp3_1ParserGpu<T_Point>();
+          break;
         case 2:
           m_generalParserGpu = new Udp3_2ParserGpu<T_Point>();
           break;

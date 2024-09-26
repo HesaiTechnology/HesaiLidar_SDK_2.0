@@ -117,7 +117,7 @@ int Udp7_2ParserGpu<T_Point>::LoadCorrectionCsvData(char *correction_string) {
 	std::string line;
   // first line "Laser id,Elevation,Azimuth"
 	if(std::getline(ifs, line)) {  
-		printf("Parse Lidar Correction...\n");
+		LogInfo("Parse Lidar Correction...");
 	}
 	int lineCounter = 0;
 	std::vector<std::string>  firstLine;

@@ -351,6 +351,7 @@ class GeneralParser {
   float frame_start_azimuth_;
   LidarOpticalCenter optical_center;
   std::atomic<uint32_t> compute_packet_num;
+  int rotation_flag = 1;
 };
 }
 }
