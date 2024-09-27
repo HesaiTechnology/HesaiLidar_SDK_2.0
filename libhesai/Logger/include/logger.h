@@ -55,11 +55,16 @@ enum LOGTARGET
 	LOG_TARGET_FILE      = 0x10
 };
 
-#define LogDebug(...)        Logger::GetInstance().AddToQueue(LOG_DEBUG, __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)  
-#define LogInfo(...)        Logger::GetInstance().AddToQueue(LOG_INFO, __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)  
-#define LogWarning(...)     Logger::GetInstance().AddToQueue(LOG_WARNING, __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)  
-#define LogError(...)       Logger::GetInstance().AddToQueue(LOG_ERROR, __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)
-#define LogFatal(...)       Logger::GetInstance().AddToQueue(LOG_FATAL, __FILE__, __LINE__, __PRETTY_FUNCTION__, __VA_ARGS__)    
+#ifdef _MSC_VER
+#define __FUNCTION_NAME__ __FUNCSIG__
+#else
+#define __FUNCTION_NAME__ __PRETTY_FUNCTION__
+#endif
+#define LogDebug(...)        Logger::GetInstance().AddToQueue(LOG_DEBUG, __FILE__, __LINE__, __FUNCTION_NAME__, __VA_ARGS__)  
+#define LogInfo(...)        Logger::GetInstance().AddToQueue(LOG_INFO, __FILE__, __LINE__, __FUNCTION_NAME__, __VA_ARGS__)  
+#define LogWarning(...)     Logger::GetInstance().AddToQueue(LOG_WARNING, __FILE__, __LINE__, __FUNCTION_NAME__, __VA_ARGS__)  
+#define LogError(...)       Logger::GetInstance().AddToQueue(LOG_ERROR, __FILE__, __LINE__, __FUNCTION_NAME__, __VA_ARGS__)
+#define LogFatal(...)       Logger::GetInstance().AddToQueue(LOG_FATAL, __FILE__, __LINE__, __FUNCTION_NAME__, __VA_ARGS__)    
 
 class Logger  
 {  

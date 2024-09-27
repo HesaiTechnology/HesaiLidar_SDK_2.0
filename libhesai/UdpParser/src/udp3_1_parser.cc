@@ -108,7 +108,7 @@ bool Udp3_1Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
     // Get the division
     uint16_t division1 = abs(this->last_azimuth_ - this->last_last_azimuth_);
     uint16_t division2 = abs(this->last_azimuth_ - azimuth);
-    division = std::min(division1, division2);
+    division = division1 > division2 ? division2 : division1 ;
     // Prevent two consecutive packets from having the same angle when causing an error in framing
     if ( division == 0) return false;
     // In the three consecutive angle values, if the angle values appear by the division of the decreasing situation,it must be reversed

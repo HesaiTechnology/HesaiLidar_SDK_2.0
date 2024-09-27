@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "hesai_lidar_sdk.hpp"
 #define PCL_NO_PRECOMPILE
 #include <pcl/point_types.h>

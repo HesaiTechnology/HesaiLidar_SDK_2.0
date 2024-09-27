@@ -67,7 +67,7 @@ int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
               (distance >= 0.25 && distance < 4.25)) 
         {
           int index = int((distance - 0.25) / 0.5);
-          index = std::min(7, index);
+          index = index > 7 ? 7 : index;
           azimuth -= spot_correction_angle[index] * kFineResolutionInt;
         }
         azimuth = (CIRCLE + azimuth) % CIRCLE;
@@ -115,7 +115,7 @@ bool Udp6_1Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
     // Get the division
     uint16_t division1 = abs(this->last_azimuth_ - this->last_last_azimuth_);
     uint16_t division2 = abs(this->last_azimuth_ - azimuth);
-    division = std::min(division1, division2);
+    division = division1 > division2 ? division2 : division1 ;
     // Prevent two consecutive packets from having the same angle when causing an error in framing
     if ( division == 0) return false;
     // In the three consecutive angle values, if the angle values appear by the division of the decreasing situation,it must be reversed

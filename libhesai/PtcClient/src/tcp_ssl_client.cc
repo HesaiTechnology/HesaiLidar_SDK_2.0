@@ -85,7 +85,8 @@ int tcp_try_open(const char* ipaddr, int port, uint32_t timeout) {
   u_long mode = 1; // 1为非阻塞模式  
   ioctlsocket(sockfd, FIONBIO, &mode);  
 #else  
-  fcntl(sockfd, F_SETFL, O_NONBLOCK);  
+  int flags = fcntl(sockfd, F_GETFL, 0); 
+  fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);   
 #endif 
 
   int result = connect(sockfd, (sockaddr*)&serverAddr, sizeof(serverAddr));  
@@ -122,7 +123,28 @@ int tcp_try_open(const char* ipaddr, int port, uint32_t timeout) {
     close(sockfd);
 #endif
     return -1;  
+  } else {
+    int slen = sizeof(int);
+    int error = -1;
+    getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (char *)&error, (socklen_t *)&slen);
+    if (error != 0) {
+#ifdef _MSC_VER
+    closesocket(sockfd);
+    WSACleanup();
+#else
+    close(sockfd);
+#endif
+      return false;
+    }
   } 
+
+#ifdef _MSC_VER  
+  mode = 0; // 0为阻塞模式  
+  ioctlsocket(sockfd, FIONBIO, &mode);  
+#else  
+  flags = fcntl(sockfd, F_GETFL, 0); 
+  fcntl(sockfd, F_SETFL, flags & ~O_NONBLOCK); 
+#endif  
   return sockfd;
 }
 
