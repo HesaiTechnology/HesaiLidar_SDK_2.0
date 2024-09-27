@@ -17,9 +17,10 @@ add_definitions(-O3)
 add_compile_options(-Wall)
 
 # 设置生成平台为 x64
-if(_MSC_VER)
+if(MSVC)
 set(CMAKE_GENERATOR_PLATFORM x64)
 set(OPENSSL_ROOT_DIR "C:/Program Files/OpenSSL-Win64")
+set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include)
 endif()
 
 

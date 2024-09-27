@@ -34,7 +34,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ptc_client.h"
 
 #include <plat_utils.h>
-#include <unistd.h>
+#include <chrono>
+#include <thread>
+#include <iostream>
 #ifdef _MSC_VER
 #ifndef MSG_DONTWAIT
 #define MSG_DONTWAIT (0x40)
@@ -95,12 +97,12 @@ void PtcClient::TryOpen() {
   if(client_mode_ == PtcMode::tcp) {
     client_ = std::make_shared<TcpClient>();
     while (InitOpen && !client_->TryOpen(lidar_ip_, tcp_port_, auto_receive_)) {
-      usleep(50000);
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   } else if(client_mode_ == PtcMode::tcp_ssl) {
     client_ = std::make_shared<TcpSslClient>();
     while(InitOpen && !client_->TryOpen(lidar_ip_, tcp_port_, auto_receive_, cert_, private_key_, ca_)) {
-      usleep(50000);
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
   if (recv_timeout_ms_ != 0 && send_timeout_ms_ != 0) {

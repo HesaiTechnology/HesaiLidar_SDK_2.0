@@ -31,9 +31,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <inttypes.h>
 #include <stdio.h>
 #include "Version.h"
-#ifndef _MSC_VER
-#include <unistd.h>
-#endif
+#include <chrono>
 using namespace hesai::lidar;
 
 template <typename T_Point>
@@ -197,7 +195,8 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     switch (param.input_param.source_type)
     {
     case 1: {
-        while ((!ptc_client_->IsOpen()) && running_) usleep(50000);
+        while ((!ptc_client_->IsOpen()) && running_) 
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
         if (LoadCorrectionForUdpParser() == -1) {
           LogWarning("---Failed to obtain correction file from lidar!---");
           LoadCorrectionFile(param.input_param.correction_file_path);
@@ -223,7 +222,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
 template <typename T_Point>
 void Lidar<T_Point>::InitSetPtc(const DriverParam param) {
   while(running_) {
-    usleep(10000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     if (!ptc_client_->IsOpen()) continue;
     init_finish_[PtcInitFinish] = true;
     LogDebug("finish 1: ptc connection successfully");

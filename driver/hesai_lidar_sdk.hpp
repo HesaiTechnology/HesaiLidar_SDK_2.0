@@ -36,8 +36,6 @@ namespace lidar
 template <typename T_Point>
 class HesaiLidarSdk 
 {
-public:
-  using chrono_time = std::chrono::_V2::system_clock::time_point;
 private:
   std::thread *runing_thread_ptr_;
   std::function<void(const UdpFrame_t&, double)> pkt_cb_;
@@ -139,14 +137,8 @@ public:
         runing_thread_ptr_ = new std::thread(std::bind(&HesaiLidarSdk::Run, this));
         break;
       }
-      usleep(50000);
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
-  }
-
-  double Chrono_to_double(chrono_time t)
-  {
-    std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>(t.time_since_epoch());
-    return static_cast<double>(duration.count()) / 1000.0;
   }
 
   // process thread

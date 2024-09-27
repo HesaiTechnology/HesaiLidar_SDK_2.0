@@ -125,10 +125,10 @@ bool TcpClient::TryOpen(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
   // 设置非阻塞模式  
 #ifdef _MSC_VER  
   u_long mode = 1; // 1为非阻塞模式  
-  ioctlsocket(sock, FIONBIO, &mode);  
+  ioctlsocket(m_tcpSock, FIONBIO, &mode);
 #else  
   int flags = fcntl(m_tcpSock, F_GETFL, 0); 
-  fcntl(m_tcpSock, F_SETFL, flags & O_NONBLOCK);  
+  fcntl(m_tcpSock, F_SETFL, flags | O_NONBLOCK);  
 #endif 
 
   int result = connect(m_tcpSock, (sockaddr*)&serverAddr, sizeof(serverAddr));  
@@ -155,7 +155,15 @@ bool TcpClient::TryOpen(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
   if (result <= 0) {  
     Close();
     return false;  
-  } 
+  } else {
+    int slen = sizeof(int);
+    int error = -1;
+    getsockopt(m_tcpSock, SOL_SOCKET, SO_ERROR, (char *)&error, (socklen_t *)&slen);
+    if (error != 0) {
+      Close();
+      return false;
+    }
+  }
   LogInfo("TryOpen succeed, IP %s port %u", m_sServerIP.c_str(), ptc_port_);
   
 #ifdef _MSC_VER  

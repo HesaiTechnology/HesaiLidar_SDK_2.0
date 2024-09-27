@@ -34,8 +34,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ATX_AZIMUTHS_ODD     (7631) 
 #define ATX_ACCEPTANCE_ANGLE (200)
 
-#include <boost/atomic.hpp>
-#include <boost/lockfree/queue.hpp>
 #include "general_parser.h"
 #include "lidar_types.h"
 #include <vector>
