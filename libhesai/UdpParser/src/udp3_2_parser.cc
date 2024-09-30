@@ -89,6 +89,7 @@ int Udp3_2Parser<T_Point>::LoadFiretimesString(char *firetimes_string) {
       }
     }
     qt128_firetime_ = firetimes;
+    this->get_firetime_file_ = true;
   } else {
     LogError("firetime file delimiter is wrong");
     return -1;
