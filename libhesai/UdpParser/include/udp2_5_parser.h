@@ -108,7 +108,6 @@ namespace lidar
   } PACKED;
   struct ETCorrections {
     struct ETCorrectionsHeader header;
-    struct ETCorrectionsHeader_V3_4 headerV3_4;
     uint8_t min_version;
     uint8_t turn_number_per_frame;
     int16_t gamma[8];

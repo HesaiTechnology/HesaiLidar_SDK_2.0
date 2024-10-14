@@ -38,6 +38,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "udp2_4_parser.h"
 #include "udp2_5_parser.h"
 #include "udp2_6_parser.h"
+#include "udp2_7_parser.h"
 #include "udp3_1_parser.h"
 #include "udp3_2_parser.h"
 #include "udp4_3_parser.h"

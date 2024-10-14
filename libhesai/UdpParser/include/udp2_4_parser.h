@@ -33,7 +33,8 @@ namespace hesai
       int16_t apha;
       int16_t beta;
       int16_t gamma;
-      std::array<float, ET_MAX_CHANNEL_NUM_24> azimuths, elevations;
+      float azimuths[ET_MAX_CHANNEL_NUM_24];
+      float elevations[ET_MAX_CHANNEL_NUM_24];
       int16_t raw_azimuths[ET_MAX_CHANNEL_NUM_24];
       int16_t raw_elevations[ET_MAX_CHANNEL_NUM_24];
       uint8_t SHA_value[32];
