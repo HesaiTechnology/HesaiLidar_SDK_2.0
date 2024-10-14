@@ -27,23 +27,21 @@ Recommanded
 Cmake version requirement:Cmake 3.8.0 or above
 G++ version requirement:G++ 7.5 or above
 ```
-**Library Dependencies: libpcl-dev + libpcap-dev + libyaml-cpp-dev + libboost-dev**
-```
-$ sudo apt install libpcl-dev libpcap-dev libyaml-cpp-dev libboost-dev
-```
-
-## Clone
-```
-$ git clone https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0.git
-```
 
 ## Build
+NOTE: to build the SDK in debug mode
+- Comment the following lines in CMakeLists.txt
 ```
-1.$ cd HesaiLidar_SDK_2.0
-2.$ mkdir build
-3.$ cd build
-4.$ cmake ..
-5.$ make
+set(CMAKE_BUILD_TYPE ON)
+set(CMAKE_BUILD_TYPE Release)
+```
+- add the following optional compilation key to cmake ```-DCMAKE_BUILD_TYPE=Debug```
+Build as follows
+```
+mkdir build
+cd build
+cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON [-DCMAKE_BUILD_TYPE=Debug] ..
+make -j$(nproc)
 ```
 
 ## Run a sample
