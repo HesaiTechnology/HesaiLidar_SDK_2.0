@@ -101,7 +101,6 @@ class TcpSslClient : public ClientBase {
 
   std::string m_sServerIP;
   uint16_t ptc_port_;
-  bool m_bLidarConnected;
   uint32_t m_u32ReceiveBufferSize;
   // 收发超时/ms
   uint32_t m_u32RecTimeout = kDefaultTimeout;
@@ -112,6 +111,7 @@ class TcpSslClient : public ClientBase {
   const char* cert_;
   const char* private_key_;
   const char* ca_;
+  bool m_bLidarConnected;
 };
 }
 }

@@ -45,10 +45,6 @@ Udp4_3Parser<T_Point>::Udp4_3Parser() {
 }
 
 template<typename T_Point>
-void Udp4_3Parser<T_Point>::HandlePacketData(uint8_t *u8Buf, uint16_t u16Len) {
-}
-
-template<typename T_Point>
 void Udp4_3Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file) {
   LogInfo("load correction file from local correction.csv now!");
   std::ifstream fin(lidar_correction_file);
@@ -56,7 +52,7 @@ void Udp4_3Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
     LogDebug("Open correction file success");
     int length = 0;
     fin.seekg(0, std::ios::end);
-    length = fin.tellg();
+    length = static_cast<int>(fin.tellg());
     fin.seekg(0, std::ios::beg);
     char *buffer = new char[length];
     fin.read(buffer, length);
@@ -285,7 +281,7 @@ template<typename T_Point>
 int Udp4_3Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index){
   for (int blockid = 0; blockid < frame.block_num; blockid++) {
     // T_Point point;
-    int Azimuth = frame.pointData[packet_index * frame.per_points_num + blockid * frame.laser_num].azimuth;
+    int Azimuth = int(frame.pointData[packet_index * frame.per_points_num + blockid * frame.laser_num].azimuth);
     int field = 0;
     if ( this->get_correction_file_) {
       int count = 0;
@@ -305,7 +301,7 @@ int Udp4_3Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
 
     for (int i = 0; i < frame.laser_num; i++) {
       int point_index = packet_index * frame.per_points_num + blockid * frame.laser_num + i;  
-      float distance = frame.pointData[point_index].distances * frame.distance_unit;
+      float distance = static_cast<float>(frame.pointData[point_index].distances * frame.distance_unit);
       Azimuth = frame.pointData[point_index].azimuth;
       if (this->get_correction_file_) {
         elevation = (m_PandarAT_corrections.l.elevation[i] +
@@ -336,7 +332,7 @@ int Udp4_3Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
       setConfidence(frame.points[point_index], frame.pointData[point_index].confidence);
       setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
-      setRing(frame.points[point_index], i);
+      setRing(frame.points[point_index], static_cast<uint16_t>(i));
     }
   }
   GeneralParser<T_Point>::FrameNumAdd();
@@ -354,6 +350,7 @@ int16_t Udp4_3Parser<T_Point>::GetVecticalAngle(int channel) {
 
 template<typename T_Point>
 bool Udp4_3Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth, int field) {
+  (void)field;
   if (abs(azimuth - this->last_azimuth_) > GeneralParser<T_Point>::kAzimuthTolerance &&
         this->last_azimuth_ != 0 ) {
       return true;

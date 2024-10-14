@@ -53,8 +53,8 @@ int Udp3_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
 
     for (int i = 0; i < frame.laser_num; i++) {
       int point_index = packet_index * frame.per_points_num + blockid * frame.laser_num + i; 
-      float distance = frame.pointData[point_index].distances * frame.distance_unit; 
-      int Azimuth = frame.pointData[point_index].azimuth * kFineResolutionFloat;
+      float distance = static_cast<float>(frame.pointData[point_index].distances * frame.distance_unit);
+      int Azimuth = int(frame.pointData[point_index].azimuth * kFineResolutionFloat);
       azimuth = Azimuth;
       if (this->get_correction_file_) {
         int azimuth_coll = (int(this->azimuth_collection_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
@@ -84,7 +84,7 @@ int Udp3_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       setZ(frame.points[point_index], z);
       setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
       setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
-      setRing(frame.points[point_index], i);
+      setRing(frame.points[point_index], static_cast<uint16_t>(i));
     }
   }
   GeneralParser<T_Point>::FrameNumAdd();
@@ -101,13 +101,13 @@ bool Udp3_1Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
   // The initial value of last_azimuth_ is -1
   // Determine the rotation direction and division
   
-  uint16_t division = 0;
+  int32_t division = 0;
   // If last_last_azimuth_ != -1，the packet is the third, so we can determine whether the current packet requires framing
   if (this->last_last_azimuth_ != -1) 
   {
     // Get the division
-    uint16_t division1 = abs(this->last_azimuth_ - this->last_last_azimuth_);
-    uint16_t division2 = abs(this->last_azimuth_ - azimuth);
+    int32_t division1 = abs(this->last_azimuth_ - this->last_last_azimuth_);
+    int32_t division2 = abs(this->last_azimuth_ - azimuth);
     division = division1 > division2 ? division2 : division1 ;
     // Prevent two consecutive packets from having the same angle when causing an error in framing
     if ( division == 0) return false;

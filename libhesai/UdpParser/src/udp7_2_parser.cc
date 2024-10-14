@@ -54,7 +54,7 @@ void Udp7_2Parser<T_Point>::LoadCorrectionFile(std::string correction_path) {
     LogDebug("Open correction file success");
     int length = 0;
     fin.seekg(0, std::ios::end);
-    length = fin.tellg();
+    length = static_cast<int>(fin.tellg());
     fin.seekg(0, std::ios::beg);
     char *buffer = new char[length];
     fin.read(buffer, length);
@@ -212,7 +212,7 @@ int Udp7_2Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
   // T_Point point;
   for (int i = 0; i < frame.laser_num; i++) {
     int point_index = packet_index * frame.per_points_num + i;
-    float distance = frame.pointData[point_index].distances * frame.distance_unit;
+    float distance = static_cast<float>(frame.pointData[point_index].distances * frame.distance_unit);
     int azimuth = 0;
     int elevation = 0;   
     if (this->get_correction_file_) {
@@ -239,7 +239,7 @@ int Udp7_2Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
     setZ(frame.points[point_index], z);
     setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
     setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
-    setRing(frame.points[point_index], i);
+    setRing(frame.points[point_index], static_cast<uint16_t>(i));
   }
   GeneralParser<T_Point>::FrameNumAdd();
   return 0;
@@ -247,6 +247,7 @@ int Udp7_2Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
 
 template<typename T_Point>
 bool Udp7_2Parser<T_Point>::IsNeedFrameSplit(uint16_t column_id, uint16_t total_column) {
+  (void)total_column;
   if (column_id < this->last_cloumn_id_) {
       return true;
     }

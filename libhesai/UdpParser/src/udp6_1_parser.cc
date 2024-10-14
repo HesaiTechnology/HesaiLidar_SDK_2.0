@@ -53,8 +53,8 @@ int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
     int azimuth = 0;
     for (int i = 0; i < frame.laser_num; i++) {
       int point_index = packet_index * frame.per_points_num + blockid * frame.laser_num + i;
-      float distance = frame.pointData[point_index].distances * frame.distance_unit;   
-      int Azimuth = frame.pointData[point_index].azimuth * kFineResolutionFloat;
+      float distance = static_cast<float>(frame.pointData[point_index].distances * frame.distance_unit);
+      int Azimuth = int(frame.pointData[point_index].azimuth * kFineResolutionFloat);
       if (this->get_correction_file_) {
         int azimuth_coll = (int(this->azimuth_collection_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
         int elevation_corr = (int(this->elevation_correction_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
@@ -63,7 +63,7 @@ int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
         }
         elevation = elevation_corr;
         azimuth = Azimuth + azimuth_coll;
-        if ((this->lidar_type == "PandarXT32M1" || this->lidar_type == "PandarXT16M1") && 
+        if ((this->lidar_type_ == "PandarXT32M1" || this->lidar_type_ == "PandarXT16M1") && 
               (distance >= 0.25 && distance < 4.25)) 
         {
           int index = int((distance - 0.25) / 0.5);
@@ -91,7 +91,7 @@ int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
       setConfidence(frame.points[point_index], frame.pointData[point_index].confidence);
       setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
-      setRing(frame.points[point_index], i);
+      setRing(frame.points[point_index], static_cast<uint16_t>(i));
     }
   }
   GeneralParser<T_Point>::FrameNumAdd();
@@ -108,13 +108,13 @@ bool Udp6_1Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
   // The initial value of last_azimuth_ is -1
   // Determine the rotation direction and division
   
-  uint16_t division = 0;
+  int32_t division = 0;
   // If last_last_azimuth_ != -1，the packet is the third, so we can determine whether the current packet requires framing
   if (this->last_last_azimuth_ != -1) 
   {
     // Get the division
-    uint16_t division1 = abs(this->last_azimuth_ - this->last_last_azimuth_);
-    uint16_t division2 = abs(this->last_azimuth_ - azimuth);
+    int32_t division1 = abs(this->last_azimuth_ - this->last_last_azimuth_);
+    int32_t division2 = abs(this->last_azimuth_ - azimuth);
     division = division1 > division2 ? division2 : division1 ;
     // Prevent two consecutive packets from having the same angle when causing an error in framing
     if ( division == 0) return false;

@@ -166,10 +166,10 @@ namespace lidar
         const float elevation_fov = 3.2f;
         const float adjust_interval_resolution = 0.1f;
         // T * (120 / H / 0.1 + 1) * (3.2 / V / 0.1 + 1)
-        int azimuth_offset_num = azimuth_fov / (azimuth_adjust_interval * adjust_interval_resolution) + 1;
-        int elevation_offset_num = elevation_fov / (elevation_adjust_interval * adjust_interval_resolution) + 1;
-        int offset_index1 = (azi + azimuth_fov / 2) / (azimuth_adjust_interval * adjust_interval_resolution);      //azi dimension
-        int offset_index2 = (ele + elevation_fov / 2) / (elevation_adjust_interval * adjust_interval_resolution);      //ele dimension
+        int azimuth_offset_num = int(azimuth_fov / (azimuth_adjust_interval * adjust_interval_resolution) + 1);
+        int elevation_offset_num = int(elevation_fov / (elevation_adjust_interval * adjust_interval_resolution) + 1);
+        int offset_index1 = int((azi + azimuth_fov / 2) / (azimuth_adjust_interval * adjust_interval_resolution));      //azi dimension
+        int offset_index2 = int((ele + elevation_fov / 2) / (elevation_adjust_interval * adjust_interval_resolution));      //ele dimension
         if (offset_index1 >= (azimuth_offset_num - 1) || offset_index2 >= (elevation_offset_num - 1)) return 0;
         if (offset_index1 < 0  || offset_index2 < 0) return 0;
         float coefficient1 = ((offset_index1 + 1) * (azimuth_adjust_interval * adjust_interval_resolution)  - azi - azimuth_fov / 2) / (azimuth_adjust_interval * adjust_interval_resolution);
@@ -188,10 +188,10 @@ namespace lidar
         const float elevation_fov = 3.2f;
         const float adjust_interval_resolution = 0.1f;
         // T * (120 / H / 0.1 + 1) * (3.2 / V / 0.1 + 1)
-        int azimuth_offset_num = azimuth_fov / (azimuth_adjust_interval * adjust_interval_resolution) + 1;
-        int elevation_offset_num = elevation_fov / (elevation_adjust_interval * adjust_interval_resolution) + 1;
-        int offset_index1 = (azi + azimuth_fov / 2) /  (azimuth_adjust_interval * adjust_interval_resolution);      //azi dimension
-        int offset_index2 = (ele + elevation_fov / 2) /  (elevation_adjust_interval * adjust_interval_resolution);      //ele dimension
+        int azimuth_offset_num = int(azimuth_fov / (azimuth_adjust_interval * adjust_interval_resolution) + 1);
+        int elevation_offset_num = int(elevation_fov / (elevation_adjust_interval * adjust_interval_resolution) + 1);
+        int offset_index1 = int((azi + azimuth_fov / 2) /  (azimuth_adjust_interval * adjust_interval_resolution));      //azi dimension
+        int offset_index2 = int((ele + elevation_fov / 2) /  (elevation_adjust_interval * adjust_interval_resolution));      //ele dimension
         if (offset_index1 >= (azimuth_offset_num - 1)  || offset_index2 >= (elevation_offset_num - 1)) return 0;
         if (offset_index1 < 0  || offset_index2 < 0) return 0;
         float coefficient1 = ((offset_index1 + 1) * (azimuth_adjust_interval * adjust_interval_resolution)  - azi - azimuth_fov / 2) / (azimuth_adjust_interval * adjust_interval_resolution);

@@ -115,7 +115,7 @@ struct HS_LIDAR_TAIL_QT_V1 {
 
   uint32_t GetSeqNum() const { return little_to_native(m_u32SeqNum); }
 
-  static uint32_t GetSeqNumSize() { return sizeof(m_u32SeqNum); }
+  static uint16_t GetSeqNumSize() { return sizeof(m_u32SeqNum); }
   uint64_t GetMicroLidarTimeU64() const {
     if (m_u8UTC[0] != 0) {
 			struct tm t = {0};
@@ -174,7 +174,7 @@ struct HS_LIDAR_HEADER_QT_V1 {
 
   uint8_t GetLaserNum() const { return m_u8LaserNum; }
   uint8_t GetBlockNum() const { return m_u8BlockNum; }
-  double GetDistUnit() const { return m_u8DistUnit / 1000.f; }
+  float GetDistUnit() const { return m_u8DistUnit / 1000.f; }
   uint8_t GetEchoCount() const { return m_u8EchoCount; }
   bool IsFirstBlockLastReturn() const {
     return m_u8EchoCount == kFirstBlockLastReturn;

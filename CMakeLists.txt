@@ -18,6 +18,7 @@ add_compile_options(-Wall)
 
 # 设置生成平台为 x64
 if(MSVC)
+add_compile_options("/source-charset:utf-8")
 set(CMAKE_GENERATOR_PLATFORM x64)
 set(OPENSSL_ROOT_DIR "C:/Program Files/OpenSSL-Win64")
 set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include)

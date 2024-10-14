@@ -171,7 +171,7 @@ struct HsLidarXTV1Header {
 
     uint8_t GetLaserNum() const { return m_u8LaserNum; }
     uint8_t GetBlockNum() const { return m_u8BlockNum; }
-    double GetDistUnit() const { return m_u8DistUnit / 1000.f; }
+    float GetDistUnit() const { return m_u8DistUnit / 1000.f; }
     uint8_t GetEchoCount() const { return m_u8EchoCount; }
     bool IsFirstBlockLastReturn() const {
         return m_u8EchoCount == kFirstBlockLastReturn;

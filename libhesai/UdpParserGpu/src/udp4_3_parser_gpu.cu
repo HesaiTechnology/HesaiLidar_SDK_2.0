@@ -218,7 +218,7 @@ int Udp4_3ParserGpu<T_Point>::LoadCorrectionFile(std::string lidar_correction_fi
     LogDebug("Open correction file success");
     int length = 0;
     fin.seekg(0, std::ios::end);
-    length = fin.tellg();
+    length = static_cast<int>(fin.tellg());
     fin.seekg(0, std::ios::beg);
     char *buffer = new char[length];
     fin.read(buffer, length);

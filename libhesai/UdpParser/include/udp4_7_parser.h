@@ -109,15 +109,15 @@ struct ATXCorrections {
     memset(SHA_value, 0, sizeof(SHA_value));
   }
   double GetEndElevationAdjust() {return kBegElevationAdjust + kStepElevationAdjust * double(kLenElevationAdjust - 1); }
-  float ElevationAdjust(int azimuth)
+  float ElevationAdjust(int azi)
   {
-    azimuth = (CIRCLE + azimuth) % CIRCLE;
-    double azimuth_angle = (double)azimuth / kAllFineResolutionFloat;
+    azi = (CIRCLE + azi) % CIRCLE;
+    float azimuth_angle = (float)azi / kAllFineResolutionFloat;
     if (azimuth_angle < kBegElevationAdjust || azimuth_angle > GetEndElevationAdjust())
     {
       return 0;
     }
-    int index = (azimuth_angle - kBegElevationAdjust) / kStepElevationAdjust;
+    int index = int((azimuth_angle - kBegElevationAdjust) / kStepElevationAdjust);
     if (index == kLenElevationAdjust - 1){
       return elevation_adjust[index];
     }

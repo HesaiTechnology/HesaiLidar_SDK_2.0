@@ -58,7 +58,7 @@ using namespace hesai::lidar;
 TcpClient::TcpClient() {
   m_sServerIP.clear();
   ptc_port_ = 0;
-  m_tcpSock = -1;
+  m_tcpSock = (SOCKET)(-1);
   m_bLidarConnected = false;
   m_u32ReceiveBufferSize = 4096;
 }
@@ -73,19 +73,23 @@ void TcpClient::Close() {
   // ptc_port_ = 0;
   m_bLidarConnected = false;
 
-  if (m_tcpSock > 0) {
+  if ((int)m_tcpSock != -1) {
 #ifdef _MSC_VER
           closesocket(m_tcpSock);
           WSACleanup();
 #else
           close(m_tcpSock);
 #endif
-    m_tcpSock = -1;
+    m_tcpSock = (SOCKET)(-1);
   }
 }
 
 bool TcpClient::TryOpen(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
           const char* cert, const char* private_key, const char* ca, uint32_t timeout) {
+  (void)bAutoReceive;
+  (void)cert;          
+  (void)private_key;
+  (void)ca;
   if (IsOpened(true) && m_sServerIP == IPAddr && u16Port == ptc_port_) {
     return true;
   }
@@ -151,7 +155,7 @@ bool TcpClient::TryOpen(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
   struct timeval tv;  
   tv.tv_sec = timeout; // 超时1秒  
   tv.tv_usec = 0;   
-  result = select(m_tcpSock + 1, nullptr, &writefds, nullptr, &tv);  
+  result = select((int)m_tcpSock + 1, nullptr, &writefds, nullptr, &tv);  
   if (result <= 0) {  
     Close();
     return false;  
@@ -180,6 +184,10 @@ bool TcpClient::TryOpen(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
 
 bool TcpClient::Open(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
           const char* cert, const char* private_key, const char* ca) {
+  (void)bAutoReceive;
+  (void)cert; 
+  (void)private_key;
+  (void)ca;
   if (IsOpened(true) && m_sServerIP == IPAddr && u16Port == ptc_port_) {
     return true;
   }
@@ -250,7 +258,7 @@ bool TcpClient::IsOpened() {
 }
 
 bool TcpClient::IsOpened(bool bExpectation) {
-  return m_bLidarConnected;
+  return m_bLidarConnected == bExpectation;
 }
 
 int TcpClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
@@ -303,7 +311,7 @@ int TcpClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
 
 
 bool TcpClient::SetReceiveTimeout(uint32_t u32Timeout) {
-  if (m_tcpSock < 0) {
+  if ((int)m_tcpSock == -1) {
     LogWarning("TcpClient not open");
     return false;
   }
@@ -325,7 +333,7 @@ bool TcpClient::SetReceiveTimeout(uint32_t u32Timeout) {
 
 int TcpClient::SetTimeout(uint32_t u32RecMillisecond,
                           uint32_t u32SendMillisecond) {
-  if (m_tcpSock < 0) {
+  if ((int)m_tcpSock == -1) {
     LogWarning("TcpClient not open");
     return -1;
   }
@@ -365,7 +373,7 @@ int TcpClient::SetTimeout(uint32_t u32RecMillisecond,
 }
 
 void TcpClient::SetReceiveBufferSize(const uint32_t &size) {
-  if (m_tcpSock < 0) {
+  if ((int)m_tcpSock == -1) {
     LogWarning("TcpClient not open");
     return;
   }

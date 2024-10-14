@@ -244,15 +244,16 @@ class LidarDecodedFrame
 
 struct UdpPacket {
   uint8_t buffer[1500];
-  int16_t packet_len;
+  uint16_t packet_len;
   bool is_timeout = false;
   uint64_t recv_timestamp;
   uint32_t ip;
   uint16_t port;
-  UdpPacket(const uint8_t* data = nullptr, uint32_t sz = 0, uint64_t tm = 0, 
-            uint32_t i_ip = 0, uint32_t i_port = 0)
+  UdpPacket(const uint8_t* data = nullptr, uint16_t sz = 0, uint64_t tm = 0, 
+            uint32_t i_ip = 0, uint16_t i_port = 0)
   : packet_len(sz), recv_timestamp(tm), ip(i_ip), port(i_port)
   {
+    memset(buffer, 0, 1500);
     if(data != nullptr)
       memcpy(buffer, data, packet_len);
   }

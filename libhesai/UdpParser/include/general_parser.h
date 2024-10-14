@@ -346,7 +346,7 @@ class GeneralParser {
   bool enable_packet_loss_tool_;
   bool enable_packet_timeloss_tool_;
   bool packet_timeloss_tool_continue_;
-  std::string lidar_type;
+  std::string lidar_type_;
   Transform transform_;
   float frame_start_azimuth_;
   LidarOpticalCenter optical_center;

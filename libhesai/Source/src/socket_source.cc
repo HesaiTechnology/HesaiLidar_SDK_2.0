@@ -39,7 +39,7 @@ using namespace hesai::lidar;
 SocketSource::SocketSource(uint16_t port, std::string multicastIp) {
   client_ip_.clear();
   udp_port_ = port;
-  udp_sock_ = -1;
+  udp_sock_ = (SOCKET)(-1);
   multicast_ip_ = multicastIp;
   is_select_ = false;
 }
@@ -52,14 +52,14 @@ void SocketSource::Close() {
   client_ip_.clear();
   udp_port_ = 0;
 
-  if (udp_sock_ > 0) {
+  if ((int)udp_sock_ != -1) {
 #ifdef _MSC_VER
     closesocket(udp_sock_);
     WSACleanup();
 #else
     close(udp_sock_);
 #endif
-    udp_sock_ = -1;
+    udp_sock_ = (SOCKET)(-1);
   }
 }
 
@@ -123,7 +123,7 @@ bool SocketSource::Open() {
 #else
           close(udp_sock_);
 #endif
-          udp_sock_ = -1;
+          udp_sock_ = (SOCKET)(-1);
           LogError("SocketSource::Open(), bind failed, errno: %d", errno);
           return false;
         }
@@ -169,9 +169,9 @@ bool SocketSource::Open() {
 bool SocketSource::IsOpened() {
   bool ret = true;
 
-  if (udp_port_ == 0 || udp_sock_ < 0) {
+  if ((int)udp_sock_ == -1) {
     ret = false;
-    LogInfo("SocketSource::IsOpened(), port %d, sock %d", udp_port_,
+    LogInfo("SocketSource::IsOpened(), port %d, sock %d is not open", udp_port_,
            udp_sock_);
   }
 
@@ -224,7 +224,7 @@ int SocketSource::Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags,
         udpPacket.port = htons(clientAddr.sin_port);
       }
     } else {
-      int cnt = select(udp_sock_ + 1, &rfd, NULL, NULL, &timeout);
+      int cnt = select((int)udp_sock_ + 1, &rfd, NULL, NULL, &timeout);
       if (cnt > 0) {
         is_select_ = false;
         sockaddr_in clientAddr;

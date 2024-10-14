@@ -86,13 +86,13 @@ int PcapSaver::Save() {
                     auto pkt = packets_cache_->pop_front();
                     auto& len = pkt.size;
                     std::array<uint8_t, 1500> data_with_fake_header;
-                    *(PcapUDPHeader*)data_with_fake_header.data() = PcapUDPHeader(len, pkt.port);
+                    *(PcapUDPHeader*)data_with_fake_header.data() = PcapUDPHeader(len & 0xFFFF, pkt.port);
                     std::memcpy(data_with_fake_header.data() + sizeof(PcapUDPHeader), pkt.buffer, len);
                     PcapRecord pcap_record;
                     Duration since_begin = Clock::now() - Time();
                     Duration time_of_day = since_begin - int64_t(since_begin / 24h) * 24h;
-                    pcap_record.ts_sec = time_of_day / 1s;
-                    pcap_record.ts_usec = (time_of_day - pcap_record.ts_sec * 1s) / 1us;
+                    pcap_record.ts_sec = static_cast<uint32_t>(time_of_day / 1s);
+                    pcap_record.ts_usec = static_cast<uint32_t>((time_of_day - pcap_record.ts_sec * 1s) / 1us);
                     pcap_record.orig_len = len + sizeof(PcapUDPHeader);
                     pcap_record.incl_len = len + sizeof(PcapUDPHeader);
                     ofs_.write((char*)&pcap_record, sizeof(pcap_record));
@@ -127,13 +127,13 @@ void PcapSaver::TcpDump(const uint8_t* data, uint32_t data_len, uint32_t max_pkt
         uint32_t pkt_len = (remain_len > max_pkt_len) ? max_pkt_len : remain_len;
             
         std::array<uint8_t, 1500> data_with_fake_header;
-        *(PcapTCPHeader*)data_with_fake_header.data() = PcapTCPHeader(pkt_len, port);
+        *(PcapTCPHeader*)data_with_fake_header.data() = PcapTCPHeader(pkt_len & 0xFFFF, port);
         std::memcpy(data_with_fake_header.data() + sizeof(PcapTCPHeader), data + i * max_pkt_len, pkt_len);
         PcapRecord pcap_record;
         Duration since_begin = Clock::now() - Time();
         Duration time_of_day = since_begin - int64_t(since_begin / 24h) * 24h;
-        pcap_record.ts_sec = time_of_day / 1s;
-        pcap_record.ts_usec = (time_of_day - pcap_record.ts_sec * 1s) / 1us;
+        pcap_record.ts_sec = static_cast<uint32_t>(time_of_day / 1s);
+        pcap_record.ts_usec = static_cast<uint32_t>((time_of_day - pcap_record.ts_sec * 1s) / 1us);
         pcap_record.orig_len = pkt_len + sizeof(PcapTCPHeader);
         pcap_record.incl_len = pkt_len + sizeof(PcapTCPHeader);
         ofs_.write((char*)&pcap_record, sizeof(pcap_record));
@@ -182,7 +182,7 @@ int PcapSaver::Save(const std::string& recordPath, const UdpFrame_t& packets,
     }
     // static unsigned int time_begin = GetMicroTickCount();
     for (size_t i = 0; i < packets.size(); i++) {
-      auto pkt = PandarPacket(packets[i].buffer, packets[i].packet_len, port);
+      auto pkt = PandarPacket(packets[i].buffer, packets[i].packet_len, static_cast<uint16_t>(port));
       auto& len = packets[i].packet_len;
       std::array<uint8_t, 1500> data_with_fake_header;
       *(PcapUDPHeader*)data_with_fake_header.data() =

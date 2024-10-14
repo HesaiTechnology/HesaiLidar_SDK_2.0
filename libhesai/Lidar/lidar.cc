@@ -485,14 +485,14 @@ void Lidar<T_Point>::RecieveUdpThread() {
         } 
         break;
       case kFaultMessageLength:
-        udp_packet.packet_len = len;
+        udp_packet.packet_len = static_cast<uint16_t>(len);
         origin_packets_buffer_.emplace_back(udp_packet);
         break;
       case GPS_PACKET_LEN:
         break;
       default :
         if (len > 0) {
-          udp_packet.packet_len = len;
+          udp_packet.packet_len = static_cast<uint16_t>(len);
           origin_packets_buffer_.emplace_back(udp_packet);
           is_timeout_ = false;
         }

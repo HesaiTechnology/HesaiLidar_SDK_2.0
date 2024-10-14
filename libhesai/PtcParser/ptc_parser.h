@@ -45,7 +45,7 @@ namespace lidar
 class PtcParser {
 public:
   explicit PtcParser(uint8_t ptc_version);
-  PtcParser(){};
+  PtcParser() { parser_ = nullptr; ptc_version_ = 0; };
   virtual ~PtcParser();
   PtcParser(const PtcParser&) = delete;
   PtcParser& operator=(const PtcParser&) = delete;
@@ -58,7 +58,7 @@ public:
 
   uint8_t GetHeaderIdentifier0() { return parser_->GetHeaderIdentifier0(); }
   uint8_t GetHeaderIdentifier1() { return parser_->GetHeaderIdentifier1(); }
-  int GetPtcParserHeaderSize() { return parser_->GetHeaderSize(); }
+  uint16_t GetPtcParserHeaderSize() { return parser_->GetHeaderSize(); }
   uint8_t GetHeaderReturnCode() { return parser_->GetHeaderReturnCode(); }
   uint8_t GetHeaderCmd() { return parser_->GetHeaderCmd(); }
   uint32_t GetHeaderPayloadLen() { return parser_->GetHeaderPayloadLen(); }

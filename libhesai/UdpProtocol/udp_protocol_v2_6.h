@@ -231,7 +231,7 @@ namespace hesai
      
       uint16_t GetLaserNum() const { return little_to_native(m_u16LaserNum); }
       uint8_t GetBlockNum() const { return m_u8BlockNum; }
-      double GetDistUnit() const { return m_u8DistUnit / 1000.f; }
+      float GetDistUnit() const { return m_u8DistUnit / 1000.f; }
       uint8_t GetEchoCount() const { return m_u8EchoCount; }
       uint8_t GetSecRetNum() const { return m_u8SecRetNum; }
 

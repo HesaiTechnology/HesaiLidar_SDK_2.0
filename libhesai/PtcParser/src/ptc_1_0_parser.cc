@@ -51,6 +51,8 @@ bool Ptc_1_0_parser::PtcStreamEncode(const u8Array_t &payload, u8Array_t &byteSt
 // 根据协议解析字节流，并且取出对应的结果
 // 给定所要取的值在payload中的起始位置和长度，将值取出赋给res
 bool Ptc_1_0_parser::PtcStreamDecode(uint8_t cmd, uint8_t retcode, const u8Array_t &payload, int start_pos, int length, u8Array_t &res) {
+  (void)cmd;
+  (void)retcode;
   // PTCHeader_1_0 *header = dynamic_cast<PTCHeader_1_0*>(base_header);
   // if(header == nullptr) {
   //   std::cout << "Ptc_1_0_parser::PtcStreamDecode failed! header is not a 1.0 version!" << std::endl;

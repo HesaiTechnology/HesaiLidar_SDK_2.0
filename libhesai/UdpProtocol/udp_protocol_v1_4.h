@@ -363,7 +363,7 @@ struct HS_LIDAR_HEADER_ME_V4 {
 
   uint8_t GetLaserNum() const { return m_u8LaserNum; }
   uint8_t GetBlockNum() const { return m_u8BlockNum; }
-  double GetDistUnit() const { return m_u8DistUnit / 1000.f; }
+  float GetDistUnit() const { return m_u8DistUnit / 1000.f; }
   uint8_t GetEchoCount() const { return m_u8EchoCount; }
   uint8_t GetEchoNum() const { return m_u8EchoNum; }
   bool HasSeqNum() const { return m_u8Status & kSequenceNum; }

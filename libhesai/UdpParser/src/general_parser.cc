@@ -56,6 +56,8 @@ GeneralParser<T_Point>::GeneralParser() {
 
 template <typename T_Point>
 int GeneralParser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index) {
+  (void)frame;
+  (void)packet_index;
   return 0;
 }
 template <typename T_Point>
@@ -64,10 +66,14 @@ void GeneralParser<T_Point>::FrameNumAdd() {
 }
 template <typename T_Point>
 int GeneralParser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket) {
+  (void)frame;
+  (void)udpPacket;
   return 0;
 } 
 template <typename T_Point>
 void GeneralParser<T_Point>::ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info) {
+  (void)udp_packet;
+  (void)fault_message_info;
   return;
 }
 
@@ -98,7 +104,7 @@ void GeneralParser<T_Point>::LoadCorrectionFile(std::string correction_path) {
   if (fin.is_open()) {
     int length = 0;
     fin.seekg(0, std::ios::end);
-    length = fin.tellg();
+    length = static_cast<int>(fin.tellg());
     fin.seekg(0, std::ios::beg);
     char *buffer = new char[length];
     fin.read(buffer, length);
@@ -234,7 +240,7 @@ void GeneralParser<T_Point>::PacketTimeLossToolContinue(bool enable) {
 
 template <typename T_Point>
 void GeneralParser<T_Point>::SetLidarType(std::string type) {
-  this->lidar_type = type;
+  this->lidar_type_ = type;
 }
 
 template <typename T_Point>
@@ -279,7 +285,8 @@ void GeneralParser<T_Point>::SetOpticalCenterCoordinates(std::string lidar_type)
 }
 template <typename T_Point>
 int GeneralParser<T_Point>::LoadFiretimesString(char *correction_string) {
-  LogInfo("load firetimes string");
+  (void)correction_string;
+  LogInfo("don't load firetimes string");
   return 0;
 }
 
