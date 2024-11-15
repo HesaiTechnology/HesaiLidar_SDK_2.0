@@ -52,6 +52,8 @@ Lidar<T_Point>::Lidar() {
   udp_port_ = 0;
   parser_thread_ptr_ = nullptr;
   init_set_ptc_ptr_ = nullptr;
+  serial_client_ = nullptr;
+  source_rs232_ = nullptr;
 }
 
 template <typename T_Point>

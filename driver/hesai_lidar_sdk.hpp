@@ -55,6 +55,7 @@ public:
     std::cout << "-------- Hesai Lidar SDK V" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_TINY << " --------" << std::endl;
     runing_thread_ptr_ = nullptr;
     lidar_ptr_ = nullptr;
+    init_thread_ptr_ = nullptr;
     is_thread_runing_ = false;
     packet_loss_tool_ = false;
     source_type_ = DATA_FROM_PCAP;
@@ -156,8 +157,8 @@ public:
     UdpPacket packet;
     FaultMessageInfo fault_message_info;
 
-    uint32_t total_packet_count;
-    uint32_t total_packet_loss_count;
+    uint32_t total_packet_count = 0;
+    uint32_t total_packet_loss_count = 0;
     while (is_thread_runing_)
     {
 
