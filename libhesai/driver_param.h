@@ -41,6 +41,7 @@ enum SourceType
   DATA_FROM_LIDAR = 1,
   DATA_FROM_PCAP = 2,
   DATA_FROM_ROS_PACKET = 3,
+  DATA_FROM_SERIAL = 4,
 };
 
 enum PtcMode
@@ -100,6 +101,7 @@ typedef struct DecoderParam
   int fov_start = -1;
   int fov_end = -1;
   // support: 1_4: Pandar128E4X / OT, Pandar128E3X, Pandar64E3X, Pandar40E3X, Pandar90E3X;
+  //          1_8: JT16
   //          3_1: PandarQT;  3_2: QT128C2X;
   //          6_1: PandarXT32M1, PandarXT16M1, PandarXT32M2X / XTM;
   //          special: Pandar64E2X, Pandar40E2X,
@@ -125,12 +127,19 @@ typedef struct InputParam
   ///< udp packet port number       
   uint16_t udp_port = 2368;   
   ///< ptc packet port number                
-  uint16_t ptc_port = 9347;            
+  uint16_t ptc_port = 9347;
+  ///< serial port and baudrate
+  std::string rs485_com = "/dev/ttyUSB0";
+  std::string rs232_com = "/dev/ttyUSB1";
+  int point_cloud_baudrate = 3125000;
+  int rs485_baudrate = 115200;   
+  int rs232_baudrate = 9600;          
   bool read_pcap = true;          ///< true: The driver will process the pcap through pcap_path. false: The driver will
                                    ///< Get data from online LiDAR
   std::string pcap_path = "Your pcap file path";  ///< Absolute path of pcap file
   std::string correction_file_path = "Your correction file path";   ///< Path of angle calibration files(angle.csv).Only used for internal debugging.
   std::string firetimes_path = "Your firetime file path";  ///< Path of firetime files(angle.csv).
+  std::string correction_save_path = "";
   /// certFile          Represents the path of the user's certificate
   const char* certFile = nullptr;
   /// privateKeyFile    Represents the path of the user's private key
@@ -152,6 +161,7 @@ typedef struct InputParam
   std::string ros_send_ptp_topic = NULL_TOPIC;
   std::string ros_send_correction_topic = NULL_TOPIC;
   std::string ros_send_firetime_topic = NULL_TOPIC;
+  std::string ros_send_imu_topic = NULL_TOPIC;
 
   std::string ros_recv_correction_topic = NULL_TOPIC;
   std::string ros_recv_packet_topic = NULL_TOPIC;

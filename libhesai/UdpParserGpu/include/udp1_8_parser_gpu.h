@@ -25,57 +25,51 @@ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT
 TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
+#ifndef Udp1_8_PARSER_GPU_H_
+#define Udp1_8_PARSER_GPU_H_
+#pragma once
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <cstring>
+#include <map>
+#include <memory>
+#include <mutex>
 
-/*
- * File:   source.h
- * Author: Felix Zou<zouke@hesaitech.com>
- *
- * Created on Sep 5, 2019, 10:46 AM
- */
+#include "general_parser_gpu.h"
 
-#ifndef STREAMER_H
-#define STREAMER_H
-
-#include <stdint.h>
-#include <string>
-#include <lidar_types.h>
-#include <logger.h>
-
-#ifdef _MSC_VER
-#include <winsock2.h>
-#include <ws2tcpip.h> 
-#pragma comment(lib, "ws2_32.lib")  // Winsock Library
-typedef int socklen_t;
-#else
-#include <arpa/inet.h>
-#include <errno.h>
-#include <netinet/ip.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
-typedef unsigned int SOCKET;
-#define INVALID_SOCKET -1
-#define SOCKET_ERROR -1
+#ifndef M_PI
+#define M_PI 3.1415926535898
 #endif
+
 namespace hesai
 {
 namespace lidar
 {
-class Source {
+// class Udp1_8ParserGpu
+// computes points for JT16
+// you can compute xyzi of points using the ComputeXYZI fuction, which uses gpu to compute
+template <typename T_Point>
+class Udp1_8ParserGpu: public GeneralParserGpu<T_Point>{
+ private:
+  float* channel_azimuths_cu_;
+  float* channel_elevations_cu_;
+  PointDecodeData* point_data_cu_;
+  uint64_t* sensor_timestamp_cu_;
  public:
-  // the flag of pcap end
-  bool is_pcap_end = false;
-  Source();
-  virtual ~Source();
-  virtual bool Open() = 0;
-  virtual void Close();
-  virtual bool IsOpened() = 0;
-  virtual int Send(uint8_t* u8Buf, uint16_t u16Len, int flags = 0) = 0;
-  virtual int Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags = 0,
-                      int timeout = 1000) = 0; 
-  virtual void SetSocketBufferSize(uint32_t u32BufSize) = 0;      
-  virtual void SetReceiveStype(int type) {}               
+  Udp1_8ParserGpu();
+  ~Udp1_8ParserGpu();
+
+  // compute xyzi of points from decoded packet， use gpu device
+  // param packet is the decoded packet; xyzi of points after computed is puted in frame  
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
+  virtual int LoadCorrectionFile(std::string correction_path);
+  virtual int LoadCorrectionString(char *correction_string);
+  int LoadCorrectionCsvData(char *correction_content);
+  bool corrections_loaded_;
 };
-}  // namespace lidar
-}  // namespace hesai
-#endif /* STREAMER_H */
+}
+}
+#include "udp1_8_parser_gpu.cu"
+#endif  // Udp1_8_PARSER_GPU_H_

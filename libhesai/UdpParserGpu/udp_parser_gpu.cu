@@ -31,6 +31,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "udp4_3_parser_gpu.h"
 #include "udp4_7_parser_gpu.h"
 #include "udp1_4_parser_gpu.h"
+#include "udp1_8_parser_gpu.h"
 #include "udp3_1_parser_gpu.h"
 #include "udp3_2_parser_gpu.h"
 #include "udp6_1_parser_gpu.h"
@@ -99,6 +100,9 @@ void UdpParserGpu<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
       switch (minor) {
         case 4:
           m_generalParserGpu = new Udp1_4ParserGpu<T_Point>();
+          break;
+        case 8:
+          m_generalParserGpu = new Udp1_8ParserGpu<T_Point>();
           break;
         default:
           break;
@@ -221,6 +225,9 @@ void UdpParserGpu<T_Point>::SetLidarType(std::string lidar_type) {
   }
   if (lidar_type == "Pandar40S" || lidar_type == "Pandar40E3X") {
     m_generalParserGpu = new Udp1_4ParserGpu<T_Point>();
+  }
+  if (lidar_type == "JT16") {
+    m_generalParserGpu = new Udp1_8ParserGpu<T_Point>();
   }
   if (lidar_type == "PandarQT") {
     m_generalParserGpu = new Udp3_1ParserGpu<T_Point>();

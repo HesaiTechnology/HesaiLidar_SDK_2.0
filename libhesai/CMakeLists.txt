@@ -19,6 +19,7 @@ set(WITH_LIDARBOARD ON CACHE BOOL "Build lidarboard code")
 set(WITH_PLATUTIL ON CACHE BOOL "Build platform utils code")
 set(WITH_UDPPARSER ON CACHE BOOL "Build udp parser code")
 set(WITH_PTCCLIENT ON CACHE BOOL "Build ptc client code")
+set(WITH_SERIALCLIENT ON CACHE BOOL "Build serial client code")
 set(WITH_PTCPARSER ON CACHE BOOL "Build ptc parser code")
 set(WITH_CONTAINER ON CACHE BOOL "Build container code")
 set(WITH_LOG ON CACHE BOOL "Build log code")
@@ -43,6 +44,7 @@ include_directories(
     Container/include
     Container/src
     PtcClient/include
+    SerialClient/include
     Logger/include
     ${OPENSSL_INCLUDE_DIR}
 )
@@ -60,6 +62,14 @@ if(WITH_PTCCLIENT)
     set_target_properties(ptcClient_lib 
         PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
 endif(WITH_PTCCLIENT)
+    add_library(serialClient_lib 
+    SerialClient/src/serial_client.cc
+    )
+    set_target_properties(serialClient_lib 
+        PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
+if (WITH_SERIALCLIENT)
+
+endif(WITH_SERIALCLIENT)
 
 if(WITH_PTCPARSER)
     add_library(ptcParser_lib 
@@ -85,12 +95,14 @@ if(WITH_LIDARBOARD)
         Source/src/source.cc
         Source/src/socket_source.cc
         Source/src/pcap_source.cc
+        Source/src/serial_source.cc
         Source/src/pcap_saver.cc
         )
     target_link_libraries(source_lib
         platutils_lib
         container_lib
-        ptcClient_lib)
+        ptcClient_lib
+        serialClient_lib)
     set_target_properties(source_lib
         PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
 endif(WITH_LIDARBOARD)

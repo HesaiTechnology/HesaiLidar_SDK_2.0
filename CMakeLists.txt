@@ -46,6 +46,7 @@ include_directories(
   libhesai/UdpParserGpu/include
   libhesai/UdpParserGpu/src
   libhesai/PtcClient/include
+  libhesai/SerialClient/include
   libhesai/PtcParser
   libhesai/PtcParser/src
   libhesai/PtcParser/include
@@ -65,6 +66,7 @@ target_link_libraries(sample
   source_lib
   container_lib
   ptcClient_lib
+  serialClient_lib
   ptcParser_lib
   log_lib
   ${OPENSSL_LIBRARIES}
@@ -93,6 +95,7 @@ if(${CUDA_FOUND})
   source_lib
   container_lib
   ptcClient_lib
+  serialClient_lib
   log_lib
   ptcParser_lib
   ${OPENSSL_LIBRARIES}

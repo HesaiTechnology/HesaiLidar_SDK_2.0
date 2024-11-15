@@ -8,8 +8,10 @@ This repository includes the software development kit for Hesai LiDAR sensor man
 - QT
 - FT120
 - XT16/XT32
-- ET25
+- ET25/ET30
 - OT
+- ATX
+- JT16
 
 ## Environment and Dependencies
 
@@ -69,6 +71,8 @@ Set the parameters in param in main.cc or main.cu
 	param.input_param.multicast_ip_address = "239.0.0.1"; // 239.0.0.1 is the lidar multcast ip address, set this parameter to "" when lidar do not support muticast
 	param.decoder_param.distance_correction_lidar_type = "";   //Configure the corresponding radar model when optical centre correction needs to be turned on
 	param.lidar_type = ""; // When you need to enable XT point cloud S hierarchical correction, configure the corresponding model
+	param.input_param.rs485_com = "Your serial port name for receiving point cloud"; // When source_type == DATA_FROM_SERIAL
+  	param.input_param.rs232_com = "Your serial port name for sending cmd"; // When source_type == DATA_FROM_SERIAL
 ```
 
 $ make 

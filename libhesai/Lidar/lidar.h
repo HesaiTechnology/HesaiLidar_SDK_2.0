@@ -49,6 +49,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ring.h"
 #include "ptc_client.h"
 #include "driver_param.h"
+#include "serial_source.h"
+#include "serial_client.h"
 #ifndef _MSC_VER
 #include <endian.h>
 #include <semaphore.h>
@@ -125,6 +127,7 @@ public:
   int SaveCorrectionFile(std::string correction_save_path);
   // get lidar correction file from ptc,and pass to udp parser
   int LoadCorrectionForUdpParser();
+  int LoadCorrectionForSerialParser(std::string correction_save_path);
   // get lidar correction file from local file,and pass to udp parser 
   void LoadCorrectionFile(std::string correction_path); 
   int LoadCorrectionString(char *correction_string);
@@ -148,7 +151,9 @@ public:
   int LoadCorrectionFromROSbag();
   UdpParser<T_Point> *udp_parser_;
   Source *source_;
+  Source *source_rs232_;
   PtcClient *ptc_client_;
+  SerialClient* serial_client_;
   LidarDecodedFrame<T_Point> frame_;
   BlockingRing<UdpPacket, kPacketBufferSize> origin_packets_buffer_;
   uint16_t use_timestamp_type_ = 0;

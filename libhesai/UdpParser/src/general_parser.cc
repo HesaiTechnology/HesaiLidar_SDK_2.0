@@ -278,6 +278,10 @@ void GeneralParser<T_Point>::SetOpticalCenterCoordinates(std::string lidar_type)
     optical_center.x = -13.0 / 1000.0;
     optical_center.y = 30.5 / 1000.0;
     optical_center.z = 0.0 / 1000.0;
+  } else if(lidar_type == "JT16") {
+    optical_center.x = -6.25 / 1000.0;
+    optical_center.y = 10.955 / 1000.0;
+    optical_center.z = 3.911 / 1000.0;
   } else {
     SetEnableDistanceCorrection(false);
     LogWarning("Parameter(distance_correction_lidar_type) is set to null or error to not enable distance correction");

@@ -39,12 +39,6 @@ template<typename T_Point>
 Udp1_4Parser<T_Point>::Udp1_4Parser() {
   this->motor_speed_ = 0;
   this->return_mode_ = 0;
-  distance_correction_para_a_ = 1;
-  distance_correction_para_b_ = 0.012; 
-  distance_correction_para_h_ = 0.04; 
-  distance_correction_para_c_ = std::sqrt(distance_correction_para_b_ * distance_correction_para_b_ + distance_correction_para_h_  * distance_correction_para_h_); 
-  distance_correction_para_d_ = std::atan(distance_correction_para_b_  / distance_correction_para_h_); 
-  use_frame_start_azimuth_ = true;
 }
 
 template<typename T_Point>

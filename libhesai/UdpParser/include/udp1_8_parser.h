@@ -27,55 +27,50 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 
 /*
- * File:   source.h
- * Author: Felix Zou<zouke@hesaitech.com>
- *
- * Created on Sep 5, 2019, 10:46 AM
- */
+ * File:       udp1_8_parser.h
+ * Author:     Chang XingShuo <changxingshuo@hesaitech.com>
+ * Description: Declare Udp1_8Parser class
+*/
 
-#ifndef STREAMER_H
-#define STREAMER_H
+#ifndef UDP1_8_PARSER_H_
+#define UDP1_8_PARSER_H_
 
-#include <stdint.h>
-#include <string>
-#include <lidar_types.h>
-#include <logger.h>
-
-#ifdef _MSC_VER
-#include <winsock2.h>
-#include <ws2tcpip.h> 
-#pragma comment(lib, "ws2_32.lib")  // Winsock Library
-typedef int socklen_t;
-#else
-#include <arpa/inet.h>
-#include <errno.h>
-#include <netinet/ip.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
-typedef unsigned int SOCKET;
-#define INVALID_SOCKET -1
-#define SOCKET_ERROR -1
-#endif
+#include "general_parser.h"
 namespace hesai
 {
 namespace lidar
 {
-class Source {
+// you can parser the upd or pcap packets using the DocodePacket fuction
+// you can compute xyzi of points using the ComputeXYZI fuction, which uses cpu to compute
+template<typename T_Point>
+class Udp1_8Parser : public GeneralParser<T_Point> {
  public:
-  // the flag of pcap end
-  bool is_pcap_end = false;
-  Source();
-  virtual ~Source();
-  virtual bool Open() = 0;
-  virtual void Close();
-  virtual bool IsOpened() = 0;
-  virtual int Send(uint8_t* u8Buf, uint16_t u16Len, int flags = 0) = 0;
-  virtual int Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags = 0,
-                      int timeout = 1000) = 0; 
-  virtual void SetSocketBufferSize(uint32_t u32BufSize) = 0;      
-  virtual void SetReceiveStype(int type) {}               
+  Udp1_8Parser();
+  virtual ~Udp1_8Parser();
+
+  // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
+  virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket);
+
+  // compute xyzi of points from decoded packet
+  // param packet is the decoded packet; xyzi of points after computed is puted in frame      
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
+
+  // determine whether frame splitting is needed
+  bool IsNeedFrameSplit(uint16_t azimuth); 
+
+  virtual void LoadCorrectionFile(std::string lidar_correction_file);
+  int LoadCorrectionCsvData(char *correction_string);
+  virtual int LoadCorrectionString(char *correction_string);
+
+  using GeneralParser<T_Point>::GetDistanceCorrection;
+
+ private:
+  static const int kLaserNum = 16;
+  // double section_distance;
 };
 }  // namespace lidar
 }  // namespace hesai
-#endif /* STREAMER_H */
+
+#include "udp1_8_parser.cc"
+
+#endif  // UDP1_8_PARSER_H_
