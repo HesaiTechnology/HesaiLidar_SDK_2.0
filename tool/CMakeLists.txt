@@ -88,6 +88,28 @@ target_link_libraries(pcl_tool
   ${OPENSSL_LIBRARIES}
 )
 
+find_package(LASlib)
+if(${LASlib_FOUND})
+    include_directories(${LASlib_INCLUDE_DIRS})
+    link_directories(${LASlib_INCLUDE_DIRS})
+    add_executable(las_tool
+    ./las_tool.cc
+    )
+
+    target_link_libraries(las_tool
+    source_lib
+    container_lib
+    ptcClient_lib
+    ptcParser_lib
+    log_lib
+    LASlib
+    ${PCL_LIBRARIES}  
+    ${OPENSSL_LIBRARIES}
+    )
+else(${LASlib_FOUND})
+    message("-- LASlib not found")
+endif(${LASlib_FOUND})
+
 add_executable(ptc_tool
   ./ptc_tool.cc
 )
