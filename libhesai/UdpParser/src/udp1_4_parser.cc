@@ -39,12 +39,6 @@ template<typename T_Point>
 Udp1_4Parser<T_Point>::Udp1_4Parser() {
   this->motor_speed_ = 0;
   this->return_mode_ = 0;
-  distance_correction_para_a_ = 1;
-  distance_correction_para_b_ = 0.012; 
-  distance_correction_para_h_ = 0.04; 
-  distance_correction_para_c_ = std::sqrt(distance_correction_para_b_ * distance_correction_para_b_ + distance_correction_para_h_  * distance_correction_para_h_); 
-  distance_correction_para_d_ = std::atan(distance_correction_para_b_  / distance_correction_para_h_); 
-  use_frame_start_azimuth_ = true;
 }
 
 template<typename T_Point>
@@ -123,9 +117,9 @@ void Udp1_4Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
             continue;
           }
           for (int i = 1; i <= 6; i++) {
-            float a = 0;
+            int a = 0;
             if (strList[i] != "-") {
-              a = std::stof(strList[i]) * 1000;
+              a = int(std::stof(strList[i]) * 1000);
             }
             firetime_section_values[idx].section_values[i - 1].firetime[0] = a;
             firetime_section_values[idx].section_values[i - 1].firetime[1] = a;
@@ -184,8 +178,8 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
 
     for (int i = 0; i < frame.laser_num; i++) {
       int point_index = packet_index * frame.per_points_num + blockid * frame.laser_num + i;
-      int Azimuth = frame.pointData[point_index].azimuth * kFineResolutionFloat;
-      float distance = frame.pointData[point_index].distances * frame.distance_unit;  
+      int Azimuth = int(frame.pointData[point_index].azimuth * kFineResolutionFloat);
+      float distance = static_cast<float>(frame.pointData[point_index].distances * frame.distance_unit);
       if (this->get_correction_file_) {
         int azimuth_coll = (int(this->azimuth_collection_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
         int elevation_corr = (int(this->elevation_correction_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
@@ -216,7 +210,7 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
       setConfidence(frame.points[point_index], frame.pointData[point_index].confidence);
       setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
-      setRing(frame.points[point_index], i);
+      setRing(frame.points[point_index], static_cast<uint16_t>(i));
     }
   }
   GeneralParser<T_Point>::FrameNumAdd();
@@ -233,13 +227,13 @@ bool Udp1_4Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
   // The initial value of last_azimuth_ is -1
   // Determine the rotation direction and division
   
-  uint16_t division = 0;
+  int32_t division = 0;
   // If last_last_azimuth_ != -1，the packet is the third, so we can determine whether the current packet requires framing
   if (this->last_last_azimuth_ != -1) 
   {
     // Get the division
-    uint16_t division1 = abs(this->last_azimuth_ - this->last_last_azimuth_);
-    uint16_t division2 = abs(this->last_azimuth_ - azimuth);
+    int32_t division1 = abs(this->last_azimuth_ - this->last_last_azimuth_);
+    int32_t division2 = abs(this->last_azimuth_ - azimuth);
     division = division1 > division2 ? division2 : division1 ;
     // Prevent two consecutive packets from having the same angle when causing an error in framing
     if ( division == 0) return false;
@@ -395,10 +389,9 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
           (const unsigned char *)pAzimuth +
           sizeof(HS_LIDAR_BODY_AZIMUTH_ME_V4) +
           sizeof(HS_LIDAR_BODY_CHN_UNIT_ME_V4) * pHeader->GetLaserNum());
-      auto elevation = 0;
       for (int j = 0; j < pHeader->GetLaserNum(); ++j) {
         if (this->get_firetime_file_) {
-          float fireTimeCollection = this->rotation_flag * GetFiretimesCorrection(j, this->spin_speed_, optMode, angleState, pChnUnit->GetDistance() * pHeader->GetDistUnit());
+          float fireTimeCollection = static_cast<float>(this->rotation_flag * GetFiretimesCorrection(j, this->spin_speed_, optMode, angleState, pChnUnit->GetDistance() * pHeader->GetDistUnit()));
           frame.pointData[index].azimuth = u16Azimuth + fireTimeCollection * kResolutionFloat;
         }else {
           frame.pointData[index].azimuth = u16Azimuth;
@@ -406,7 +399,6 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
         frame.pointData[index].reflectivities = pChnUnit->GetReflectivity();  
         frame.pointData[index].distances = pChnUnit->GetDistance();
         frame.pointData[index].confidence = pChnUnit->GetConfidenceLevel();
-        frame.pointData[index].elevation = elevation;
         pChnUnit = pChnUnit + 1;
         index++;
       }
@@ -422,17 +414,15 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
           sizeof(HS_LIDAR_BODY_AZIMUTH_ME_V4) +
           sizeof(HS_LIDAR_BODY_CHN_UNIT_NO_CONF_ME_V4) *
               pHeader->GetLaserNum());
-      auto elevation = 0;
       for (int j = 0; j < pHeader->GetLaserNum(); ++j) {
         if (this->get_firetime_file_) {
-          float fireTimeCollection = this->rotation_flag * GetFiretimesCorrection(j, this->spin_speed_, optMode, angleState, pChnUnitNoConf->GetDistance() * pHeader->GetDistUnit());
+          float fireTimeCollection = static_cast<float>(this->rotation_flag * GetFiretimesCorrection(j, this->spin_speed_, optMode, angleState, pChnUnitNoConf->GetDistance() * pHeader->GetDistUnit()));
           frame.pointData[index].azimuth = u16Azimuth + fireTimeCollection * kResolutionFloat;
         } else {
           frame.pointData[index].azimuth = u16Azimuth;
         }
         frame.pointData[index].reflectivities = pChnUnitNoConf->GetReflectivity();  
         frame.pointData[index].distances = pChnUnitNoConf->GetDistance();
-        frame.pointData[index].elevation = elevation;
         pChnUnitNoConf += 1;
         index++;
       }

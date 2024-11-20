@@ -45,7 +45,7 @@ typedef int socklen_t;
 using namespace hesai::lidar;
 using std::placeholders::_1;
 using std::placeholders::_2;
-int tcp_try_open(const char* ipaddr, int port, uint32_t timeout) {
+static int tcp_try_open(const char* ipaddr, int port, uint32_t timeout) {
   #ifdef _MSC_VER
   WSADATA wsaData;
   WORD version = MAKEWORD(2, 2);
@@ -68,7 +68,7 @@ int tcp_try_open(const char* ipaddr, int port, uint32_t timeout) {
 
   memset(&serverAddr, 0, sizeof(serverAddr));
   serverAddr.sin_family = AF_INET;
-  serverAddr.sin_port = htons(port);
+  serverAddr.sin_port = htons(static_cast<u_short>(port));
   if (inet_pton(AF_INET, ipaddr, &serverAddr.sin_addr) <= 0) {
 #ifdef _MSC_VER
     closesocket(sockfd);
@@ -148,7 +148,7 @@ int tcp_try_open(const char* ipaddr, int port, uint32_t timeout) {
   return sockfd;
 }
 
-int tcp_open(const char* ipaddr, int port) {
+static int tcp_open(const char* ipaddr, int port) {
 #ifdef _MSC_VER
   WSADATA wsaData;
   WORD version = MAKEWORD(2, 2);
@@ -168,7 +168,7 @@ int tcp_open(const char* ipaddr, int port) {
   }
   memset(&servaddr, 0, sizeof(servaddr));
   servaddr.sin_family = AF_INET;
-  servaddr.sin_port = htons(port);
+  servaddr.sin_port = htons(static_cast<u_short>(port));
   if (inet_pton(AF_INET, ipaddr, &servaddr.sin_addr) <= 0) {
 #ifdef _MSC_VER
           closesocket(sockfd);
@@ -196,7 +196,7 @@ int tcp_open(const char* ipaddr, int port) {
   return sockfd;
 }
 
-int sys_readn_by_ssl(SSL *ssl, void *vptr, int n)
+static int sys_readn_by_ssl(SSL *ssl, void *vptr, int n)
 {
     int nleft;
     char *ptr;
@@ -228,11 +228,14 @@ int sys_readn_by_ssl(SSL *ssl, void *vptr, int n)
 TcpSslClient::TcpSslClient() {
   m_sServerIP.clear();
   ptc_port_ = 0;
-  tcpsock_ = -1;
+  tcpsock_ = (SOCKET)(-1);
   m_bLidarConnected = false;
   m_u32ReceiveBufferSize = 4096;
   ctx_ = nullptr;
   ssl_ = nullptr;
+  private_key_ = nullptr;
+  ca_ = nullptr;
+  cert_ = nullptr;
 }
 
 TcpSslClient::~TcpSslClient() {
@@ -244,14 +247,14 @@ void TcpSslClient::Close() {
   // m_sServerIP.clear();
   // ptc_port_ = 0;
   m_bLidarConnected = false;
-  if(tcpsock_ > 0) {
+  if((int)tcpsock_ != -1) {
 #ifdef _MSC_VER
     closesocket(tcpsock_);
     WSACleanup();
 #else
     close(tcpsock_);
 #endif
-    tcpsock_ = -1;
+    tcpsock_ = (SOCKET)(-1);
   }
   if (ctx_ != nullptr) {
     SSL_CTX_free(ctx_);
@@ -268,7 +271,7 @@ bool TcpSslClient::IsOpened() {
 }
 
 bool TcpSslClient::IsOpened(bool bExpectation) {
-  return m_bLidarConnected;
+  return m_bLidarConnected == bExpectation;
 }
 
 bool TcpSslClient::TryOpen(std::string IPAddr, 
@@ -278,6 +281,7 @@ bool TcpSslClient::TryOpen(std::string IPAddr,
                         const char* private_key, 
                         const char* ca,
                         uint32_t timeout) {
+  (void)bAutoReceive;
   if (IsOpened(true) && m_sServerIP == IPAddr && u16Port == ptc_port_) {
     return true;
   }
@@ -292,7 +296,7 @@ bool TcpSslClient::TryOpen(std::string IPAddr,
 		return false;
 	}
   tcpsock_ = tcp_try_open(m_sServerIP.c_str(), ptc_port_, timeout);
-  if(tcpsock_ < 0) {
+  if((int)tcpsock_ != -1) {
 		LogError("Connect to Server Failed!~!~");
     Close();
     return false;
@@ -304,7 +308,7 @@ bool TcpSslClient::TryOpen(std::string IPAddr,
     return false;
 	}
 
-  SSL_set_fd(ssl_, tcpsock_);
+  SSL_set_fd(ssl_, (int)tcpsock_);
 	if(SSL_connect(ssl_) == 0) {
 		LogError("connect ssl failed");
 		Close();
@@ -328,6 +332,7 @@ bool TcpSslClient::Open(std::string IPAddr,
                         const char* cert, 
                         const char* private_key, 
                         const char* ca) {
+  (void)bAutoReceive;
   if (IsOpened(true) && m_sServerIP == IPAddr && u16Port == ptc_port_) {
     return true;
   }
@@ -352,7 +357,7 @@ bool TcpSslClient::Open() {
 		return false;
 	}
   tcpsock_ = tcp_open(m_sServerIP.c_str(), ptc_port_);
-  if(tcpsock_ < 0) {
+  if((int)tcpsock_ != -1) {
 		LogError("Connect to Server Failed!~!~");
     Close();
     return false;
@@ -364,7 +369,7 @@ bool TcpSslClient::Open() {
     return false;
 	}
 
-  SSL_set_fd(ssl_, tcpsock_);
+  SSL_set_fd(ssl_, (int)tcpsock_);
 	if(SSL_connect(ssl_) == 0) {
 		LogError("connect ssl failed");
 		Close();
@@ -422,6 +427,7 @@ SSL_CTX* TcpSslClient::InitSslClient(const char* cert, const char* private_key, 
 }
 
 int TcpSslClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
+  (void)flags;
   int len = -1;
   bool ret = true;
 
@@ -441,6 +447,7 @@ int TcpSslClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
 }
 
 int TcpSslClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
+  (void)flags;
   int len = -1;
   bool ret = true;
   
@@ -467,7 +474,7 @@ int TcpSslClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
 
 
 bool TcpSslClient::SetReceiveTimeout(uint32_t u32Timeout) {
-  if (tcpsock_ < 0) {
+  if((int)tcpsock_ != -1) {
     LogWarning("TcpClient not open");
     return false;
   }
@@ -491,7 +498,7 @@ bool TcpSslClient::SetReceiveTimeout(uint32_t u32Timeout) {
 
 int TcpSslClient::SetTimeout(uint32_t u32RecMillisecond,
                           uint32_t u32SendMillisecond) {
-  if (tcpsock_ < 0) {
+  if((int)tcpsock_ != -1) {
     LogWarning("TcpClient not open");
     return -1;
   }
@@ -531,13 +538,13 @@ int TcpSslClient::SetTimeout(uint32_t u32RecMillisecond,
 }
 
 void TcpSslClient::SetReceiveBufferSize(const uint32_t &size) {
-  if (tcpsock_ < 0) {
+  if((int)tcpsock_ != -1) {
     LogWarning("TcpClient not open");
     return;
   }
 
   m_u32ReceiveBufferSize = size;
-  uint32_t recbuffSize;
+  uint32_t recbuffSize = 0;
   socklen_t optlen = sizeof(recbuffSize);
   int ret = getsockopt(tcpsock_, SOL_SOCKET, SO_RCVBUF, (char*)&recbuffSize, &optlen);
   if (ret == 0 && recbuffSize < size) {

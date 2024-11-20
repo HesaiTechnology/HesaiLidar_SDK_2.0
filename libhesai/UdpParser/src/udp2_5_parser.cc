@@ -25,7 +25,7 @@ void Udp2_5Parser<T_Point>::LoadCorrectionFile(std::string correction_path) {
     LogDebug("Open correction file success");
     int length = 0;
     fin.seekg(0, std::ios::end);
-    length = fin.tellg();
+    length = static_cast<int>(fin.tellg());
     fin.seekg(0, std::ios::beg);
     char *buffer = new char[length];
     fin.read(buffer, length);
@@ -185,7 +185,7 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
           p = p + 1;
           corrections_.elevation_adjust_interval = *((char*)p);
           p = p + 1;
-          int angle_offset_len = (120 / (corrections_.azimuth_adjust_interval * 0.5) + 1) * (25 / (corrections_.elevation_adjust_interval * 0.5) + 1);
+          int angle_offset_len = int((120 / (corrections_.azimuth_adjust_interval * 0.5) + 1) * (25 / (corrections_.elevation_adjust_interval * 0.5) + 1));
           memcpy((void*)corrections_.azimuth_adjust, p, sizeof(int16_t) * angle_offset_len);
           p = p + sizeof(int16_t) * angle_offset_len;
           memcpy((void*)corrections_.elevation_adjust, p, sizeof(int16_t) * angle_offset_len); 
@@ -225,7 +225,7 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
           p = p + 1;
           corrections_.elevation_adjust_interval = *((char*)p);
           p = p + 1;
-          int angle_offset_len = (120 / (corrections_.azimuth_adjust_interval * 0.5) + 1) * (25 / (corrections_.elevation_adjust_interval * 0.5) + 1);
+          int angle_offset_len = int((120 / (corrections_.azimuth_adjust_interval * 0.5) + 1) * (25 / (corrections_.elevation_adjust_interval * 0.5) + 1));
           memcpy((void*)corrections_.azimuth_adjust, p, sizeof(int16_t) * angle_offset_len);
           p = p + sizeof(int16_t) * angle_offset_len;
           memcpy((void*)corrections_.elevation_adjust, p, sizeof(int16_t) * angle_offset_len); 
@@ -281,7 +281,7 @@ int Udp2_5Parser<T_Point>::LoadCorrectionDatData(char *data) {
           p = p + 1;
           corrections_.elevation_adjust_interval = *((char*)p);
           p = p + 1;
-          int angle_offset_len = T * (120 / (corrections_.azimuth_adjust_interval * 0.1) + 1) * (3.2 / (corrections_.elevation_adjust_interval * 0.1) + 1);
+          int angle_offset_len = int(T * (120 / (corrections_.azimuth_adjust_interval * 0.1) + 1) * (3.2 / (corrections_.elevation_adjust_interval * 0.1) + 1));
           memcpy((void*)corrections_.azimuth_adjust, p, sizeof(int16_t) * angle_offset_len);
           p = p + sizeof(int16_t) * angle_offset_len;
           memcpy((void*)corrections_.elevation_adjust, p, sizeof(int16_t) * angle_offset_len); 
@@ -349,7 +349,7 @@ int Udp2_5Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       // get phi and psi and distance
       float raw_azimuth = frame.pointData[point_index].azimuth;
       float raw_elevation = frame.pointData[point_index].elevation;
-      float distance = frame.pointData[point_index].distances * frame.distance_unit;
+      float distance = static_cast<float>(frame.pointData[point_index].distances * frame.distance_unit);
       float phi = corrections_.azimuths[i + 3];
       float theta = corrections_.elevations[i + 3];
       float an = apha + phi;
@@ -388,7 +388,7 @@ int Udp2_5Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       setZ(frame.points[point_index], z);
       setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
       setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
-      setRing(frame.points[point_index], i);
+      setRing(frame.points[point_index], static_cast<uint16_t>(i));
     }
   }
   GeneralParser<T_Point>::FrameNumAdd();

@@ -18,6 +18,7 @@ add_compile_options(-Wall)
 
 # 设置生成平台为 x64
 if(MSVC)
+add_compile_options("/source-charset:utf-8")
 set(CMAKE_GENERATOR_PLATFORM x64)
 set(OPENSSL_ROOT_DIR "C:/Program Files/OpenSSL-Win64")
 set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include)
@@ -45,6 +46,7 @@ include_directories(
   libhesai/UdpParserGpu/include
   libhesai/UdpParserGpu/src
   libhesai/PtcClient/include
+  libhesai/SerialClient/include
   libhesai/PtcParser
   libhesai/PtcParser/src
   libhesai/PtcParser/include
@@ -64,6 +66,7 @@ target_link_libraries(sample
   source_lib
   container_lib
   ptcClient_lib
+  serialClient_lib
   ptcParser_lib
   log_lib
   ${OPENSSL_LIBRARIES}
@@ -92,6 +95,7 @@ if(${CUDA_FOUND})
   source_lib
   container_lib
   ptcClient_lib
+  serialClient_lib
   log_lib
   ptcParser_lib
   ${OPENSSL_LIBRARIES}

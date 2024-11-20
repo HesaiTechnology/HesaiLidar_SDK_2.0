@@ -52,6 +52,8 @@ Lidar<T_Point>::Lidar() {
   udp_port_ = 0;
   parser_thread_ptr_ = nullptr;
   init_set_ptc_ptr_ = nullptr;
+  serial_client_ = nullptr;
+  source_rs232_ = nullptr;
 }
 
 template <typename T_Point>
@@ -96,6 +98,16 @@ Lidar<T_Point>::~Lidar() {
     ptc_client_ = nullptr;
   }
 
+  if (serial_client_ != nullptr) {
+    delete serial_client_;
+    serial_client_ = nullptr;
+  }
+
+  if (source_rs232_ != nullptr) {
+    delete source_rs232_;
+    source_rs232_ = nullptr;
+  }
+
   if (source_ != nullptr) {
     delete source_;
     source_ = nullptr;
@@ -134,6 +146,18 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     else if(param.input_param.source_type == 1){
       source_ = new SocketSource(param.input_param.udp_port, param.input_param.multicast_ip_address);
       source_->Open();
+    }
+    else if(param.input_param.source_type == 4){
+      source_ = new SerialSource(param.input_param.rs485_com, param.input_param.rs485_baudrate, param.input_param.point_cloud_baudrate);
+      source_rs232_ = new SerialSource(param.input_param.rs232_com, param.input_param.rs232_baudrate);
+      source_->SetReceiveStype(SERIAL_POINT_CLOUD_RECV);
+      source_->Open();
+      if (!source_->IsOpened()) LogError("recv point cloud serial open error");
+      source_rs232_->SetReceiveStype(SERIAL_COMMAND_RECV);
+      source_rs232_->Open();
+      if (!source_rs232_->IsOpened()) LogError("send cmd serial open error");
+      serial_client_ = new SerialClient();
+      serial_client_->SetSerial(source_rs232_, source_);
     }
     parser_thread_running_ = param.decoder_param.enable_parser_thread;
     udp_thread_running_ = param.decoder_param.enable_udp_thread;
@@ -208,6 +232,13 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
       break;
     case 3:
       LoadCorrectionFile(param.input_param.correction_file_path);
+      break;
+    case 4:
+      if (LoadCorrectionForSerialParser(param.input_param.correction_save_path) != 0) {
+        LogWarning("---Failed to obtain correction file from lidar!---");
+        LoadCorrectionFile(param.input_param.correction_file_path);
+      }
+      break;
     default:
       break;
     }
@@ -294,6 +325,37 @@ int Lidar<T_Point>::SaveCorrectionFile(std::string correction_save_path) {
     LogError("create correction file fail");
     return ret;
   }
+}
+
+template <typename T_Point>
+int Lidar<T_Point>::LoadCorrectionForSerialParser(std::string correction_save_path) {
+  u8Array_t sData;
+  int ret = serial_client_->GetCorrectionInfo(sData);
+  if (ret != 0) {
+    LogError("get correction error, ret:%d", ret);
+    return ret;
+  }
+
+  // save
+  if (correction_save_path != "") {
+    std::string correction_content_str = (char*) sData.data();
+    std::ofstream out_file(correction_save_path, std::ios::out);
+    if(out_file.is_open()) {
+      out_file << correction_content_str;
+      out_file.close();
+    } else {
+      LogError("create correction file fail, save correction file error");
+    }
+  }
+
+  if (udp_parser_) {
+    return udp_parser_->LoadCorrectionString(
+        (char *)sData.data());
+  } else {
+    LogError("udp_parser_ nullptr");
+    return -1;
+  }
+  return 0;
 }
 
 template <typename T_Point>
@@ -485,14 +547,14 @@ void Lidar<T_Point>::RecieveUdpThread() {
         } 
         break;
       case kFaultMessageLength:
-        udp_packet.packet_len = len;
+        udp_packet.packet_len = static_cast<uint16_t>(len);
         origin_packets_buffer_.emplace_back(udp_packet);
         break;
       case GPS_PACKET_LEN:
         break;
       default :
         if (len > 0) {
-          udp_packet.packet_len = len;
+          udp_packet.packet_len = static_cast<uint16_t>(len);
           origin_packets_buffer_.emplace_back(udp_packet);
           is_timeout_ = false;
         }

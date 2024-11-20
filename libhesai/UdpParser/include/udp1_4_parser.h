@@ -80,12 +80,6 @@ class Udp1_4Parser : public GeneralParser<T_Point> {
   static const int kLaserNum = 128;
   double section_distance;
   std::array<FiretimeSectionValues, kLaserNum> firetime_section_values;
-  float distance_correction_para_a_;
-  float distance_correction_para_b_; 
-  float distance_correction_para_h_; 
-  float distance_correction_para_c_; 
-  float distance_correction_para_d_; 
-  bool use_frame_start_azimuth_ = true;
 };
 }  // namespace lidar
 }  // namespace hesai

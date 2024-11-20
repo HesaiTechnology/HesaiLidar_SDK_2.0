@@ -18,7 +18,7 @@ Udp2_4Parser<T_Point>::~Udp2_4Parser() { LogInfo("release Udp2_4Parser"); }
 template<typename T_Point>
 void Udp2_4Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file) {
   int type = 0;
-  int length = lidar_correction_file.length();
+  size_t length = lidar_correction_file.length();
   if (length >= 4) {
         std::string extension = lidar_correction_file.substr(length - 4);
         if (extension == ".bin") {
@@ -37,7 +37,7 @@ void Udp2_4Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
     if (fin.is_open()) {
       LogDebug("Open correction file success!");
       fin.seekg(0, std::ios::end);
-      int len = fin.tellg();
+      int len = static_cast<int>(fin.tellg());
       // return the begin of file
       fin.seekg(0, std::ios::beg);
       char *buffer = new char[len];
@@ -198,7 +198,7 @@ int Udp2_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       // get phi and psi and distance
       float raw_azimuth = frame.pointData[point_index].azimuth;
       float raw_elevation = frame.pointData[point_index].elevation;
-      float distance = frame.pointData[point_index].distances * frame.distance_unit;
+      float distance = static_cast<float>(frame.pointData[point_index].distances * frame.distance_unit);
       float phi = m_ET_corrections.azimuths[i + 3];
       float theta = m_ET_corrections.elevations[i + 3];
       float an = apha + phi;
@@ -231,7 +231,7 @@ int Udp2_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
       setConfidence(frame.points[point_index], frame.pointData[point_index].confidence);
       setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
-      setRing(frame.points[point_index], i);
+      setRing(frame.points[point_index], static_cast<uint16_t>(i));
     }
   }
   GeneralParser<T_Point>::FrameNumAdd();

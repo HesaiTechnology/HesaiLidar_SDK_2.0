@@ -140,7 +140,7 @@ void PtcClient::TcpFlushIn() {
   u8Array_t u8Buf(1500, 0);
   int len = 0;
   do {
-    len = client_->Receive(u8Buf.data(), u8Buf.size(), MSG_DONTWAIT);
+    len = client_->Receive(u8Buf.data(), static_cast<uint32_t>(u8Buf.size()), MSG_DONTWAIT);
     if (len > 0) {
       std::cout << "TcpFlushIn, len " << len << std::endl;
       for(size_t i = 0; i<u8Buf.size(); i++) {
@@ -160,7 +160,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
   ptc_parser_->PtcStreamEncode(byteStreamIn, encoded, u8Cmd);
   // TcpFlushIn();
 
-  int nLen = client_->Send(encoded.data(), encoded.size());
+  int nLen = client_->Send(encoded.data(), static_cast<uint16_t>(encoded.size()));
   if (nLen != (int)encoded.size()) {
     // qDebug("%s: send failure, %d.", __func__, nLen);
     ret = -1;
@@ -181,7 +181,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
     bool bHeaderFound = false;
     int nValidDataLen = 0;
     while (nLeft > 0) {
-      nOnceRecvLen = client_->Receive(pRecvHeaderBuf, nLeft);
+      nOnceRecvLen = client_->Receive(pRecvHeaderBuf, static_cast<uint32_t>(nLeft));
       if (nOnceRecvLen <= 0) break;
 
       if (!bHeaderFound) {
@@ -190,7 +190,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
               pRecvHeaderBuf[i + 1] == ptc_parser_->GetHeaderIdentifier1()) {
             nValidDataLen = nOnceRecvLen - i;
             bHeaderFound = true;
-            memcpy(pHeaderBuf, pRecvHeaderBuf + i, nValidDataLen);
+            memcpy(pHeaderBuf, pRecvHeaderBuf + i, static_cast<size_t>(nValidDataLen));
             //剩下还需接收的长度
             nLeft -= nValidDataLen;
             break;
@@ -198,7 +198,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
         }
       } else {
         //已经收到PTC正确的头部 只是还没有达到8位
-        memcpy(pHeaderBuf + nValidDataLen, pRecvHeaderBuf, nOnceRecvLen);
+        memcpy(pHeaderBuf + nValidDataLen, pRecvHeaderBuf, static_cast<size_t>(nOnceRecvLen));
         nValidDataLen += nOnceRecvLen;
         nLeft -= nOnceRecvLen;
       }
@@ -214,7 +214,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
           LogWarning("PtcClient::QueryCommand, RspCode invalid:%u", pPTCHeader->return_code_);
           ret = -1;
         } else {
-          nPayLoadLen = pPTCHeader->GetPayloadLen();
+          nPayLoadLen = static_cast<int>(pPTCHeader->GetPayloadLen());
         }
       } else {
         PTCHeader_2_0 *pPTCHeader = reinterpret_cast<PTCHeader_2_0 *>(u8HeaderBuf.data());
@@ -222,7 +222,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
           LogWarning("PtcClient::QueryCommand,RspCode invalid:%u", pPTCHeader->return_code_);
           ret = -1;
         } else {
-          nPayLoadLen = pPTCHeader->GetPayloadLen();
+          nPayLoadLen = static_cast<int>(pPTCHeader->GetPayloadLen());
         }
       }
     }
@@ -241,7 +241,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
 
     nLeft = nPayLoadLen;
     while (nLeft > 0) {
-      nOnceRecvLen = client_->Receive(pBodyBuf, nLeft);
+      nOnceRecvLen = client_->Receive(pBodyBuf, static_cast<uint32_t>(nLeft));
       if (nOnceRecvLen <= 0) {
         break;
       }
@@ -256,7 +256,7 @@ int PtcClient::QueryCommand(u8Array_t &byteStreamIn,
       //将收到的bodyBuf拷贝到最终要传出的buf
       byteStreamOut.resize(nPayLoadLen);
       pBodyBuf = u8BodyBuf.data();
-      memcpy(byteStreamOut.data(), pBodyBuf, nPayLoadLen);
+      memcpy(byteStreamOut.data(), pBodyBuf, static_cast<size_t>(nPayLoadLen));
     }
   }
 
@@ -298,7 +298,7 @@ template <typename T>
 T extractField(const u8Array_t& data, size_t& offset) {
     T field = 0;
     for (size_t i = 0; i < sizeof(T); ++ i) {
-        field = (field << 8) | data[offset++];
+        field = static_cast<T>((field << 8) | data[offset++]);
     }
     return field;
 }
@@ -445,7 +445,9 @@ bool PtcClient::SetNet(std::string IP, std::string mask, std::string getway, uin
   input.push_back(vlan_flag);
   input.push_back(static_cast<uint8_t>(vlan_ID >> 8));
   input.push_back(static_cast<uint8_t>(vlan_ID >> 0));
-  return this->QueryCommand(input, output, kPTCSetNet);
+  if (this->QueryCommand(input, output, kPTCSetNet) != 0)
+    return false;
+  return true;
 }
 
 bool PtcClient::SetDesIpandPort(std::string des, uint16_t port, uint16_t GPS_port)
@@ -460,14 +462,18 @@ bool PtcClient::SetDesIpandPort(std::string des, uint16_t port, uint16_t GPS_por
   input.push_back(static_cast<uint8_t>(port >> 0));
   input.push_back(static_cast<uint8_t>(GPS_port >> 8));
   input.push_back(static_cast<uint8_t>(GPS_port >> 0));
-  return this->QueryCommand(input, output, kPTCSetDestinationIPandPort);
+  if (this->QueryCommand(input, output, kPTCSetDestinationIPandPort) != 0)
+    return false;
+  return true;
 }
 
 bool PtcClient::SetReturnMode(uint8_t return_mode)
 {
   u8Array_t input, output;
   input.push_back(return_mode);
-  return this->QueryCommand(input, output, kPTCSetReturnMode);
+  if (this->QueryCommand(input, output, kPTCSetReturnMode) != 0)
+    return false;
+  return true;
 }
 
 bool PtcClient::SetSyncAngle(uint8_t enable_flag, uint16_t sync_angle)
@@ -476,7 +482,9 @@ bool PtcClient::SetSyncAngle(uint8_t enable_flag, uint16_t sync_angle)
   input.push_back(enable_flag);
   input.push_back(static_cast<uint8_t>(sync_angle >> 8));
   input.push_back(static_cast<uint8_t>(sync_angle >> 0));
-  return this->QueryCommand(input, output, kPTCSetSyncAngle);
+  if (this->QueryCommand(input, output, kPTCSetSyncAngle) != 0)
+    return false;
+  return true;
 }
 
 bool PtcClient::SetTmbFPGARegister(uint32_t address, uint32_t data)
@@ -494,7 +502,9 @@ bool PtcClient::SetTmbFPGARegister(uint32_t address, uint32_t data)
   input.push_back(static_cast<uint8_t>(data >> 16));
   input.push_back(static_cast<uint8_t>(data >> 8));
   input.push_back(static_cast<uint8_t>(data >> 0));
-  return this->QueryCommand(input, output, 0xff);
+  if (this->QueryCommand(input, output, 0xff) != 0)
+    return false;
+  return true;
 }
 
 bool PtcClient::SetFPGARegister(uint32_t address, uint32_t data)
@@ -508,14 +518,18 @@ bool PtcClient::SetFPGARegister(uint32_t address, uint32_t data)
   input.push_back(static_cast<uint8_t>(data >> 16));
   input.push_back(static_cast<uint8_t>(data >> 8));
   input.push_back(static_cast<uint8_t>(data >> 0));
-  return this->QueryCommand(input, output, kPTCSetFpgaRegister);
+  if (this->QueryCommand(input, output, kPTCSetFpgaRegister) != 0)
+    return false;
+  return true;
 }
 
 bool PtcClient::SetStandbyMode(uint32_t standby_mode)
 {
   u8Array_t input1, output1;
   input1.push_back(static_cast<uint8_t>(standby_mode));
-  return this->QueryCommand(input1, output1, kPTCSetStandbyMode);
+  if (this->QueryCommand(input1, output1, kPTCSetStandbyMode) != 0)
+    return false;
+  return true;
 }
 
 bool PtcClient::SetSpinSpeed(uint32_t speed)
@@ -523,7 +537,9 @@ bool PtcClient::SetSpinSpeed(uint32_t speed)
   u8Array_t input2, output2;
   input2.push_back(static_cast<uint8_t>(speed >> 8));
   input2.push_back(static_cast<uint8_t>(speed >> 0));
-  return this->QueryCommand(input2, output2, kPTCSetSpinSpeed);
+  if (this->QueryCommand(input2, output2, kPTCSetSpinSpeed) != 0)
+    return false;
+  return true;
 }
 
 void PtcClient::CRCInit() {

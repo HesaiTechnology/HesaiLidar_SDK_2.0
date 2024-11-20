@@ -47,6 +47,8 @@ int main(int argc, char *argv[])
   param.input_param.device_ip_address = "192.168.1.201";
   param.input_param.ptc_port = 9347;
   param.input_param.udp_port = 2368;
+  param.input_param.rs485_com = "Your serial port name for receiving point cloud";
+  param.input_param.rs232_com = "Your serial port name for sending cmd";
   param.input_param.host_ip_address = "";
   param.input_param.multicast_ip_address = "";
   param.decoder_param.distance_correction_lidar_type = "";

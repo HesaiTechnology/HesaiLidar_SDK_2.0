@@ -44,6 +44,8 @@ bool Ptc_2_0_parser::PtcStreamEncode(const u8Array_t &payload, u8Array_t &byteSt
 
 // 字节流的解析（拆包）
 bool Ptc_2_0_parser::PtcStreamDecode(uint8_t cmd, uint8_t retcode, const u8Array_t &payload, int start_pos, int length, u8Array_t &res) {
+  (void)start_pos;
+  (void)length;
   // PTCHeader_2_0 *header = dynamic_cast<PTCHeader_2_0*>(base_header);
   // if(header == nullptr) {
   //   std::cout << "Ptc_2_0_parser::PtcStreamDecode failed! header is not a 2.0 version!" << std::endl;

@@ -101,15 +101,15 @@ struct PandarATCorrections {
   static const int STEP3 = CORRECTION_AZIMUTH_STEP * kFineResolutionInt;
   float GetAzimuthAdjustV3(uint8_t ch, uint32_t azi) const {
     int i = int(std::floor(1.f * azi / STEP3));
-    int l = azi - i * STEP3;
-    float k = 1.f * l / STEP3;
+    int m = azi - i * STEP3;
+    float k = 1.f * m / STEP3;
     return round((1 - k) * azimuth_offset[ch * CORRECTION_AZIMUTH_NUM + i] +
                  k * azimuth_offset[ch * CORRECTION_AZIMUTH_NUM + i + 1]);
   }
   float GetElevationAdjustV3(uint8_t ch, uint32_t azi) const {
     int i = int(std::floor(1.f * azi / STEP3));
-    int l = azi - i * STEP3;
-    float k = 1.f * l / STEP3;
+    int m = azi - i * STEP3;
+    float k = 1.f * m / STEP3;
     return round((1 - k) * elevation_offset[ch * CORRECTION_AZIMUTH_NUM + i] +
                  k * elevation_offset[ch * CORRECTION_AZIMUTH_NUM + i + 1]);
   }
@@ -136,7 +136,6 @@ class Udp4_3Parser : public GeneralParser<T_Point> {
   virtual void LoadCorrectionFile(std::string correction_path);
   virtual int LoadCorrectionString(char *correction_string);
 
-  virtual void HandlePacketData(uint8_t *pu8Buf, uint16_t u16Len);
   // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy   
   virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket); 
 

@@ -23,7 +23,7 @@ void Udp2_6Parser<T_Point>::LoadCorrectionFile(std::string correction_path) {
     LogDebug("Open correction file success");
     int length = 0;
     fin.seekg(0, std::ios::end);
-    length = fin.tellg();
+    length = static_cast<int>(fin.tellg());
     fin.seekg(0, std::ios::beg);
     char *buffer = new char[length];
     fin.read(buffer, length);
@@ -181,7 +181,7 @@ int Udp2_6Parser<T_Point>::LoadCorrectionDatData(char *data) {
           p = p + 1;
           corrections_.elevation_adjust_interval = *((char*)p);
           p = p + 1;
-          int angle_offset_len = (120 / (corrections_.azimuth_adjust_interval * 0.5) + 1) * (25 / (corrections_.elevation_adjust_interval * 0.5) + 1);
+          int angle_offset_len = int((120 / (corrections_.azimuth_adjust_interval * 0.5) + 1) * (25 / (corrections_.elevation_adjust_interval * 0.5) + 1));
           memcpy((void*)corrections_.azimuth_adjust, p, sizeof(int16_t) * angle_offset_len);
           p = p + sizeof(int16_t) * angle_offset_len;
           memcpy((void*)corrections_.elevation_adjust, p, sizeof(int16_t) * angle_offset_len); 
@@ -233,15 +233,13 @@ int Udp2_6Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
   float apha =  corrections_.elevations[0];
   float beta =  corrections_.elevations[1];
   float gamma =  corrections_.elevations[2];
-  // get the points_num
-  uint16_t points_num = frame.per_points_num;
 
-  for (int i = 0; i < points_num; i++) {
+  for (size_t i = 0; i < frame.per_points_num; i++) {
     int point_index = packet_index * frame.per_points_num + i; 
     // get phi and psi and distance
     float raw_azimuth = frame.pointData[point_index].azimuth;
     float raw_elevation = frame.pointData[point_index].elevation;
-    float distance = frame.pointData[point_index].distances * frame.distance_unit;
+    float distance = static_cast<float>(frame.pointData[point_index].distances * frame.distance_unit);
     float phi = corrections_.azimuths[frame.pointData[point_index].chn_index + 3];
     float theta = corrections_.elevations[frame.pointData[point_index].chn_index + 3];
     float an = apha + phi;
@@ -357,7 +355,7 @@ int Udp2_6Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
       frame.pointData[index_unit].distances = pUnit1->GetDistance();
       frame.pointData[index_unit].azimuth = horizontalAngle/512.0f;
       frame.pointData[index_unit].elevation = verticalAngle/512.0f;
-      frame.pointData[index_unit].chn_index = unitId;
+      frame.pointData[index_unit].chn_index = static_cast<uint8_t>(unitId);
       index_unit++;
       pUnit1 += 1;
     }

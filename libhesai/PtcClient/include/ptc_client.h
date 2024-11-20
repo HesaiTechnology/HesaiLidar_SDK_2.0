@@ -77,6 +77,7 @@ class PtcClient {
   ~PtcClient();
 
   PtcClient(const PtcClient &orig) = delete;
+  PtcClient& operator=(const PtcClient&) = delete;
 
   bool IsValidRsp(u8Array_t &byteStreamIn);
   bool IsOpen() { return client_->IsOpened(); }

@@ -42,7 +42,7 @@ void Udp4_7Parser<T_Point>::LoadCorrectionFile(std::string lidar_correction_file
     LogDebug("Open correction file success");
     int length = 0;
     fin.seekg(0, std::ios::end);
-    length = fin.tellg();
+    length = static_cast<int>(fin.tellg());
     fin.seekg(0, std::ios::beg);
     char *buffer = new char[length];
     fin.read(buffer, length);
@@ -171,9 +171,9 @@ int Udp4_7Parser<T_Point>::LoadCorrectionString(char *data) {
 template <typename T_Point>
 void Udp4_7Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
   int type = 0;
-  int length_f = firetimes_path.length();
-  if (length_f >= 4) {
-    std::string extension = firetimes_path.substr(length_f - 4);
+  size_t len = firetimes_path.length();
+  if (len >= 4) {
+    std::string extension = firetimes_path.substr(len - 4);
     if (extension == ".bin" || extension == ".dat") {
       type = 1; //  .bin
     } else if (extension == ".csv") {
@@ -219,7 +219,7 @@ void Udp4_7Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
     if (fin.is_open()) {
       LogDebug("Open firetime file success");
       fin.seekg(0, std::ios::end);
-      int length = fin.tellg();
+      int length = static_cast<int>(fin.tellg());
       fin.seekg(0, std::ios::beg);
       char *buffer = new char[length];
       fin.read(buffer, length);
@@ -294,7 +294,7 @@ int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
 
     for (int i = 0; i < frame.laser_num; i++) {
       int point_index = packet_index * frame.per_points_num + blockid * frame.laser_num + i;  
-      float distance = frame.pointData[point_index].distances * frame.distance_unit;
+      float distance = static_cast<float>(frame.pointData[point_index].distances * frame.distance_unit);
       Azimuth = frame.pointData[point_index].azimuth;
       if (this->get_correction_file_) {
         azimuth = (CIRCLE + Azimuth) % CIRCLE;
@@ -325,7 +325,7 @@ int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
       setConfidence(frame.points[point_index], frame.pointData[point_index].confidence);
       setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
-      setRing(frame.points[point_index], i);
+      setRing(frame.points[point_index], static_cast<uint16_t>(i));
     }
   }
   GeneralParser<T_Point>::FrameNumAdd();
@@ -430,7 +430,7 @@ int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     // pFineAzimuth = reinterpret_cast<const HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7 *>(
     //     (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7));
 
-    int azimuth = (u32Azimuth) * (kAllFineResolutionFloat  / m_ATX_corrections.header.angle_division);
+    int azimuth = int((u32Azimuth) * (kAllFineResolutionFloat  / m_ATX_corrections.header.angle_division));
     for (int i = 0; i < pHeader->GetLaserNum(); i++) {
       if (m_ATX_corrections.header.version[1] == 1) {
         frame.pointData[index].azimuth =  azimuth + m_ATX_corrections.azimuth[i] * kAllFineResolutionFloat;

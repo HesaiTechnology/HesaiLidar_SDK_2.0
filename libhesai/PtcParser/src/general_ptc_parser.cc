@@ -36,16 +36,16 @@ GeneralPtcParser::~GeneralPtcParser(){}
 // 对需要分成多个包的payload进行split和封装成包
 bool GeneralPtcParser::SplitFileFrames(const u8Array_t &file, uint8_t u8Cmd, std::vector<u8Array_t>& packages) {
   // const int FRAME_LENGTH = 1024; 
-  int file_length = file.size();
+  // int file_length = file.size();
   std::vector<u8Array_t> frames;
   // split file -> frames
   // int pos = 0;
-  while(file_length > 0) {
+  // while(file_length > 0) {
     // u8Array_t tmp = u8Array_t(pos, pos + min(FRAME_LENGTH, file_length));
     // frames.push_back(tmp);
     // pos += FRAME_LENGTH;
     // file_length -= FRAME_LENGTH;
-  }
+  // }
   // 对frame进行封装成包
   for(auto &frame : frames) {
     u8Array_t cur;

@@ -80,9 +80,14 @@ public:
         _fpcap.open(pcap_path, std::ios::binary);
         if (_fpcap.is_open()) {
             _fpcap.seekg(0, std::ios::end);
-            _fileData.resize(_fpcap.tellg());
+            size_t _Newsize = _fpcap.tellg();
+            if (_Newsize > static_cast<size_t>(std::numeric_limits<std::streamsize>::max())) {   
+                throw std::runtime_error(std::string("File size out of read range (max ")  + std::to_string(
+                    static_cast<size_t>(std::numeric_limits<std::streamsize>::max())) + std::string(" byte), read failed."));
+            }  
+            _fileData.resize(_Newsize);
             _fpcap.seekg(0, std::ios::beg);
-            _fpcap.read(&_fileData[0], _fileData.size());
+            _fpcap.read(&_fileData[0], static_cast<std::streamsize>(_Newsize));
         }
     }
 
@@ -192,6 +197,9 @@ std::string PcapSource::pcap_path() const {
 
 int PcapSource::next(UdpPacket& udpPacket, uint16_t u16Len, int flags,
                       int timeout) {                 
+    (void)u16Len;
+    (void)timeout;
+    (void)flags;
     if(_p->eof()) {
         is_pcap_end = true;
         return -1;
@@ -320,16 +328,18 @@ void PcapSource::Close() {
 
 
 bool PcapSource::IsOpened() {
-  return _p->is_open();
+    return _p->is_open();
 }
 
 int PcapSource::Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags,
                        int iTimeout) {
-  return next(udpPacket, u16Len, flags, iTimeout);
+    return next(udpPacket, u16Len, flags, iTimeout);
 }
 
 int PcapSource::Send(uint8_t* u8Buf, uint16_t u16Len, int flags) {
-  return u16Len;
+    (void)u8Buf;
+    (void)flags;
+    return u16Len;
 }
 
 void PcapSource::setPcapPath(std::string path) {

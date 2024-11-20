@@ -44,6 +44,7 @@ private:
   std::function<void(const uint32_t &, const uint32_t &)> pkt_loss_cb_;
   std::function<void(const uint8_t&, const u8Array_t&)> ptp_cb_;
   std::function<void(const FaultMessageInfo&)> fault_message_cb_;
+  std::function<void(const LidarImuData&)> imu_cb_;
   bool is_thread_runing_;
   bool packet_loss_tool_;
   uint32_t device_ip_address_;
@@ -54,6 +55,7 @@ public:
     std::cout << "-------- Hesai Lidar SDK V" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_TINY << " --------" << std::endl;
     runing_thread_ptr_ = nullptr;
     lidar_ptr_ = nullptr;
+    init_thread_ptr_ = nullptr;
     is_thread_runing_ = false;
     packet_loss_tool_ = false;
     source_type_ = DATA_FROM_PCAP;
@@ -155,8 +157,8 @@ public:
     UdpPacket packet;
     FaultMessageInfo fault_message_info;
 
-    uint32_t total_packet_count;
-    uint32_t total_packet_loss_count;
+    uint32_t total_packet_count = 0;
+    uint32_t total_packet_loss_count = 0;
     while (is_thread_runing_)
     {
 
@@ -187,7 +189,11 @@ public:
         }
       }
       //get distance azimuth reflection, etc.and put them into decode_packet
-      if(lidar_ptr_->DecodePacket(lidar_ptr_->frame_, packet) != 0) {
+      ret = lidar_ptr_->DecodePacket(lidar_ptr_->frame_, packet);
+      if(ret != 0) {
+        if (ret == 1) {
+          if (imu_cb_) imu_cb_(lidar_ptr_->frame_.imu_config);
+        }
         continue;
       }
 
@@ -301,6 +307,9 @@ public:
   }
   void RegRecvCallback(const std::function<void (const FaultMessageInfo&)>& callback) {
     fault_message_cb_ = callback;
+  }
+  void RegRecvCallback(const std::function<void (const LidarImuData&)>& callback) {
+    imu_cb_ = callback;
   }
 };
 

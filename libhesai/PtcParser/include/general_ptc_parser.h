@@ -55,7 +55,7 @@ public:
 
   virtual uint8_t GetHeaderIdentifier0() = 0;
   virtual uint8_t GetHeaderIdentifier1() = 0;
-  virtual int GetHeaderSize() = 0;
+  virtual uint16_t GetHeaderSize() = 0;
   virtual uint8_t GetHeaderReturnCode() const = 0;
   virtual uint8_t GetHeaderCmd() const = 0;
   virtual uint32_t GetHeaderPayloadLen() const = 0;

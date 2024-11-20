@@ -131,6 +131,10 @@ void UdpParser<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
           parser_ = new Udp1_4Parser<T_Point>();
           lidar_type_decoded_ = "Pandar128";
           break;
+        case 8:
+          parser_ = new Udp1_8Parser<T_Point>();
+          lidar_type_decoded_ = "JT16";
+          break;
         default:
           break;
       }
@@ -148,7 +152,11 @@ void UdpParser<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
           break;
         case 6:
           parser_ = new Udp2_6Parser<T_Point>();
-          lidar_type_decoded_ = "ET25";
+          lidar_type_decoded_ = "ET25-HA2";
+          break;
+        case 7:
+          parser_ = new Udp2_7Parser<T_Point>();
+          lidar_type_decoded_ = "ET30-HA2";
           break;
         default:
           break;
@@ -265,6 +273,8 @@ void UdpParser<T_Point>::CreatGeneralParser(const std::string& lidar_type) {
     parser_ = new Udp1_4Parser<T_Point>();
   } else if (lidar_type == "Pandar90" || lidar_type == "Pandar90E3X") {
     parser_ = new Udp1_4Parser<T_Point>();  
+  } else if ( lidar_type == "JT16" ) {
+    parser_ = new Udp1_8Parser<T_Point>();
   } else if (lidar_type == "PandarXT") {
     parser_ = new Udp6_1Parser<T_Point>();
   } else if (lidar_type == "PandarXT16" || lidar_type == "PandarXT-16") {
@@ -287,9 +297,11 @@ void UdpParser<T_Point>::CreatGeneralParser(const std::string& lidar_type) {
     parser_ = new Udp2_4Parser<T_Point>();
   } else if (lidar_type == "ET25-E2X") {
     parser_ = new Udp2_5Parser<T_Point>();
-  } else if (lidar_type == "ET25" || lidar_type == "ET") {
+  } else if (lidar_type == "ET25-HA2") {
     parser_ = new Udp2_6Parser<T_Point>();
-  } else if ( lidar_type == "ATX" ) {
+  } else if (lidar_type == "ET30-HA2") {
+    parser_ = new Udp2_7Parser<T_Point>();
+  }else if ( lidar_type == "ATX" ) {
     parser_ = new Udp4_7Parser<T_Point>();
   }
 }
