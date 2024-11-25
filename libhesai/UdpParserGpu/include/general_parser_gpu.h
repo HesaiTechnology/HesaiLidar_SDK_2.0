@@ -34,7 +34,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <fstream>
 #include <string>
+#if __has_include(<semaphore>)
+#include <semaphore>
+#else
 #include <semaphore.h>
+#endif
 #include <list>
 #include <vector>
 #include "lidar_types.h"
