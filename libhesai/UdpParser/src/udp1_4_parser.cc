@@ -183,8 +183,8 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       if (this->get_correction_file_) {
         int azimuth_coll = (int(this->azimuth_collection_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
         int elevation_corr = (int(this->elevation_correction_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
-        if (this->enable_distance_correction_) {
-          GetDistanceCorrection(azimuth_coll, elevation_corr, distance, GeometricCenter);
+        if (frame.optical_center.flag) {
+          GeneralParser<T_Point>::GetDistanceCorrection(frame.optical_center, azimuth_coll, elevation_corr, distance, GeometricCenter);
         }
         elevation = elevation_corr;
         azimuth = Azimuth + azimuth_coll;
@@ -291,6 +291,18 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     return -1;
   }
   if (udpPacket.buffer[0] != 0xEE || udpPacket.buffer[1] != 0xFF) return -1;
+
+  static bool distanceCorrectionCoordinateSetBool = false;
+  if (distanceCorrectionCoordinateSetBool == false) {
+    distanceCorrectionCoordinateSetBool = true;
+    const HS_LIDAR_PRE_HEADER *pPreHeader =
+        reinterpret_cast<const HS_LIDAR_PRE_HEADER *>(udpPacket.buffer);
+    if (pPreHeader->m_u8StatusInfoVersion > 127) {
+      frame.optical_center.setNoFlag(OT_optical_center);
+    } else {
+      frame.optical_center.setNoFlag(PandarN_optical_center);
+    }
+  }
   const HS_LIDAR_HEADER_ME_V4 *pHeader =
       reinterpret_cast<const HS_LIDAR_HEADER_ME_V4 *>(
           udpPacket.buffer + sizeof(HS_LIDAR_PRE_HEADER));

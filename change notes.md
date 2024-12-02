@@ -84,3 +84,13 @@ V2.0.8
 20. Compatible with OT firetimes analysis
 21. Support reading ATX .dat format firetimes.
 22. Fix the problem of not considering forward and reverse rotation when fixing mechanical lidar firetimes.
+
+################################################################################
+******
+## version
+V2.0.9
+
+## modify
+1. Support JT16, ET30HA2 parsing
+2. distance correction only needs to be set on and off, no need to specify the lidar type again.
+3. Support LAS protocol format storage

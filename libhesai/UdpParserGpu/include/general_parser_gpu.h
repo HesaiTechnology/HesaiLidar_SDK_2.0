@@ -163,7 +163,6 @@ class GeneralParserGpu {
   virtual int LoadCorrectionString(char *correction_string) = 0;
   virtual void LoadFiretimesFile(std::string firetimes_path);
   virtual int LoadFiretimesString(char *firetimes_string);
-  void SetOpticalCenterCoordinates(std::string lidar_type);
   
   // compute xyzi of points from decoded packet， use gpu device
   // param packet is the decoded packet; xyzi of points after computed is puted in frame  

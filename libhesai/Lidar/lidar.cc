@@ -199,7 +199,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     if (udp_parser_->GetParser() == nullptr) {
       return res;
     }
-    udp_parser_->GetParser()->SetOpticalCenterCoordinates(param.decoder_param.distance_correction_lidar_type);
+    frame_.optical_center.flag = param.decoder_param.distance_correction_lidar_flag;
     udp_parser_->GetParser()->SetLidarType(param.lidar_type);
     init_finish_[FaultMessParse] = true;
     LogDebug("finish 0: The basic initialisation is complete");

@@ -58,11 +58,11 @@ class UdpP40Parser : public GeneralParser<T_Point> {
   // compute xyzi of points from decoded packet
   // param packet is the decoded packet; xyzi of points after computed is puted in frame      
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
-  using GeneralParser<T_Point>::GetDistanceCorrection;
 
   // determine whether frame splitting is needed
   bool IsNeedFrameSplit(uint16_t azimuth);
  private:
+  LidarOpticalCenter P40_optical_center{-0.012, 0.03873, 0};
 };
 }  // namespace lidar
 }  // namespace hesai

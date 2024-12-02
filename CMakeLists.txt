@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 14)
 PROJECT(Template)
 set(VERSION_MAJOR 2)
 set(VERSION_MINOR 0)
-set(VERSION_TINY  8)
+set(VERSION_TINY  9)
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/Version.h.in"
   "${CMAKE_CURRENT_BINARY_DIR}/Version.h"
@@ -29,8 +29,6 @@ include_directories("${PROJECT_BINARY_DIR}")
 find_package(OpenSSL REQUIRED)
 add_definitions(-DQT_MESSAGELOGCONTEXT)
 add_subdirectory(libhesai)
-find_package(Eigen3 REQUIRED)
-include_directories(EIGEN3 INCLUDE_DIR)
 
 include_directories(
   libhesai

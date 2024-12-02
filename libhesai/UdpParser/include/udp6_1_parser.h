@@ -60,10 +60,10 @@ class Udp6_1Parser : public GeneralParser<T_Point> {
 
   // determine whether frame splitting is needed
   bool IsNeedFrameSplit(uint16_t azimuth);
-
-  using GeneralParser<T_Point>::GetDistanceCorrection;
   
  private:
+  LidarOpticalCenter XTM1_optical_center{-0.013, 0.0315, 0};
+  LidarOpticalCenter XTM2_optical_center{-0.013, 0.0305, 0};
   float distance_correction_b_;
   float distance_correction_h_;
   int block_num_;

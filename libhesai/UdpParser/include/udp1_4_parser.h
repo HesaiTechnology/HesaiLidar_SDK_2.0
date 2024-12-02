@@ -74,9 +74,9 @@ class Udp1_4Parser : public GeneralParser<T_Point> {
   // determine whether frame splitting is needed
   bool IsNeedFrameSplit(uint16_t azimuth); 
 
-  using GeneralParser<T_Point>::GetDistanceCorrection;
-
  private:
+  LidarOpticalCenter OT_optical_center{-0.01, 0.045, 0};
+  LidarOpticalCenter PandarN_optical_center{-0.012, 0.04356, 0};
   static const int kLaserNum = 128;
   double section_distance;
   std::array<FiretimeSectionValues, kLaserNum> firetime_section_values;

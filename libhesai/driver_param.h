@@ -100,12 +100,7 @@ typedef struct DecoderParam
   uint16_t use_timestamp_type = point_cloud_timestamp;
   int fov_start = -1;
   int fov_end = -1;
-  // support: 1_4: Pandar128E4X / OT, Pandar128E3X, Pandar64E3X, Pandar40E3X, Pandar90E3X;
-  //          1_8: JT16
-  //          3_1: PandarQT;  3_2: QT128C2X;
-  //          6_1: PandarXT32M1, PandarXT16M1, PandarXT32M2X / XTM;
-  //          special: Pandar64E2X, Pandar40E2X,
-  std::string distance_correction_lidar_type = "";
+  bool distance_correction_lidar_flag = false;
   uint32_t socket_buffer_size = 0;
 } DecoderParam;
 

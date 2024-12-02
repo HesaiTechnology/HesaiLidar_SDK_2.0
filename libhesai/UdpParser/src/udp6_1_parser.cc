@@ -58,8 +58,8 @@ int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       if (this->get_correction_file_) {
         int azimuth_coll = (int(this->azimuth_collection_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
         int elevation_corr = (int(this->elevation_correction_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
-        if (this->enable_distance_correction_) {
-          GetDistanceCorrection(azimuth_coll, elevation_corr, distance, GeometricCenter);
+        if (frame.optical_center.flag) {
+          GeneralParser<T_Point>::GetDistanceCorrection(frame.optical_center, azimuth_coll, elevation_corr, distance, GeometricCenter);
         }
         elevation = elevation_corr;
         azimuth = Azimuth + azimuth_coll;
@@ -177,6 +177,17 @@ int Udp6_1Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   const HsLidarXTV1Header *pHeader =
       reinterpret_cast<const HsLidarXTV1Header *>(
           &(udpPacket.buffer[0]) + sizeof(HS_LIDAR_PRE_HEADER));
+  
+  static bool distanceCorrectionCoordinateSetBool = false;
+  if (distanceCorrectionCoordinateSetBool == false) {
+    distanceCorrectionCoordinateSetBool = true;
+    if (pHeader->m_u8BlockNum == 6)
+      frame.optical_center.setNoFlag(XTM2_optical_center);
+    else if (pHeader->m_u8BlockNum == 8)
+      frame.optical_center.setNoFlag(XTM1_optical_center);
+    else 
+      LogError("XT version unknown, unable to set distance correction coordinates");
+  }
 
   const HsLidarXTV1Tail *pTail =
       reinterpret_cast<const HsLidarXTV1Tail *>(

@@ -76,8 +76,6 @@ class Udp3_2Parser : public GeneralParser<T_Point> {
   // compute lidar distance correction
   double GetFiretimesCorrection(int laserId, double speed, int loopIndex);
 
-  using GeneralParser<T_Point>::GetDistanceCorrection;
-
   // get lidar correction file from local file,and pass to udp parser 
   int LoadChannelConfigString(char *channel_config_content);
   void LoadChannelConfigFile(std::string channel_config_path);
@@ -93,6 +91,7 @@ class Udp3_2Parser : public GeneralParser<T_Point> {
   bool IsNeedFrameSplit(uint16_t azimuth);               
 
  private:
+  LidarOpticalCenter QT_optical_center{0.0072, 0.0354, 0};
   std::array<std::array<float, HS_LIDAR_QT128_LASER_NUM>,
              HS_LIDAR_QT128_LOOP_NUM>
       qt128_firetime_;

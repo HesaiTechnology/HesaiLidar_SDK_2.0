@@ -121,7 +121,6 @@ public:
 
     //init gpu parser with lidar type
     gpu_parser_ptr_->SetLidarType(lidar_type_from_parser);
-    gpu_parser_ptr_->SetOpticalCenterCoordinates(param.decoder_param.distance_correction_lidar_type);
     gpu_parser_ptr_->SetXtSpotCorrecion(param.lidar_type);
 
     //set transform param

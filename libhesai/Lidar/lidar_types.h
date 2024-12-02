@@ -181,6 +181,31 @@ struct PointDecodeData {
   uint8_t mirror_index;
 } PACKED;
 
+struct LidarOpticalCenter {
+  float x;
+  float y;
+  float z;
+  bool flag;
+  LidarOpticalCenter() {
+    x = 0;
+    y = 0;
+    z = 0;
+    flag = false;
+  }
+  LidarOpticalCenter(float _x, float _y, float _z) {
+    x = _x;
+    y = _y;
+    z = _z;
+    flag = false;
+  }
+  void setNoFlag(LidarOpticalCenter &other){
+    x = other.x;
+    y = other.y;
+    z = other.z;
+  }
+  LidarOpticalCenter& operator=(LidarOpticalCenter&) = delete;  
+};
+
 template <typename PointT>
 class LidarDecodedFrame
 {
@@ -261,6 +286,7 @@ class LidarDecodedFrame
     uint16_t use_timestamp_type;
     LidarDecodeConfig config;
     LidarImuData imu_config;
+    LidarOpticalCenter optical_center;
 };
 
 
