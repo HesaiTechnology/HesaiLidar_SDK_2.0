@@ -81,4 +81,39 @@ $ ./sample_gpu
 ```
 
 # Functional Parameter Description
-
+DecoderParam :
+	1. pcap_play_synchronization: When parsing pcap, it is delayed according to the point cloud time to simulate the publish speed when parsing in real time.
+	2. frame_start_azimuth: Split-frame position of the 360-degree rotating lidar (in degrees [0-360)).
+	3. enable_packet_loss_tool: Packet loss statistics, based on sequence number.
+	4. enable_packet_timeloss_tool: Packet loss statistics, based on whether the timestamp is backed up or not, only once.
+	5. packet_timeloss_tool_continue: Whether packet loss statistics are continuously performed (based on timestamps).
+	6. use_timestamp_type: Use timestamp type (point cloud carry or local time).
+	7. fov_start and fov_end: Allowable light emission angle, outside the angle is set to 0.
+	8. distance_correction_lidar_flag: Control of optical center corrections for mechanical lidar.
+	9. xt_spot_correction: Controlling point cloud S-stratification corrections for the XT16/32 lidar.
+	10. Setting the buffer size of the system udpsocket.
+InputParam:
+	1. ptc_mode: ptc mode, some lidar support ssl encrypted communication.
+	2. source_type: udp data sources.
+	3. device_ip_address: Lidar ip, used for ptc connections, also used to filter udp data if filtering is enabled
+	4. multicast_ip_address: Enabled when lidar point cloud udp is multicast.
+	5. device_udp_src_port: On at >=1024, filter point cloud data for specified ports and ip(device_ip_address).
+	6. device_fault_port: On at >=1024, filter fault message data for specified ports and ip(device_ip_address).
+	7. udp_port: point cloud udp port.
+	8. ptc_port: lidar ptc port, used for ptc connections.
+	9. rs485_com: Point cloud port for serial reception (only for JT16).
+	10. rs232_com: Command send port for serial port reception (only for JT16).
+	11. point_cloud_baudrate: Point cloud data baud rate (only for JT16).
+	12. rs485_baudrate: OTA command baud rate (only for JT16).
+	13. rs232_baudrate: Normal command baud rate (only for JT16).
+	14. correction_save_path: Serial port to get the storage path of the angle calibration file (only for JT16).
+	15. pcap_path: Local path to pcap when pcap parses.
+	16. correction_file_path: Local path to correction file.
+	17. firetimes_path: Local path to firetimes file.
+	18. certFile、privateKeyFile、caFile: The storage path for certificates and keys when communicating with ptcs.
+	19. standby_mode: Initialization sets the lidar mode to * (on if not -1).
+	20. speed: Initialization sets the lidar speed to * (on if not -1).
+DriverParam: 
+	1. log_level: Log level to be output.
+	2. log_Target: Log output location, print and file.
+	3. log_path: File location for log output.

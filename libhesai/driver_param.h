@@ -130,8 +130,6 @@ typedef struct InputParam
   int point_cloud_baudrate = 3125000;
   int rs485_baudrate = 115200;   
   int rs232_baudrate = 9600;          
-  bool read_pcap = true;          ///< true: The driver will process the pcap through pcap_path. false: The driver will
-                                   ///< Get data from online LiDAR
   std::string pcap_path = "Your pcap file path";  ///< Absolute path of pcap file
   std::string correction_file_path = "Your correction file path";   ///< Path of angle calibration files(angle.csv).Only used for internal debugging.
   std::string firetimes_path = "Your firetime file path";  ///< Path of firetime files(angle.csv).
