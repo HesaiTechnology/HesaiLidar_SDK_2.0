@@ -47,6 +47,8 @@ GeneralParser<T_Point>::GeneralParser() {
   this->enable_packet_loss_tool_ = false;
   this->enable_packet_timeloss_tool_ = false;
   this->packet_timeloss_tool_continue_ = false;
+  this->rotation_flag = 1;
+  this->xt_spot_correction = false;
   for (int i = 0; i < CIRCLE; ++i) {
     this->sin_all_angle_[i] = std::sin(i * 2 * M_PI / CIRCLE);
     this->cos_all_angle_[i] = std::cos(i * 2 * M_PI / CIRCLE);
@@ -442,3 +444,8 @@ void GeneralParser<T_Point>::CalPktTimeLoss(uint64_t PacketTimestamp) {
   this->time_loss_message_.last_timestamp = PacketTimestamp;    
 }
 
+template <typename T_Point>
+void GeneralParser<T_Point>::SetOpticalCenterFlag(bool flag) { 
+  optical_center.flag = flag; 
+  if (flag) LogInfo("Enable distance correction, center(%f %f %f)", optical_center.x, optical_center.y, optical_center.z);
+}

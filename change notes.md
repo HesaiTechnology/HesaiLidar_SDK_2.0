@@ -91,6 +91,7 @@ V2.0.8
 V2.0.9
 
 ## modify
-1. Support JT16, ET30HA2 parsing
+1. Support JT16, ET30HA2 parsing.
 2. distance correction only needs to be set on and off, no need to specify the lidar type again.
-3. Support LAS protocol format storage
+3. Support LAS protocol format storage.
+4. The initialization distinguishes (PandarN, OT) (XT, XTM), and the point cloud S-stratification correction of XT is controlled using a flag bit parameter (xt_spot_correction).

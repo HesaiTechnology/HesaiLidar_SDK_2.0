@@ -62,7 +62,6 @@ class UdpP40Parser : public GeneralParser<T_Point> {
   // determine whether frame splitting is needed
   bool IsNeedFrameSplit(uint16_t azimuth);
  private:
-  LidarOpticalCenter P40_optical_center{-0.012, 0.03873, 0};
 };
 }  // namespace lidar
 }  // namespace hesai

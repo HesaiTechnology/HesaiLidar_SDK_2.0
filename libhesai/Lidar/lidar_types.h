@@ -198,7 +198,7 @@ struct LidarOpticalCenter {
     z = _z;
     flag = false;
   }
-  void setNoFlag(LidarOpticalCenter &other){
+  void setNoFlag(LidarOpticalCenter other){
     x = other.x;
     y = other.y;
     z = other.z;
@@ -286,7 +286,6 @@ class LidarDecodedFrame
     uint16_t use_timestamp_type;
     LidarDecodeConfig config;
     LidarImuData imu_config;
-    LidarOpticalCenter optical_center;
 };
 
 

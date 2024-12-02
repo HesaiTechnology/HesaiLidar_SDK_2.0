@@ -75,11 +75,6 @@ void GeneralParserGpu<T_Point>::SetTransformPara(float x, float y, float z, floa
 }
 
 template <typename T_Point>
-int GeneralParserGpu<T_Point>::SetXtSpotCorrecion(std::string lidar_type) {
-  if (lidar_type == "PandarXT32M1" || lidar_type == "PandarXT16M1" ) {
-    xt_spot_correction = true;
-  } else {
-    return -1;
-  }
-  return 0;
+void GeneralParserGpu<T_Point>::SetXtSpotCorrection(bool flag) {
+  xt_spot_correction = flag;
 }

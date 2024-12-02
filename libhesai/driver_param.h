@@ -101,6 +101,7 @@ typedef struct DecoderParam
   int fov_start = -1;
   int fov_end = -1;
   bool distance_correction_lidar_flag = false;
+  bool xt_spot_correction = false;
   uint32_t socket_buffer_size = 0;
 } DecoderParam;
 
@@ -174,7 +175,6 @@ typedef struct DriverParam
   ///< The frame id of LiDAR message    
   std::string frame_id = "hesai";  
   ///< Lidar type
-  //XT spot correction support: 6_1: PandarXT32M1, PandarXT16M1
   std::string lidar_type = "";  
   uint8_t log_level = LOG_INFO | LOG_WARNING | LOG_ERROR | LOG_FATAL; //
   uint8_t log_Target = LOG_TARGET_CONSOLE | LOG_TARGET_FILE;

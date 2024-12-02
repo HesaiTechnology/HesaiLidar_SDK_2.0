@@ -295,8 +295,11 @@ class GeneralParser {
   virtual void PacketTimeLossToolContinue(bool enable);
   void CalPktLoss(uint32_t PacketSeqnum);
   void CalPktTimeLoss(uint64_t PacketTimestamp);
-  uint32_t getComputePacketNum() { return compute_packet_num; }
-  void setComputePacketNumToZero() { compute_packet_num = 0; }
+  uint32_t GetComputePacketNum() { return compute_packet_num; }
+  void SetComputePacketNumToZero() { compute_packet_num = 0; }
+  LidarOpticalCenter GetOpticalCenter() { return optical_center; }
+  void SetOpticalCenterFlag(bool flag);
+  void SetXtSpotCorrection(bool flag) { xt_spot_correction = flag; }
 
   void TransformPoint(float& x, float& y, float& z);
   void SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
@@ -337,7 +340,8 @@ class GeneralParser {
   float frame_start_azimuth_;
   LidarOpticalCenter optical_center;
   std::atomic<uint32_t> compute_packet_num;
-  int rotation_flag = 1;
+  int rotation_flag;
+  bool xt_spot_correction;
 };
 }
 }

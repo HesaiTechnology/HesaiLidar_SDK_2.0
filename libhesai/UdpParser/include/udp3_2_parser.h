@@ -91,7 +91,6 @@ class Udp3_2Parser : public GeneralParser<T_Point> {
   bool IsNeedFrameSplit(uint16_t azimuth);               
 
  private:
-  LidarOpticalCenter QT_optical_center{0.0072, 0.0354, 0};
   std::array<std::array<float, HS_LIDAR_QT128_LASER_NUM>,
              HS_LIDAR_QT128_LOOP_NUM>
       qt128_firetime_;

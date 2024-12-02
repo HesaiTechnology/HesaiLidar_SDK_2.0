@@ -113,7 +113,7 @@ int Udp1_8ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
                           frame.packet_num * sizeof(uint64_t), 
                           cudaMemcpyHostToDevice), ReturnCode::CudaMemcpyHostToDeviceError);   
 compute_xyzs_1_8_impl<<<frame.packet_num, frame.block_num * frame.laser_num>>>(this->frame_.gpu()->points, channel_azimuths_cu_, channel_elevations_cu_, 
-  point_data_cu_, sensor_timestamp_cu_, frame.distance_unit, this->transform_, frame.optical_center, frame.block_num, frame.laser_num, frame.packet_num);
+  point_data_cu_, sensor_timestamp_cu_, frame.distance_unit, this->transform_, this->optical_center, frame.block_num, frame.laser_num, frame.packet_num);
   cudaSafeCall(cudaGetLastError(), ReturnCode::CudaXYZComputingError);
   this->frame_.DeviceToHost(0, frame.block_num * frame.laser_num * frame.packet_num * sizeof(T_Point));
   std::memcpy(frame.points, this->frame_.cpu()->points, frame.block_num * frame.laser_num * frame.packet_num * sizeof(T_Point));

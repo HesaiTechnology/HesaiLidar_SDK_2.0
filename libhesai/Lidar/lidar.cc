@@ -199,8 +199,9 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     if (udp_parser_->GetParser() == nullptr) {
       return res;
     }
-    frame_.optical_center.flag = param.decoder_param.distance_correction_lidar_flag;
     udp_parser_->GetParser()->SetLidarType(param.lidar_type);
+    udp_parser_->GetParser()->SetOpticalCenterFlag(param.decoder_param.distance_correction_lidar_flag);
+    udp_parser_->GetParser()->SetXtSpotCorrection(param.decoder_param.xt_spot_correction);
     init_finish_[FaultMessParse] = true;
     LogDebug("finish 0: The basic initialisation is complete");
     
@@ -425,8 +426,8 @@ int Lidar<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPac
 template <typename T_Point>
 bool Lidar<T_Point>::ComputeXYZIComplete(uint32_t index) {
   if (udp_parser_ == nullptr) return false;
-  if (udp_parser_->getComputePacketNum() == index) {
-    udp_parser_->setComputePacketNumToZero();
+  if (udp_parser_->GetComputePacketNum() == index) {
+    udp_parser_->SetComputePacketNumToZero();
     return true;
   }
   return false;
