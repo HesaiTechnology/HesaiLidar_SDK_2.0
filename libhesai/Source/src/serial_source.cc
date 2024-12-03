@@ -168,9 +168,11 @@ int SerialSource::Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags, int 
       dataLength = dataLength - dataIndex;
       dataIndex = 0;
     }
-    ret = read(m_iFd, serialData + dataLength, u16Len);
-    if (ret > 0) {
-      dataLength += ret;
+    if (dataLength + u16Len <= kDataMaxLength) {
+      ret = read(m_iFd, serialData + dataLength, u16Len);
+      if (ret > 0) {
+        dataLength += ret;
+      }
     }
     while (dataLength - dataIndex >= 80) {
       if (serialData[dataIndex] != 0xee || serialData[dataIndex + 1] != 0xff) {
@@ -207,9 +209,11 @@ int SerialSource::Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags, int 
         dataLength = dataLength - dataIndex;
         dataIndex = 0;
       }
-      ret = read(m_iFd, serialData + dataLength, u16Len);
-      if (ret > 0) {
-        dataLength += ret;
+      if (dataLength + u16Len <= kDataMaxLength) {
+        ret = read(m_iFd, serialData + dataLength, u16Len);
+        if (ret > 0) {
+          dataLength += ret;
+        }
       }
       while (dataLength - dataIndex >= 7) {
         if (serialData[dataIndex] != 0x24 || serialData[dataIndex + 1] != 0x4C || serialData[dataIndex + 2] != 0x44

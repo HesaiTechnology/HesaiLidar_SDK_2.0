@@ -39,15 +39,117 @@ template<typename T_Point>
 Udp1_4Parser<T_Point>::Udp1_4Parser(std::string lidar_type) {
   this->motor_speed_ = 0;
   this->return_mode_ = 0;
+#ifdef JT128_256
+  this->lidar_type_ = STR_JT128_256;
+#else
+  this->lidar_type_ = lidar_type;
   if (lidar_type == STR_PANDARN) {
     this->optical_center.setNoFlag(LidarOpticalCenter{-0.012, 0.04356, 0});
   } else if (lidar_type == STR_OT128) {
     this->optical_center.setNoFlag(LidarOpticalCenter{-0.01, 0.045, 0});
   }
+#endif
 }
 
 template<typename T_Point>
 Udp1_4Parser<T_Point>::~Udp1_4Parser() { LogInfo("release general parser"); }
+
+template <typename T_Point>
+int Udp1_4Parser<T_Point>::LoadCorrectionString(char *correction_content) {
+  std::string correction_content_str = correction_content;
+  std::istringstream ifs(correction_content_str);
+  std::string line;
+  // skip first line "Laser id,Elevation,Azimuth" or "eeff"
+  std::getline(ifs, line);  
+  float elevation_list[MAX_LASER_NUM], azimuth_list[MAX_LASER_NUM];
+  std::vector<std::string> vfirstLine;
+  split_string(vfirstLine, line, ',');
+  if (vfirstLine[0] == "EEFF" || vfirstLine[0] == "eeff") {
+    // skip second line
+    std::getline(ifs, line);  
+  }
+
+  int lineCount = 0;
+  while (std::getline(ifs, line)) {
+    std::vector<std::string> vLineSplit;
+    split_string(vLineSplit, line, ',');
+    // skip error line or hash value line
+
+    if (lidar_type_ == STR_OT128 && lineCount == 128) {
+      if (vLineSplit[0].length() < 3) continue;
+      std::string hash = vLineSplit[0];
+      SHA256_USE sha256;
+      std::vector<std::string> lines;  
+      std::string line;  
+      ifs.seekg(0);
+      // 按行读取内容  
+      while (std::getline(ifs, line)) {  
+          if (!line.empty()) {  
+              lines.push_back(line); // 只添加非空行  
+          }  
+      }  
+      // 删除最后一行SHA256  
+      if (!lines.empty()) {  
+          lines.pop_back();  
+      }  
+      // 将剩余的行重新组合为字符串  
+      std::ostringstream modifiedContentStream;  
+      for (const auto& modifiedLine : lines) {  
+          modifiedContentStream << modifiedLine << '\n';  
+      }  
+      std::string modifiedContent = modifiedContentStream.str();  
+      sha256.update(modifiedContent.data(), modifiedContent.length());
+      uint8_t u8Hash[32];
+      sha256.hexdigest(u8Hash);
+      std::ostringstream oss;  
+      for (size_t i = 0; i < sizeof(u8Hash); ++i) {  
+          oss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(u8Hash[i]);  
+      }  
+      std::string hashString = oss.str(); 
+      if (hashString != hash) {
+        LogFatal("correction file is invalid, hash is error");
+        return -1;
+      }
+      continue;
+    }
+    if (vLineSplit.size() < 3) {  
+      continue;
+    } else {
+      lineCount++;
+    }
+    float elevation, azimuth;
+    int laserId = 0;
+
+    std::stringstream ss(line);
+    std::string subline;
+    std::getline(ss, subline, ',');
+    std::stringstream(subline) >> laserId;
+    std::getline(ss, subline, ',');
+    std::stringstream(subline) >> elevation;
+    std::getline(ss, subline, ',');
+    std::stringstream(subline) >> azimuth;
+
+    if (laserId > MAX_LASER_NUM || laserId <= 0) {
+      LogFatal("laser id is wrong in correction file. laser Id: %d, line: %d", laserId, lineCount);
+      continue;
+    }
+    if (laserId != lineCount) {
+      LogWarning("laser id is wrong in correction file. laser Id: %d, line: %d.  continue", laserId, lineCount);
+      continue;
+    }
+    elevation_list[laserId - 1] = elevation;
+    azimuth_list[laserId - 1] = azimuth;
+  }
+  this->elevation_correction_.resize(lineCount);
+  this->azimuth_collection_.resize(lineCount);
+
+  for (int i = 0; i < lineCount; ++i) {
+    this->elevation_correction_[i] = elevation_list[i];
+    this->azimuth_collection_[i] = azimuth_list[i];
+  }
+  this->get_correction_file_ = true;
+  return 0;
+}
 
 template<typename T_Point>
 void Udp1_4Parser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {

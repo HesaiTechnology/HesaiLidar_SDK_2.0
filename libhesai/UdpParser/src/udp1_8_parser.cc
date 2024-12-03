@@ -116,7 +116,11 @@ int Udp1_8Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     const HS_LIDAR_BODY_IMU_JT *pBody =
       reinterpret_cast<const HS_LIDAR_BODY_IMU_JT *>(
           (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_JT));
-    frame.imu_config.timestamp = double(pHeader->GetMicroLidarTimeU64()) / kMicrosecondToSecond;
+    if (frame.use_timestamp_type == 0) {
+      frame.imu_config.timestamp = double(pHeader->GetMicroLidarTimeU64()) / kMicrosecondToSecond;
+    } else {
+      frame.imu_config.timestamp = double(udpPacket.recv_timestamp) / kMicrosecondToSecond;
+    }  
     frame.imu_config.imu_accel_x = pBody->GetIMUXAccel();
     frame.imu_config.imu_accel_y = pBody->GetIMUYAccel();
     frame.imu_config.imu_accel_z = pBody->GetIMUZAccel();

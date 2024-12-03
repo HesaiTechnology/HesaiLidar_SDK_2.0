@@ -144,43 +144,6 @@ int GeneralParser<T_Point>::LoadCorrectionString(char *correction_content) {
     std::vector<std::string> vLineSplit;
     split_string(vLineSplit, line, ',');
     // skip error line or hash value line
-    if (lineCount == 128) {
-      if (vLineSplit[0].length() < 3) continue;
-      std::string hash = vLineSplit[0];
-      SHA256_USE sha256;
-      std::vector<std::string> lines;  
-      std::string line;  
-      ifs.seekg(0);
-      // 按行读取内容  
-      while (std::getline(ifs, line)) {  
-          if (!line.empty()) {  
-              lines.push_back(line); // 只添加非空行  
-          }  
-      }  
-      // 删除最后一行SHA256  
-      if (!lines.empty()) {  
-          lines.pop_back();  
-      }  
-      // 将剩余的行重新组合为字符串  
-      std::ostringstream modifiedContentStream;  
-      for (const auto& modifiedLine : lines) {  
-          modifiedContentStream << modifiedLine << '\n';  
-      }  
-      std::string modifiedContent = modifiedContentStream.str();  
-      sha256.update(modifiedContent.data(), modifiedContent.length());
-      uint8_t u8Hash[32];
-      sha256.hexdigest(u8Hash);
-      std::ostringstream oss;  
-      for (size_t i = 0; i < sizeof(u8Hash); ++i) {  
-          oss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(u8Hash[i]);  
-      }  
-      std::string hashString = oss.str(); 
-      if (hashString != hash) {
-        LogFatal("correction file is invalid, hash is error");
-        return -1;
-      }
-      continue;
-    }
     if (vLineSplit.size() < 3) {  
       continue;
     } else {

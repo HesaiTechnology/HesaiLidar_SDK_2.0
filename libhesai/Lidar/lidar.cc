@@ -170,7 +170,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     fov_end_ = param.decoder_param.fov_end;
     SetThreadNum(param.decoder_param.thread_num);
     /********************************************************************************/
-
+#ifndef JT128_256
     if (param.input_param.source_type == 1) {
       ptc_client_ = new (std::nothrow) PtcClient(param.input_param.device_ip_address
                                                   , param.input_param.ptc_port
@@ -184,6 +184,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
                                                   , 2000);
       init_set_ptc_ptr_ = new std::thread(std::bind(&Lidar<T_Point>::InitSetPtc, this, param));
     }
+#endif
     // clock_t start_time, end_time;
     // double time_interval = 0;
     UdpPacket udp_packet;
@@ -219,7 +220,11 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     udp_parser_->GetParser()->PacketTimeLossToolContinue(param.decoder_param.packet_timeloss_tool_continue);
     switch (param.input_param.source_type)
     {
-    case 1: {
+    case 1: 
+#ifdef JT128_256
+      LoadCorrectionFile(param.input_param.correction_file_path);
+#else
+      {
         while ((!ptc_client_->IsOpen()) && running_) 
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
         if (LoadCorrectionForUdpParser() == -1) {
@@ -227,6 +232,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
           LoadCorrectionFile(param.input_param.correction_file_path);
         }
       }
+#endif
       break;
     case 2:
       LoadCorrectionFile(param.input_param.correction_file_path);

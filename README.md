@@ -47,6 +47,10 @@ $ git clone https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0.git
 4.$ cmake ..
 5.$ make
 ```
+**Note when parsing JT128/JT256**
+```
+Need to add macro definition JT128_256, can add statement in CMakeLists.txt --- ‘add_definitions(-DJT128_256)’
+```
 
 ## Run a sample
 
@@ -69,8 +73,13 @@ Set the parameters in param in main.cc or main.cu
 	param.input_param.host_ip_address = "192.168.1.100"; // 192.168.1.100 is the pc ip address
 	param.input_param.multicast_ip_address = "239.0.0.1"; // 239.0.0.1 is the lidar multcast ip address, set this parameter to "" when lidar do not support muticast
 	param.decoder_param.distance_correction_lidar_flag = false;   // Set to true when distance correction needs to be turned on
-	param.input_param.rs485_com = "Your serial port name for receiving point cloud"; // When source_type == DATA_FROM_SERIAL
-  	param.input_param.rs232_com = "Your serial port name for sending cmd"; // When source_type == DATA_FROM_SERIAL
+```
+// Reciving data from connected Lidar (Serial data)
+```
+	param.input_param.source_type = DATA_FROM_SERIAL;
+	param.input_param.rs485_com = "Your serial port name for receiving point cloud"; 
+  	param.input_param.rs232_com = "Your serial port name for sending cmd"; 
+	param.decoder_param.distance_correction_lidar_flag = false;   // Set to true when distance correction needs to be turned on
 ```
 
 $ make 
@@ -80,7 +89,7 @@ $ ./sample
 $ ./sample_gpu
 ```
 
-# Functional Parameter Description
+## Functional Parameter Description
 DecoderParam :
 	1. pcap_play_synchronization: When parsing pcap, it is delayed according to the point cloud time to simulate the publish speed when parsing in real time.
 	2. frame_start_azimuth: Split-frame position of the 360-degree rotating lidar (in degrees [0-360)).
