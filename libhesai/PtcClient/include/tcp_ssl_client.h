@@ -41,7 +41,9 @@
 #include <winsock2.h>
 #include <ws2tcpip.h> 
 #else
+#ifndef SOCKET
 typedef unsigned int SOCKET;
+#endif
 #endif
 
 const int MAX_LENGTH = 1024;

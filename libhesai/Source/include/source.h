@@ -53,7 +53,9 @@ typedef int socklen_t;
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#ifndef SOCKET
 typedef unsigned int SOCKET;
+#endif
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #endif
