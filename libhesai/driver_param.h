@@ -89,7 +89,7 @@ typedef struct DecoderParam
   bool pcap_play_synchronization = true;
   //start a new frame when lidar azimuth greater than frame_start_azimuth
   //range:[0-360), set frame_start_azimuth less than 0 if you do want to use it
-  float frame_start_azimuth = 1;
+  float frame_start_azimuth = 0;
   // enable the udp packet loss detection tool
   // it forbiddens parser udp packet while trun on this tool
   bool enable_packet_loss_tool = false;

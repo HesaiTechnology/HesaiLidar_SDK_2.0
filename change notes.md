@@ -86,7 +86,7 @@ V2.0.8
 22. Fix the problem of not considering forward and reverse rotation when fixing mechanical lidar firetimes.
 
 ################################################################################
-******
+Monday December 23rd, 2024 14:57:29 CST
 ## version
 V2.0.9
 

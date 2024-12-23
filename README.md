@@ -12,6 +12,7 @@ This repository includes the software development kit for Hesai LiDAR sensor man
 - OT
 - ATX
 - JT16
+- JT128、JT256 (need define JT128_256)
 
 ## Environment and Dependencies
 
@@ -90,6 +91,7 @@ $ ./sample_gpu
 ```
 
 ## Functional Parameter Description
+```
 DecoderParam :
 	1. pcap_play_synchronization: When parsing pcap, it is delayed according to the point cloud time to simulate the publish speed when parsing in real time.
 	2. frame_start_azimuth: Split-frame position of the 360-degree rotating lidar (in degrees [0-360)).
@@ -126,3 +128,4 @@ DriverParam:
 	1. log_level: Log level to be output.
 	2. log_Target: Log output location, print and file.
 	3. log_path: File location for log output.
+```

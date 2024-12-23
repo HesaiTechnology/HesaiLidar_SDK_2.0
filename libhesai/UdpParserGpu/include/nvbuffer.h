@@ -79,7 +79,7 @@ class MemBufferSub : public MemBuffer {
 
  public:
   MemBufferSub(MemBufferPtr ptr, int start, int size)
-      : ptr_(ptr), start_(start_), sub_size_(size) {}
+      : ptr_(ptr), start_(start), sub_size_(size) {}
   virtual void *GpuPtr() { return (char*)ptr_->GpuPtr() + start_; }
   virtual void *CpuPtr() { return (char*)ptr_->CpuPtr() + start_; }
   void HostToDevice(int start, int size) override {

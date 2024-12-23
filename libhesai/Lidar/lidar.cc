@@ -633,6 +633,9 @@ template <typename T_Point>
 void Lidar<T_Point>::SetThreadNum(int nThreadNum) {
   if (nThreadNum > GetAvailableCPUNum() - 2) {
     nThreadNum = GetAvailableCPUNum() - 2;
+    if (nThreadNum <= 0) {
+      nThreadNum = 1;
+    }
   }
 
   if (handle_thread_count_ == nThreadNum) {

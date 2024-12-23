@@ -142,8 +142,8 @@ int Udp1_8Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
           reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_JT *>(
               (const unsigned char *)pAzimuth +
               sizeof(HS_LIDAR_BODY_AZIMUTH_JT));
-  uint32_t packet_seqnum = pBody->GetSequenceNum();
-  this->CalPktLoss(packet_seqnum);
+  // uint32_t packet_seqnum = pBody->GetSequenceNum();
+  // this->CalPktLoss(packet_seqnum);
   
   if (frame.use_timestamp_type == 0) {
     frame.sensor_timestamp[frame.packet_num] = pHeader->GetMicroLidarTimeU64();
