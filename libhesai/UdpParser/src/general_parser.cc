@@ -33,8 +33,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "general_parser.h"
-// #include <Eigen/Dense>
-// #include<Eigen/Core>
+#include <iomanip> 
+
 using namespace hesai::lidar;
 template <typename T_Point>
 GeneralParser<T_Point>::GeneralParser() {
@@ -47,6 +47,8 @@ GeneralParser<T_Point>::GeneralParser() {
   this->enable_packet_loss_tool_ = false;
   this->enable_packet_timeloss_tool_ = false;
   this->packet_timeloss_tool_continue_ = false;
+  this->rotation_flag = 1;
+  this->xt_spot_correction = false;
   for (int i = 0; i < CIRCLE; ++i) {
     this->sin_all_angle_[i] = std::sin(i * 2 * M_PI / CIRCLE);
     this->cos_all_angle_[i] = std::cos(i * 2 * M_PI / CIRCLE);
@@ -244,50 +246,6 @@ void GeneralParser<T_Point>::SetLidarType(std::string type) {
 }
 
 template <typename T_Point>
-void GeneralParser<T_Point>::SetEnableDistanceCorrection(bool enable) {
-  this->enable_distance_correction_ = enable;
-}
-template <typename T_Point>
-void GeneralParser<T_Point>::SetOpticalCenterCoordinates(std::string lidar_type) {
-  SetEnableDistanceCorrection(true);
-  if (lidar_type == "Pandar128E4X" || lidar_type == "OT") {
-    optical_center.x = -10.0 / 1000.0;
-    optical_center.y = 45.0 / 1000.0;
-    optical_center.z = 0.0 / 1000.0;
-  } else if(lidar_type == "Pandar128E3X" || lidar_type == "Pandar64E3X" || lidar_type == "Pandar40E3X" || lidar_type == "Pandar90E3X") {
-    optical_center.x = -12.0 / 1000.0;
-    optical_center.y = 43.56 / 1000.0;
-    optical_center.z = 0.0 / 1000.0;
-  } else if(lidar_type == "Pandar64E2X" || lidar_type == "Pandar40E2X") {
-    optical_center.x = -12.0 / 1000.0;
-    optical_center.y = 38.73 / 1000.0;
-    optical_center.z = 0.0 / 1000.0;
-  } else if(lidar_type == "PandarQT") {
-    optical_center.x = -7.2 / 1000.0;
-    optical_center.y = 29.8 / 1000.0;
-    optical_center.z = 0.0 / 1000.0;
-  } else if(lidar_type == "QT128C2X") {
-    optical_center.x = 7.2 / 1000.0;
-    optical_center.y = 35.4 / 1000.0;
-    optical_center.z = 0.0 / 1000.0;
-  } else if(lidar_type == "PandarXT32M1" || lidar_type == "PandarXT16M1") {
-    optical_center.x = -13.0 / 1000.0;
-    optical_center.y = 31.5 / 1000.0;
-    optical_center.z = 0.0 / 1000.0;
-  } else if(lidar_type == "PandarXT32M2X" || lidar_type == "XTM") {
-    optical_center.x = -13.0 / 1000.0;
-    optical_center.y = 30.5 / 1000.0;
-    optical_center.z = 0.0 / 1000.0;
-  } else if(lidar_type == "JT16") {
-    optical_center.x = -6.25 / 1000.0;
-    optical_center.y = 10.955 / 1000.0;
-    optical_center.z = 3.911 / 1000.0;
-  } else {
-    SetEnableDistanceCorrection(false);
-    LogWarning("Parameter(distance_correction_lidar_type) is set to null or error to not enable distance correction");
-  }
-}
-template <typename T_Point>
 int GeneralParser<T_Point>::LoadFiretimesString(char *correction_string) {
   (void)correction_string;
   LogInfo("don't load firetimes string");
@@ -299,7 +257,7 @@ double GeneralParser<T_Point>::GetFiretimesCorrection(int laserId, double speed)
   return this->firetime_correction_[laserId] * speed * 6E-6;
 }
 template <typename T_Point>
-void GeneralParser<T_Point>::GetDistanceCorrection(int &azimuth, int &elevation, float &distance, DistanceCorrectionType type) {
+void GeneralParser<T_Point>::GetDistanceCorrection(LidarOpticalCenter optical_center, int &azimuth, int &elevation, float &distance, DistanceCorrectionType type) {
   if (distance <= 0.09) return;
   azimuth = (azimuth + CIRCLE) % CIRCLE;
   elevation = (elevation + CIRCLE) % CIRCLE;
@@ -449,3 +407,8 @@ void GeneralParser<T_Point>::CalPktTimeLoss(uint64_t PacketTimestamp) {
   this->time_loss_message_.last_timestamp = PacketTimestamp;    
 }
 
+template <typename T_Point>
+void GeneralParser<T_Point>::SetOpticalCenterFlag(bool flag) { 
+  optical_center.flag = flag; 
+  if (flag) LogInfo("Enable distance correction, center(%f %f %f)", optical_center.x, optical_center.y, optical_center.z);
+}

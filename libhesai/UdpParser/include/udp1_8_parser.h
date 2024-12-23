@@ -62,8 +62,6 @@ class Udp1_8Parser : public GeneralParser<T_Point> {
   int LoadCorrectionCsvData(char *correction_string);
   virtual int LoadCorrectionString(char *correction_string);
 
-  using GeneralParser<T_Point>::GetDistanceCorrection;
-
  private:
   static const int kLaserNum = 16;
   // double section_distance;

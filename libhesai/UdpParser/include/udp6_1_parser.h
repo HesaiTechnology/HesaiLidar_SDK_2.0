@@ -41,14 +41,16 @@ namespace hesai
 {
 namespace lidar
 {
+#define STR_XTM1 "XTM1"
+#define STR_XTM2 "XTM2"
 // class Udp6_1Parser
-// parsers packets and computes points for PandarXT PandarXT6 PandarXT32 PandarXTM
+// parsers packets and computes points for PandarXT PandarXT16 PandarXT32 PandarXTM
 // you can parser the upd or pcap packets using the DocodePacket fuction
 // you can compute xyzi of points using the ComputeXYZI fuction, which uses cpu to compute
 template<typename T_Point>
 class Udp6_1Parser : public GeneralParser<T_Point> {
  public:
-  Udp6_1Parser();
+  Udp6_1Parser(std::string);
   virtual ~Udp6_1Parser();
 
   // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
@@ -60,13 +62,11 @@ class Udp6_1Parser : public GeneralParser<T_Point> {
 
   // determine whether frame splitting is needed
   bool IsNeedFrameSplit(uint16_t azimuth);
-
-  using GeneralParser<T_Point>::GetDistanceCorrection;
   
  private:
+  std::string XT_type;
   float distance_correction_b_;
   float distance_correction_h_;
-  int block_num_;
   uint32_t spot_correction_angle[8] = {3, 3, 25, 25, 20, 15, 8, 6};
 };
 }  // namespace lidar

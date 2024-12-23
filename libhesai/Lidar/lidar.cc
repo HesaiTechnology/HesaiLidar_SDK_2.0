@@ -170,7 +170,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     fov_end_ = param.decoder_param.fov_end;
     SetThreadNum(param.decoder_param.thread_num);
     /********************************************************************************/
-
+#ifndef JT128_256
     if (param.input_param.source_type == 1) {
       ptc_client_ = new (std::nothrow) PtcClient(param.input_param.device_ip_address
                                                   , param.input_param.ptc_port
@@ -184,6 +184,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
                                                   , 2000);
       init_set_ptc_ptr_ = new std::thread(std::bind(&Lidar<T_Point>::InitSetPtc, this, param));
     }
+#endif
     // clock_t start_time, end_time;
     // double time_interval = 0;
     UdpPacket udp_packet;
@@ -199,8 +200,9 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     if (udp_parser_->GetParser() == nullptr) {
       return res;
     }
-    udp_parser_->GetParser()->SetOpticalCenterCoordinates(param.decoder_param.distance_correction_lidar_type);
     udp_parser_->GetParser()->SetLidarType(param.lidar_type);
+    udp_parser_->GetParser()->SetOpticalCenterFlag(param.decoder_param.distance_correction_lidar_flag);
+    udp_parser_->GetParser()->SetXtSpotCorrection(param.decoder_param.xt_spot_correction);
     init_finish_[FaultMessParse] = true;
     LogDebug("finish 0: The basic initialisation is complete");
     
@@ -218,7 +220,11 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     udp_parser_->GetParser()->PacketTimeLossToolContinue(param.decoder_param.packet_timeloss_tool_continue);
     switch (param.input_param.source_type)
     {
-    case 1: {
+    case 1: 
+#ifdef JT128_256
+      LoadCorrectionFile(param.input_param.correction_file_path);
+#else
+      {
         while ((!ptc_client_->IsOpen()) && running_) 
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
         if (LoadCorrectionForUdpParser() == -1) {
@@ -226,6 +232,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
           LoadCorrectionFile(param.input_param.correction_file_path);
         }
       }
+#endif
       break;
     case 2:
       LoadCorrectionFile(param.input_param.correction_file_path);
@@ -425,8 +432,8 @@ int Lidar<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPac
 template <typename T_Point>
 bool Lidar<T_Point>::ComputeXYZIComplete(uint32_t index) {
   if (udp_parser_ == nullptr) return false;
-  if (udp_parser_->getComputePacketNum() == index) {
-    udp_parser_->setComputePacketNumToZero();
+  if (udp_parser_->GetComputePacketNum() == index) {
+    udp_parser_->SetComputePacketNumToZero();
     return true;
   }
   return false;
@@ -626,6 +633,9 @@ template <typename T_Point>
 void Lidar<T_Point>::SetThreadNum(int nThreadNum) {
   if (nThreadNum > GetAvailableCPUNum() - 2) {
     nThreadNum = GetAvailableCPUNum() - 2;
+    if (nThreadNum <= 0) {
+      nThreadNum = 1;
+    }
   }
 
   if (handle_thread_count_ == nThreadNum) {

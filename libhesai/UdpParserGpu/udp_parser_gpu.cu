@@ -226,6 +226,9 @@ void UdpParserGpu<T_Point>::SetLidarType(std::string lidar_type) {
   if (lidar_type == "Pandar40S" || lidar_type == "Pandar40E3X") {
     m_generalParserGpu = new Udp1_4ParserGpu<T_Point>();
   }
+  if (lidar_type == "OT128"){
+    m_generalParserGpu = new Udp1_4ParserGpu<T_Point>();
+  }
   if (lidar_type == "JT16") {
     m_generalParserGpu = new Udp1_8ParserGpu<T_Point>();
   }
@@ -275,18 +278,19 @@ int UdpParserGpu<T_Point>::SetTransformPara(float x, float y, float z, float rol
 }
 
 template<typename T_Point>
-int UdpParserGpu<T_Point>::SetOpticalCenterCoordinates(std::string lidar_type) {
+int UdpParserGpu<T_Point>::SetXtSpotCorrection(bool flag) {
   if (m_generalParserGpu != nullptr) {
-    m_generalParserGpu->SetOpticalCenterCoordinates(lidar_type);
+    m_generalParserGpu->SetXtSpotCorrection(flag);
     return 0;
   }
   return -1;
 }
 
 template<typename T_Point>
-int UdpParserGpu<T_Point>::SetXtSpotCorrecion(std::string lidar_type) {
+int UdpParserGpu<T_Point>::SetOpticalCenter(LidarOpticalCenter other) {
   if (m_generalParserGpu != nullptr) {
-    return m_generalParserGpu->SetXtSpotCorrecion(lidar_type);
+    m_generalParserGpu->SetOpticalCenter(other);
+    return 0;
   }
   return -1;
 }

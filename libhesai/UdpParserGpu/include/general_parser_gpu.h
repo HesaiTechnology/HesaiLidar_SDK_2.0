@@ -163,16 +163,16 @@ class GeneralParserGpu {
   virtual int LoadCorrectionString(char *correction_string) = 0;
   virtual void LoadFiretimesFile(std::string firetimes_path);
   virtual int LoadFiretimesString(char *firetimes_string);
-  void SetOpticalCenterCoordinates(std::string lidar_type);
   
   // compute xyzi of points from decoded packet， use gpu device
   // param packet is the decoded packet; xyzi of points after computed is puted in frame  
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame) = 0;
   void SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
-  int SetXtSpotCorrecion(std::string lidar_type);
+  void SetXtSpotCorrection(bool);
+  void SetOpticalCenter(LidarOpticalCenter other) { optical_center.setNoFlag(other); optical_center.flag = other.flag; }
   Transform transform_;
   bool corrections_loaded_ = false;
-  protected:
+ protected:
   double firetime_correction_[kMaxPointsNumPerPacket];
   MemBufferClass<PointCloudStruct<T_Point>> frame_;
   LidarOpticalCenter optical_center;

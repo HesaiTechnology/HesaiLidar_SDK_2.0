@@ -24,9 +24,9 @@ Recommanded
 Cmake version requirement:Cmake 3.8.0 or above
 G++ version requirement:G++ 7.5 or above
 ```
-**Library Dependencies: libpcl-dev + libpcap-dev + libyaml-cpp-dev + libboost-dev**
+**Library Dependencies: libpcl-dev + libpcap-dev + libyaml-cpp-dev
 ```
-$ sudo apt install libpcl-dev libpcap-dev libyaml-cpp-dev libboost-dev
+$ sudo apt install libpcl-dev libpcap-dev libyaml-cpp-dev
 ```
 **Library Dependencies: LASlib**  
 We use the following open source repositories to compile the LASlib library:  
@@ -84,8 +84,7 @@ Set the parameters in param in pcl_tool.cc or pcl_tool.cu
 	param.input_param.pcap_path = "path/to/pcap";
 	param.input_param.correction_file_path = "/path/to/correction.csv";
 	param.input_param.firetimes_path = "path/to/firetimes.csv";
-	param.decoder_param.distance_correction_lidar_type = "";   // Configure the corresponding radar model when optical centre correction needs to be turned on
-	param.lidar_type = ""; // When you need to enable XT point cloud S hierarchical correction, configure the corresponding model
+	param.decoder_param.distance_correction_lidar_flag = false;   // Set to true when distance correction needs to be turned on
 ```
 ```
 // Reciving data from connected Lidar
@@ -100,8 +99,7 @@ Set the parameters in param in pcl_tool.cc or pcl_tool.cu
 	param.input_param.udp_port = 2368; // 2368 is the lidar udp port
 	param.input_param.host_ip_address = "192.168.1.100"; // 192.168.1.100 is the pc ip address
 	param.input_param.multicast_ip_address = "239.0.0.1"; // 239.0.0.1 is the lidar multcast ip address, set this parameter to "" when lidar do not support muticast
-	param.decoder_param.distance_correction_lidar_type = "";   //Configure the corresponding radar model when optical centre correction needs to be turned on
-	param.lidar_type = ""; // When you need to enable XT point cloud S hierarchical correction, configure the corresponding model
+	param.decoder_param.distance_correction_lidar_flag = false;   // Set to true when distance correction needs to be turned on
 ```
 Then, for each tool, you need modify some setting
 ### pcl_tool:  

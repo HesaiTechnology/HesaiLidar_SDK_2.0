@@ -65,12 +65,10 @@ namespace lidar
 template <typename T_Point>
 class UdpParser {
  public:
-  UdpParser(uint8_t major, uint8_t minor);
   explicit UdpParser(const std::string &lidar_type);
   explicit UdpParser(const UdpPacket &packet);
   UdpParser();
   virtual ~UdpParser();
-  void CreatGeneralParser(uint8_t major, uint8_t minor);
   void CreatGeneralParser(const std::string& lidar_type);
   void CreatGeneralParser(const UdpPacket& packet);
   GeneralParser<T_Point> *GetGeneralParser();
@@ -106,8 +104,9 @@ class UdpParser {
   std::string GetLidarType() {return lidar_type_decoded_;}
   void SetPcapPlay(bool pcap_time_synchronization, int source_type);
   void SetFrameAzimuth(float frame_start_azimuth);
-  uint32_t getComputePacketNum() { if (parser_ != nullptr) return parser_->getComputePacketNum(); else return 0; }
-  void setComputePacketNumToZero() { if (parser_ != nullptr) parser_->setComputePacketNumToZero(); }
+  uint32_t GetComputePacketNum() { if (parser_ != nullptr) return parser_->GetComputePacketNum(); else return 0; }
+  void SetComputePacketNumToZero() { if (parser_ != nullptr) parser_->SetComputePacketNumToZero(); }
+  LidarOpticalCenter GetOpticalCenter() { if (parser_ != nullptr) return parser_->GetOpticalCenter(); else return LidarOpticalCenter{}; }
  private:
   GeneralParser<T_Point> *parser_;
   PcapSaver *pcap_saver_;

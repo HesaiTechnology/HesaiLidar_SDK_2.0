@@ -76,8 +76,6 @@ class Udp3_2Parser : public GeneralParser<T_Point> {
   // compute lidar distance correction
   double GetFiretimesCorrection(int laserId, double speed, int loopIndex);
 
-  using GeneralParser<T_Point>::GetDistanceCorrection;
-
   // get lidar correction file from local file,and pass to udp parser 
   int LoadChannelConfigString(char *channel_config_content);
   void LoadChannelConfigFile(std::string channel_config_path);

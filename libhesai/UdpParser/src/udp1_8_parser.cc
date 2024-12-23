@@ -39,6 +39,7 @@ template<typename T_Point>
 Udp1_8Parser<T_Point>::Udp1_8Parser() {
   this->motor_speed_ = 0;
   this->return_mode_ = 0;
+  this->optical_center.setNoFlag(LidarOpticalCenter{-0.00625, 0.010955, 0.003911});
 }
 
 template<typename T_Point>
@@ -58,8 +59,8 @@ int Udp1_8Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       if (this->get_correction_file_) {
         int azimuth_coll = (int(this->azimuth_collection_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
         int elevation_corr = (int(this->elevation_correction_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
-        if (this->enable_distance_correction_) {
-          GetDistanceCorrection(azimuth_coll, elevation_corr, distance, OpticalCenter);
+        if (this->optical_center.flag) {
+          GeneralParser<T_Point>::GetDistanceCorrection(this->optical_center, azimuth_coll, elevation_corr, distance, OpticalCenter);
         }
         elevation = elevation_corr;
         azimuth = Azimuth + azimuth_coll;
@@ -115,7 +116,11 @@ int Udp1_8Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     const HS_LIDAR_BODY_IMU_JT *pBody =
       reinterpret_cast<const HS_LIDAR_BODY_IMU_JT *>(
           (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_JT));
-    frame.imu_config.timestamp = double(pHeader->GetMicroLidarTimeU64()) / kMicrosecondToSecond;
+    if (frame.use_timestamp_type == 0) {
+      frame.imu_config.timestamp = double(pHeader->GetMicroLidarTimeU64()) / kMicrosecondToSecond;
+    } else {
+      frame.imu_config.timestamp = double(udpPacket.recv_timestamp) / kMicrosecondToSecond;
+    }  
     frame.imu_config.imu_accel_x = pBody->GetIMUXAccel();
     frame.imu_config.imu_accel_y = pBody->GetIMUYAccel();
     frame.imu_config.imu_accel_z = pBody->GetIMUZAccel();
@@ -137,8 +142,8 @@ int Udp1_8Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
           reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_JT *>(
               (const unsigned char *)pAzimuth +
               sizeof(HS_LIDAR_BODY_AZIMUTH_JT));
-  uint32_t packet_seqnum = pBody->GetSequenceNum();
-  this->CalPktLoss(packet_seqnum);
+  // uint32_t packet_seqnum = pBody->GetSequenceNum();
+  // this->CalPktLoss(packet_seqnum);
   
   if (frame.use_timestamp_type == 0) {
     frame.sensor_timestamp[frame.packet_num] = pHeader->GetMicroLidarTimeU64();

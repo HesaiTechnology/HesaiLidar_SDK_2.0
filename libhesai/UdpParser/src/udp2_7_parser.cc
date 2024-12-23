@@ -394,6 +394,7 @@ int Udp2_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       float distance = static_cast<float>(frame.pointData[point_index].distances * frame.distance_unit);
       float phi = corrections_.azimuths[i + 3];
       float theta = corrections_.elevations[i + 3];
+
       float an = apha + phi;
       float theta_n = (raw_elevation + theta / std::cos(an * M_PI / 180));
       float elv_v = raw_elevation * M_PI / 180 + theta * M_PI / 180 - std::tan(raw_elevation * M_PI / 180) * (1 - std::cos(an * M_PI / 180)) ;
@@ -512,6 +513,10 @@ int Udp2_7Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
         frame.pointData[index].azimuth = horizontalAngle/512.0f;
         frame.pointData[index].elevation = verticalAngle/512.0f;
         frame.pointData[index].mirror_index = mirror_index;
+        if (this->get_firetime_file_) {
+          int lidar_i = (pHeader->GetLaserNum()/pHeader->GetSeqNum()) * seqId + unitId;
+          frame.pointData[index].azimuth += this->GetFiretimesCorrection(lidar_i, 2.4);  // 1200 / 1000 * 2 固定为1200转，码盘角与实际角度倍数为2
+        }
         index++;
         pUnit += 1;
       }

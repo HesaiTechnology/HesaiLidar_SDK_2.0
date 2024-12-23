@@ -61,10 +61,8 @@ class Udp3_1Parser : public GeneralParser<T_Point> {
 
   // determine whether frame splitting is needed
   bool IsNeedFrameSplit(uint16_t azimuth); 
-
-  // compute lidar distance correction
-  using GeneralParser<T_Point>::GetDistanceCorrection;
  private:
+
 };
 }  // namespace lidar
 }  // namespace hesai

@@ -67,7 +67,7 @@ __global__ void compute_xyzs_6_1_impl(T_Point *xyzs, const float* channel_azimut
   float phi = (channel_elevations[(ichannel % lasernum)] * kResolutionFloat) / kHalfCircleFloat * M_PI;
   float rho = point_data[point_index].distances * raw_distance_unit;
 
-  if(rho > 0.09 && optical_center.x != 0) {
+  if(rho > 0.09 && optical_center.flag) {
     float tx = std::cos(phi) * std::sin(theta);
     float ty = std::cos(phi) * std::cos(theta);
     float tz = std::sin(phi);
@@ -123,7 +123,8 @@ int Udp6_1ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
                           frame.packet_num * sizeof(uint64_t), 
                           cudaMemcpyHostToDevice), ReturnCode::CudaMemcpyHostToDeviceError); 
 compute_xyzs_6_1_impl<<<frame.packet_num, frame.block_num * frame.laser_num>>>(this->frame_.gpu()->points, channel_azimuths_cu_, channel_elevations_cu_, 
-  point_data_cu_, sensor_timestamp_cu_, frame.distance_unit, this->transform_, this->optical_center, frame.block_num, frame.laser_num, frame.packet_num, this->xt_spot_correction, spot_correction_angle_cu_);
+  point_data_cu_, sensor_timestamp_cu_, frame.distance_unit, this->transform_, this->optical_center, frame.block_num, frame.laser_num, frame.packet_num, 
+  this->xt_spot_correction, spot_correction_angle_cu_);
   cudaSafeCall(cudaGetLastError(), ReturnCode::CudaXYZComputingError);
   this->frame_.DeviceToHost(0, frame.block_num * frame.laser_num * frame.packet_num * sizeof(T_Point));
   std::memcpy(frame.points, this->frame_.cpu()->points, frame.block_num * frame.laser_num * frame.packet_num * sizeof(T_Point));

@@ -63,7 +63,7 @@ __global__ void compute_xyzs_1_8_impl(T_Point *xyzs, const float* channel_azimut
   float phi = (channel_elevations[(ichannel % lasernum)] * kResolutionFloat) / kHalfCircleFloat * M_PI;
   float rho = point_data[point_index].distances * raw_distance_unit;
 
-  if(rho > 0.09 && optical_center.x != 0) {
+  if(rho > 0.09 && optical_center.flag) {
     float tx = std::cos(phi) * std::sin(theta);
     float ty = std::cos(phi) * std::cos(theta);
     float tz = std::sin(phi);

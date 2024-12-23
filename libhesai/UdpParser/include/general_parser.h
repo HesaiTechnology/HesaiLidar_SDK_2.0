@@ -200,17 +200,6 @@ enum DistanceCorrectionType {
   GeometricCenter,
 };
 
-struct LidarOpticalCenter {
-  float x;
-  float y;
-  float z;
-  LidarOpticalCenter() {
-    x = 0;
-    y = 0;
-    z = 0;
-  }
-};
-
 struct PacketSeqnumLossMessage{
   uint32_t start_seqnum;
   uint32_t last_seqnum;
@@ -283,9 +272,7 @@ class GeneralParser {
     azimuth:   光心修正的修正量，需要加到原来的azimuth里(代替原始的角度修正文件中的水平角)
     elevation: 光心修正后的elevation
   */
-  void GetDistanceCorrection(int &azimuth, int &elevation, float &distance, DistanceCorrectionType type);
-  void SetEnableDistanceCorrection(bool enable);
-  void SetOpticalCenterCoordinates(std::string lidar_type);
+  void GetDistanceCorrection(LidarOpticalCenter optical_center, int &azimuth, int &elevation, float &distance, DistanceCorrectionType type);
   void SetLidarType(std::string lidar_type);
   // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
   virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket); 
@@ -308,8 +295,11 @@ class GeneralParser {
   virtual void PacketTimeLossToolContinue(bool enable);
   void CalPktLoss(uint32_t PacketSeqnum);
   void CalPktTimeLoss(uint64_t PacketTimestamp);
-  uint32_t getComputePacketNum() { return compute_packet_num; }
-  void setComputePacketNumToZero() { compute_packet_num = 0; }
+  uint32_t GetComputePacketNum() { return compute_packet_num; }
+  void SetComputePacketNumToZero() { compute_packet_num = 0; }
+  LidarOpticalCenter GetOpticalCenter() { return optical_center; }
+  void SetOpticalCenterFlag(bool flag);
+  void SetXtSpotCorrection(bool flag) { xt_spot_correction = flag; }
 
   void TransformPoint(float& x, float& y, float& z);
   void SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
@@ -342,7 +332,6 @@ class GeneralParser {
   int32_t last_azimuth_;
   int32_t last_last_azimuth_;
   double firetime_correction_[MAX_LASER_NUM];
-  bool enable_distance_correction_;
   bool enable_packet_loss_tool_;
   bool enable_packet_timeloss_tool_;
   bool packet_timeloss_tool_continue_;
@@ -351,7 +340,8 @@ class GeneralParser {
   float frame_start_azimuth_;
   LidarOpticalCenter optical_center;
   std::atomic<uint32_t> compute_packet_num;
-  int rotation_flag = 1;
+  int rotation_flag;
+  bool xt_spot_correction;
 };
 }
 }

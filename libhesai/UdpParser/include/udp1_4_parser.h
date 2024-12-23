@@ -40,6 +40,9 @@ namespace hesai
 {
 namespace lidar
 {
+#define STR_PANDARN "PanadarN"
+#define STR_OT128   "OT128"
+#define STR_JT128_256 "JT128_256"
 
 struct FiretimeSectionValues {
     struct SectionValue {
@@ -54,7 +57,7 @@ struct FiretimeSectionValues {
 template<typename T_Point>
 class Udp1_4Parser : public GeneralParser<T_Point> {
  public:
-  Udp1_4Parser();
+  Udp1_4Parser(std::string);
   virtual ~Udp1_4Parser();
 
   // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
@@ -66,6 +69,7 @@ class Udp1_4Parser : public GeneralParser<T_Point> {
 
   // get lidar firetime correction file from local file,and pass to udp parser 
   virtual void LoadFiretimesFile(std::string firetimes_path);
+  virtual int LoadCorrectionString(char *correction_string);
 
   using GeneralParser<T_Point>::GetFiretimesCorrection;
   // compute lidar firetime correciton
@@ -74,11 +78,10 @@ class Udp1_4Parser : public GeneralParser<T_Point> {
   // determine whether frame splitting is needed
   bool IsNeedFrameSplit(uint16_t azimuth); 
 
-  using GeneralParser<T_Point>::GetDistanceCorrection;
-
  private:
   static const int kLaserNum = 128;
   double section_distance;
+  std::string lidar_type_;
   std::array<FiretimeSectionValues, kLaserNum> firetime_section_values;
 };
 }  // namespace lidar

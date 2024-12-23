@@ -29,20 +29,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "general_parser.h"
 using namespace hesai::lidar;
 
-
-template<typename T_Point>
-UdpParser<T_Point>::UdpParser(uint8_t major, uint8_t minor){
-  last_host_timestamp_ = 0;
-  last_sensor_timestamp_ = 0;
-  packet_count_ = 0;
-  source_type_ = -1;
-  parser_ = nullptr;
-  pcap_saver_ = nullptr;
-  fisrt_packet_ = true;
-  pcap_time_synchronization_ = true;
-  this->CreatGeneralParser(major, minor);
-}
-
 template<typename T_Point>
 UdpParser<T_Point>::UdpParser(const UdpPacket& packet) {
   last_host_timestamp_ = 0;
@@ -119,18 +105,48 @@ void UdpParser<T_Point>::LoadFiretimesFile(std::string firetimes_path) {
 }
 
 template<typename T_Point>
-void UdpParser<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
+void UdpParser<T_Point>::CreatGeneralParser(const UdpPacket& packet) {
   if (parser_ != nullptr) {
     return;
   }
+  if (PKT_SIZE_40P == packet.packet_len ||
+      PKT_SIZE_40P + 4 == packet.packet_len || PKT_SIZE_AC == packet.packet_len ||
+      PKT_SIZE_AC + 4 == packet.packet_len) {
+
+    // Pandar40
+    parser_ = new UdpP40Parser<T_Point>();  
+    lidar_type_decoded_ = "Pandar40";
+    return;
+  }
+  if (PKT_SIZE_64 == packet.packet_len || PKT_SIZE_64 + 4 == packet.packet_len ||
+      PKT_SIZE_20 == packet.packet_len || PKT_SIZE_20 + 4 == packet.packet_len) {
+
+    // Pandar64
+    parser_ = new UdpP64Parser<T_Point>();  
+    lidar_type_decoded_ = "Pandar64";
+    return;
+  }
+  if (packet.buffer[0] != 0xEE || packet.buffer[1] != 0xFF) {
+    LogWarning("Packet with invaild delimiter");
+    return;
+  }
+  uint8_t major = packet.buffer[2];
+  uint8_t minor = packet.buffer[3];
+
   switch (major) {
-    case 1:  // Pandar128
+    case 1:
     {
       switch (minor) {
-        case 4:
-          parser_ = new Udp1_4Parser<T_Point>();
-          lidar_type_decoded_ = "Pandar128";
-          break;
+        case 4: {
+          uint8_t statusInfoVersion = packet.buffer[4];
+          if (statusInfoVersion > 127) {
+            lidar_type_decoded_ = "OT128";
+            parser_ = new Udp1_4Parser<T_Point>(STR_OT128);
+          } else {
+            lidar_type_decoded_ = "Pandar128";
+            parser_ = new Udp1_4Parser<T_Point>(STR_PANDARN);
+          }
+        } break;
         case 8:
           parser_ = new Udp1_8Parser<T_Point>();
           lidar_type_decoded_ = "JT16";
@@ -199,10 +215,21 @@ void UdpParser<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
     case 6:  // PandarXT
     {
       switch (minor) {
-        case 1:
-          parser_ = new Udp6_1Parser<T_Point>();
-          lidar_type_decoded_ = "PandarXT";
-          break;
+        case 1: {
+          uint8_t blockNum = packet.buffer[7];
+          if (blockNum == 8) {
+            lidar_type_decoded_ = "PandarXT";
+            parser_ = new Udp6_1Parser<T_Point>(STR_XTM1);
+          } else if (blockNum == 6) {
+            lidar_type_decoded_ = "PandarXTM";
+            parser_ = new Udp6_1Parser<T_Point>(STR_XTM2);
+          } else {
+            // It doesn't normally go here.
+            lidar_type_decoded_ = "PandarXTM";
+            parser_ = new Udp6_1Parser<T_Point>(STR_XTM2);
+            LogError("XT version unknown, unable to set distance correction coordinates");
+          }
+        } break;
         default:
           break;
       }
@@ -223,38 +250,6 @@ void UdpParser<T_Point>::CreatGeneralParser(uint8_t major, uint8_t minor) {
     default:
       break;
   }
-  return ;
-}
-
-template<typename T_Point>
-void UdpParser<T_Point>::CreatGeneralParser(const UdpPacket& packet) {
-  if (parser_ != nullptr) {
-    return;
-  }
-  if (PKT_SIZE_40P == packet.packet_len ||
-      PKT_SIZE_40P + 4 == packet.packet_len || PKT_SIZE_AC == packet.packet_len ||
-      PKT_SIZE_AC + 4 == packet.packet_len) {
-
-    // Pandar40
-    parser_ = new UdpP40Parser<T_Point>();  
-    lidar_type_decoded_ = "Pandar40";
-    return;
-  }
-  if (PKT_SIZE_64 == packet.packet_len || PKT_SIZE_64 + 4 == packet.packet_len ||
-      PKT_SIZE_20 == packet.packet_len || PKT_SIZE_20 + 4 == packet.packet_len) {
-
-    // Pandar64
-    parser_ = new UdpP64Parser<T_Point>();  
-    lidar_type_decoded_ = "Pandar64";
-    return;
-  }
-  if (packet.buffer[0] != 0xEE || packet.buffer[1] != 0xFF) {
-    LogWarning("Packet with invaild delimiter");
-    return;
-  }
-  uint8_t UdpMajorVersion = packet.buffer[2];
-  uint8_t UdpMinorVersion = packet.buffer[3];
-  this->CreatGeneralParser(UdpMajorVersion, UdpMinorVersion);
   return;
 }
 template<typename T_Point>
@@ -263,46 +258,60 @@ void UdpParser<T_Point>::CreatGeneralParser(const std::string& lidar_type) {
     return;
   }
 
-  if (lidar_type == "AT128" || lidar_type == "AT128E2X" || lidar_type == "AT128E3X") {
-    parser_ = new Udp4_3Parser<T_Point>();
-  } else if (lidar_type == "Pandar128E3X" || lidar_type == "Pandar128") {
-    parser_ = new Udp1_4Parser<T_Point>();
-  } else if (lidar_type == "Pandar40S" || lidar_type == "Pandar40E3X") {
-    parser_ = new Udp1_4Parser<T_Point>();
-  } else if (lidar_type == "Pandar60S" || lidar_type == "Pandar64E3X") {
-    parser_ = new Udp1_4Parser<T_Point>();
-  } else if (lidar_type == "Pandar90" || lidar_type == "Pandar90E3X") {
-    parser_ = new Udp1_4Parser<T_Point>();  
-  } else if ( lidar_type == "JT16" ) {
-    parser_ = new Udp1_8Parser<T_Point>();
-  } else if (lidar_type == "PandarXT") {
-    parser_ = new Udp6_1Parser<T_Point>();
-  } else if (lidar_type == "PandarXT16" || lidar_type == "PandarXT-16") {
-    parser_ = new Udp6_1Parser<T_Point>();
-  } else if (lidar_type == "PandarXT32" || lidar_type == "PandarXT-32") {
-    parser_ = new Udp6_1Parser<T_Point>();
-  } else if (lidar_type == "PandarXTM" || lidar_type == "XT32M2X") {
-    parser_ = new Udp6_1Parser<T_Point>();  
-  } else if (lidar_type == "PandarQT") {
-    parser_ = new Udp3_1Parser<T_Point>();
-  } else if (lidar_type == "PandarQT128" || lidar_type == "QT128C2X") {
-    parser_ = new Udp3_2Parser<T_Point>();
-  } else if (lidar_type == "Pandar64") {
+  if (lidar_type == "Pandar64") {
     parser_ = new UdpP64Parser<T_Point>();
+    lidar_type_decoded_ = "Pandar40";
   } else if (lidar_type == "Pandar40" || lidar_type == "Pandar40P") {
     parser_ = new UdpP40Parser<T_Point>();
-  } else if (lidar_type == "PandarFT120" || lidar_type == "FT120C1X") {
-    parser_ = new Udp7_2Parser<T_Point>();
+    lidar_type_decoded_ = "Pandar64";
+  } else if (lidar_type == "Pandar128E3X" || lidar_type == "Pandar128" || 
+             lidar_type == "Pandar40S" || lidar_type == "Pandar40E3X" ||
+             lidar_type == "Pandar60S" || lidar_type == "Pandar64E3X" ||
+             lidar_type == "Pandar90" || lidar_type == "Pandar90E3X") 
+  {
+    parser_ = new Udp1_4Parser<T_Point>(STR_PANDARN);
+    lidar_type_decoded_ = "Pandar128";
+  } else if (lidar_type == "OT128") {
+    parser_ = new Udp1_4Parser<T_Point>(STR_OT128);
+    lidar_type_decoded_ = "OT128";
+  } else if ( lidar_type == "JT16" ) {
+    parser_ = new Udp1_8Parser<T_Point>();
+    lidar_type_decoded_ = "JT16";
   } else if (lidar_type == "ET25-E1X" ) {
     parser_ = new Udp2_4Parser<T_Point>();
+    lidar_type_decoded_ = "ET25-E1X";
   } else if (lidar_type == "ET25-E2X") {
     parser_ = new Udp2_5Parser<T_Point>();
+    lidar_type_decoded_ = "ET25-E2X";
   } else if (lidar_type == "ET25-HA2") {
     parser_ = new Udp2_6Parser<T_Point>();
+    lidar_type_decoded_ = "ET25-HA2";
   } else if (lidar_type == "ET30-HA2") {
     parser_ = new Udp2_7Parser<T_Point>();
-  }else if ( lidar_type == "ATX" ) {
+    lidar_type_decoded_ = "ET30-HA2";
+  } else if (lidar_type == "PandarQT") {
+    parser_ = new Udp3_1Parser<T_Point>();
+    lidar_type_decoded_ = "PandarQT";
+  } else if (lidar_type == "PandarQT128" || lidar_type == "QT128C2X") {
+    parser_ = new Udp3_2Parser<T_Point>();
+    lidar_type_decoded_ = "PandarQT128";
+  } else if (lidar_type == "AT128" || lidar_type == "AT128E2X" || lidar_type == "AT128E3X") {
+    parser_ = new Udp4_3Parser<T_Point>();
+    lidar_type_decoded_ = "AT128";
+  } else if ( lidar_type == "ATX" ) {
     parser_ = new Udp4_7Parser<T_Point>();
+    lidar_type_decoded_ = "ATX";
+  } else if (lidar_type == "PandarXT" || lidar_type == "PandarXT16" || lidar_type == "PandarXT-16" || 
+             lidar_type == "PandarXT32" || lidar_type == "PandarXT-32") 
+  {
+    parser_ = new Udp6_1Parser<T_Point>(STR_XTM1);
+    lidar_type_decoded_ = "PandarXT";
+  } else if (lidar_type == "PandarXTM" || lidar_type == "XT32M2X") {
+    parser_ = new Udp6_1Parser<T_Point>(STR_XTM2);  
+    lidar_type_decoded_ = "PandarXTM";
+  } else if (lidar_type == "PandarFT120" || lidar_type == "FT120C1X") {
+    parser_ = new Udp7_2Parser<T_Point>();
+    lidar_type_decoded_ = "PandarFT120";
   }
 }
 template<typename T_Point>

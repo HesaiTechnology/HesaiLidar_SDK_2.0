@@ -361,7 +361,11 @@ struct HS_LIDAR_HEADER_ME_V4 {
   uint8_t m_u8EchoNum;
   uint8_t m_u8Status;
 
+#ifdef JT128_256
+  uint16_t GetLaserNum() const { return 256; }
+#else
   uint8_t GetLaserNum() const { return m_u8LaserNum; }
+#endif
   uint8_t GetBlockNum() const { return m_u8BlockNum; }
   float GetDistUnit() const { return m_u8DistUnit / 1000.f; }
   uint8_t GetEchoCount() const { return m_u8EchoCount; }

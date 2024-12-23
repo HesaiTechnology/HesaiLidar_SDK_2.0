@@ -37,10 +37,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "udp_protocol_header.h"
 using namespace hesai::lidar;
 template<typename T_Point>
-Udp6_1Parser<T_Point>::Udp6_1Parser() {
+Udp6_1Parser<T_Point>::Udp6_1Parser(std::string lidar_type) {
   this->motor_speed_ = 0;
   this->return_mode_ = 0;
-  block_num_ = 6; 
+  XT_type = lidar_type;
+  if (lidar_type == STR_XTM1) {
+    this->optical_center.setNoFlag(LidarOpticalCenter{-0.013, 0.0315, 0});
+  } else if (lidar_type == STR_XTM2) {
+    this->optical_center.setNoFlag(LidarOpticalCenter{-0.013, 0.0305, 0});
+  }
 }
 template<typename T_Point>
 Udp6_1Parser<T_Point>::~Udp6_1Parser() { LogInfo("release Udp6_1parser"); }
@@ -58,12 +63,12 @@ int Udp6_1Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       if (this->get_correction_file_) {
         int azimuth_coll = (int(this->azimuth_collection_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
         int elevation_corr = (int(this->elevation_correction_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
-        if (this->enable_distance_correction_) {
-          GetDistanceCorrection(azimuth_coll, elevation_corr, distance, GeometricCenter);
+        if (this->optical_center.flag) {
+          GeneralParser<T_Point>::GetDistanceCorrection(this->optical_center, azimuth_coll, elevation_corr, distance, GeometricCenter);
         }
         elevation = elevation_corr;
         azimuth = Azimuth + azimuth_coll;
-        if ((this->lidar_type_ == "PandarXT32M1" || this->lidar_type_ == "PandarXT16M1") && 
+        if ((this->xt_spot_correction && XT_type == STR_XTM1) && 
               (distance >= 0.25 && distance < 4.25)) 
         {
           int index = int((distance - 0.25) / 0.5);
@@ -177,7 +182,6 @@ int Udp6_1Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   const HsLidarXTV1Header *pHeader =
       reinterpret_cast<const HsLidarXTV1Header *>(
           &(udpPacket.buffer[0]) + sizeof(HS_LIDAR_PRE_HEADER));
-
   const HsLidarXTV1Tail *pTail =
       reinterpret_cast<const HsLidarXTV1Tail *>(
           (const unsigned char *)pHeader + sizeof(HsLidarXTV1Header) +

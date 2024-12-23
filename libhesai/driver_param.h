@@ -89,7 +89,7 @@ typedef struct DecoderParam
   bool pcap_play_synchronization = true;
   //start a new frame when lidar azimuth greater than frame_start_azimuth
   //range:[0-360), set frame_start_azimuth less than 0 if you do want to use it
-  float frame_start_azimuth = 1;
+  float frame_start_azimuth = 0;
   // enable the udp packet loss detection tool
   // it forbiddens parser udp packet while trun on this tool
   bool enable_packet_loss_tool = false;
@@ -100,12 +100,8 @@ typedef struct DecoderParam
   uint16_t use_timestamp_type = point_cloud_timestamp;
   int fov_start = -1;
   int fov_end = -1;
-  // support: 1_4: Pandar128E4X / OT, Pandar128E3X, Pandar64E3X, Pandar40E3X, Pandar90E3X;
-  //          1_8: JT16
-  //          3_1: PandarQT;  3_2: QT128C2X;
-  //          6_1: PandarXT32M1, PandarXT16M1, PandarXT32M2X / XTM;
-  //          special: Pandar64E2X, Pandar40E2X,
-  std::string distance_correction_lidar_type = "";
+  bool distance_correction_lidar_flag = false;
+  bool xt_spot_correction = false;
   uint32_t socket_buffer_size = 0;
 } DecoderParam;
 
@@ -134,8 +130,6 @@ typedef struct InputParam
   int point_cloud_baudrate = 3125000;
   int rs485_baudrate = 115200;   
   int rs232_baudrate = 9600;          
-  bool read_pcap = true;          ///< true: The driver will process the pcap through pcap_path. false: The driver will
-                                   ///< Get data from online LiDAR
   std::string pcap_path = "Your pcap file path";  ///< Absolute path of pcap file
   std::string correction_file_path = "Your correction file path";   ///< Path of angle calibration files(angle.csv).Only used for internal debugging.
   std::string firetimes_path = "Your firetime file path";  ///< Path of firetime files(angle.csv).
@@ -179,7 +173,6 @@ typedef struct DriverParam
   ///< The frame id of LiDAR message    
   std::string frame_id = "hesai";  
   ///< Lidar type
-  //XT spot correction support: 6_1: PandarXT32M1, PandarXT16M1
   std::string lidar_type = "";  
   uint8_t log_level = LOG_INFO | LOG_WARNING | LOG_ERROR | LOG_FATAL; //
   uint8_t log_Target = LOG_TARGET_CONSOLE | LOG_TARGET_FILE;

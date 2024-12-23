@@ -40,6 +40,7 @@ template<typename T_Point>
 UdpP64Parser<T_Point>::UdpP64Parser() {
   this->motor_speed_ = 0;
   this->return_mode_ = 0;
+  this->optical_center.setNoFlag(LidarOpticalCenter{-0.012, 0.03873, 0});
 }
 
 template<typename T_Point>
@@ -59,8 +60,8 @@ int UdpP64Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
       if (this->get_correction_file_) {
         int azimuth_coll = (int(this->azimuth_collection_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
         int elevation_corr = (int(this->elevation_correction_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
-        if (this->enable_distance_correction_) {
-          GetDistanceCorrection(azimuth_coll, elevation_corr, distance, GeometricCenter);
+        if (this->optical_center.flag) {
+          GeneralParser<T_Point>::GetDistanceCorrection(this->optical_center, azimuth_coll, elevation_corr, distance, GeometricCenter);
         }
         elevation = elevation_corr;
         azimuth = Azimuth + azimuth_coll;
