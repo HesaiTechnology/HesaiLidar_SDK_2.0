@@ -295,6 +295,8 @@ class GeneralParser {
   virtual void PacketTimeLossToolContinue(bool enable);
   void CalPktLoss(uint32_t PacketSeqnum);
   void CalPktTimeLoss(uint64_t PacketTimestamp);
+  void CRCInit();
+  uint32_t CRCCalc(const uint8_t *bytes, int len, int zeros_num);
   uint32_t GetComputePacketNum() { return compute_packet_num; }
   void SetComputePacketNumToZero() { compute_packet_num = 0; }
   LidarOpticalCenter GetOpticalCenter() { return optical_center; }
@@ -313,6 +315,7 @@ class GeneralParser {
   uint32_t total_packet_count_;
   PacketSeqnumLossMessage seqnum_loss_message_;
   PacketTimeLossMessage time_loss_message_;
+  uint32_t m_CRCTable[256];
 
  protected:
   uint16_t monitor_info1_[256];

@@ -180,10 +180,28 @@ int SerialSource::Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags, int 
         continue;
       }
       if (serialData[dataIndex + 5] == 0x00) {
+        uint32_t expectedCRC = (serialData[dataIndex + 79] << 24) |
+                       (serialData[dataIndex + 78] << 16) |
+                       (serialData[dataIndex + 77] << 8)  |
+                       serialData[dataIndex + 76];
+        uint32_t ret = CRCCalc(&serialData[dataIndex], 76, 0);
+        if ( ret != expectedCRC) {
+          dataIndex += 80;
+          continue;
+        }
         memcpy(udpPacket.buffer, serialData + dataIndex, 80);
         dataIndex += 80;
         return 80;
       } else if (serialData[dataIndex + 5] == 0x01) {
+        uint32_t expectedCRC = (serialData[dataIndex + 33] << 24) |
+                       (serialData[dataIndex + 32] << 16) |
+                       (serialData[dataIndex + 31] << 8)  |
+                       serialData[dataIndex + 30];
+        uint32_t ret = CRCCalc(&serialData[dataIndex], 30, 0);
+        if (ret != expectedCRC) {
+          dataIndex += 34;
+          continue;
+        }
         memcpy(udpPacket.buffer, serialData + dataIndex, 34);
         dataIndex += 34;
         return 34;
@@ -271,4 +289,30 @@ void SerialSource::SetReceiveStype(int type) {
   receiveStype = type;
   dataIndex = 0;
   dataLength = 0;
+}
+
+uint32_t SerialSource::CRCCalc(const uint8_t *bytes, int len, int zeros_num) {
+  CRCInit();
+    uint32_t i_crc = 0xffffffff;
+    for (int i = 0; i < len; i++)
+        i_crc = (i_crc << 8) ^ m_CRCTable[((i_crc >> 24) ^ bytes[i]) & 0xff];
+    for (int i = 0; i < zeros_num; i++)
+        i_crc = (i_crc << 8) ^ m_CRCTable[((i_crc >> 24) ^ 0) & 0xff];
+    return i_crc;
+}
+
+void SerialSource::CRCInit() {
+    static bool initialized = false;
+    if (initialized) {
+        return;
+    }
+    initialized = true;
+
+    uint32_t i, j, k;
+    for (i = 0; i < 256; i++) {
+        k = 0;
+        for (j = (i << 24) | 0x800000; j != 0x80000000; j <<= 1)
+            k = (k << 1) ^ (((k ^ j) & 0x80000000) ? 0x04c11db7 : 0);
+        m_CRCTable[i] = k;
+    }
 }
