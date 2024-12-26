@@ -412,3 +412,31 @@ void GeneralParser<T_Point>::SetOpticalCenterFlag(bool flag) {
   optical_center.flag = flag; 
   if (flag) LogInfo("Enable distance correction, center(%f %f %f)", optical_center.x, optical_center.y, optical_center.z);
 }
+
+template <typename T_Point>
+uint32_t GeneralParser<T_Point>::CRCCalc(const uint8_t *bytes, int len, int zeros_num) {
+  CRCInit();
+    uint32_t i_crc = 0xffffffff;
+    for (int i = 0; i < len; i++)
+        i_crc = (i_crc << 8) ^ m_CRCTable[((i_crc >> 24) ^ bytes[i]) & 0xff];
+    for (int i = 0; i < zeros_num; i++)
+        i_crc = (i_crc << 8) ^ m_CRCTable[((i_crc >> 24) ^ 0) & 0xff];
+    return i_crc;
+}
+
+template <typename T_Point>
+void GeneralParser<T_Point>::CRCInit() {
+    static bool initialized = false;
+    if (initialized) {
+        return;
+    }
+    initialized = true;
+
+    uint32_t i, j, k;
+    for (i = 0; i < 256; i++) {
+        k = 0;
+        for (j = (i << 24) | 0x800000; j != 0x80000000; j <<= 1)
+            k = (k << 1) ^ (((k ^ j) & 0x80000000) ? 0x04c11db7 : 0);
+        m_CRCTable[i] = k;
+    }
+}

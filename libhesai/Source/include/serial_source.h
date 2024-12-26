@@ -90,7 +90,9 @@ public:
    * @return true for valid
    */
   virtual void SetReceiveStype(int type);
-
+  void CRCInit();
+  uint32_t CRCCalc(const uint8_t *bytes, int len, int zeros_num);
+  uint32_t m_CRCTable[256];
 private:
   static const uint32_t kDataMaxLength = 10240; // is greater than the u16Len parameter of the function Receive
   int32_t m_iFd;

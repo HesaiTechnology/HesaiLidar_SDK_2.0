@@ -110,12 +110,17 @@ int Udp1_8Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   const HS_LIDAR_HEADER_JT *pHeader =
       reinterpret_cast<const HS_LIDAR_HEADER_JT *>(
           udpPacket.buffer + sizeof(HS_LIDAR_PRE_HEADER_JT));
-
+  uint32_t ret = this->CRCCalc(udpPacket.buffer, udpPacket.packet_len - sizeof(uint32_t), 0);
   // point to azimuth of udp start block
   if (pPreHeader->GetDataType() == 1) {
     const HS_LIDAR_BODY_IMU_JT *pBody =
       reinterpret_cast<const HS_LIDAR_BODY_IMU_JT *>(
           (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_JT));
+    const HS_LIDAR_TAIL_JT *pTail = reinterpret_cast<const HS_LIDAR_TAIL_JT *>(
+          (const unsigned char *)pBody + sizeof(HS_LIDAR_BODY_IMU_JT));
+    if (ret != pTail->GetCrc()) {
+        return -1;
+    }
     if (frame.use_timestamp_type == 0) {
       frame.imu_config.timestamp = double(pHeader->GetMicroLidarTimeU64()) / kMicrosecondToSecond;
     } else {
@@ -144,7 +149,11 @@ int Udp1_8Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
               sizeof(HS_LIDAR_BODY_AZIMUTH_JT));
   // uint32_t packet_seqnum = pBody->GetSequenceNum();
   // this->CalPktLoss(packet_seqnum);
-  
+  const HS_LIDAR_TAIL_JT *pTail = reinterpret_cast<const HS_LIDAR_TAIL_JT *>(
+          (const unsigned char *)pBody + sizeof(HS_LIDAR_BODY_POINT_JT));
+  if (ret != pTail->GetCrc()) {
+      return -1;
+  }
   if (frame.use_timestamp_type == 0) {
     frame.sensor_timestamp[frame.packet_num] = pHeader->GetMicroLidarTimeU64();
   } else {
