@@ -454,9 +454,11 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
 
   if (frame.use_timestamp_type == 0) {
     frame.sensor_timestamp[frame.packet_num] = pTail->GetMicroLidarTimeU64();
+#ifdef JT128_256
     if (pHeader->GetBlockNum() == 2) {
       frame.sensor_timestamp[frame.packet_num] += - pTail->GetTimestamp() + pTail->GetTimestamp() / 1000;
     }
+#endif
   } else {
     frame.sensor_timestamp[frame.packet_num] = udpPacket.recv_timestamp;
   }    
