@@ -241,7 +241,7 @@ int SerialSource::Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags, int 
           continue;
         }
         int i = 7;
-        while (dataLength - dataIndex - i >= 1) {
+        while (dataLength - dataIndex - i >= 2) {
           if (serialData[dataIndex + i] == 0xEE && serialData[dataIndex + i + 1] == 0xFF) {
             memcpy(udpPacket.buffer, serialData + dataIndex, i + 2);
             dataIndex += i + 2;
