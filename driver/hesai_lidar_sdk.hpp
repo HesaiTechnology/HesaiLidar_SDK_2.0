@@ -279,6 +279,7 @@ public:
           lidar_ptr_->ClearPacketBuffer();
           std::this_thread::sleep_for(std::chrono::microseconds(100));
           lidar_ptr_->frame_.Update();
+          lidar_ptr_->GetUdpParser()->SetComputePacketNumToZero();
           LogError("fail to start a new frame");
         }
       }
