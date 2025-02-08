@@ -371,7 +371,7 @@ struct FaultMessageVersion4_3 {
     return temp;
   }
   void ParserFaultMessage(FaultMessageInfo &fault_message_info) {
-    fault_message_info.fault_prase_version = 0x43;
+    fault_message_info.fault_parse_version = 0x43;
     fault_message_info.version = version_info;
     memcpy(fault_message_info.utc_time, utc_time, sizeof(utc_time));
     fault_message_info.timestamp = GetTimestamp();

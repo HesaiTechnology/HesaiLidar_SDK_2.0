@@ -146,7 +146,7 @@ public:
   // process thread
   void Run()
   {
-    LogInfo("--------begin to prase udp package--------");
+    LogInfo("--------begin to parse udp package--------");
     is_thread_runing_ = true;
     UdpFrame_t udp_packet_frame;
     lidar_ptr_->frame_.use_timestamp_type = lidar_ptr_->use_timestamp_type_;

@@ -99,7 +99,7 @@ union FaultMessageUnionInfo {
 };
 
 struct FaultMessageInfo {
-  uint8_t fault_prase_version;
+  uint8_t fault_parse_version;
   uint8_t version;
   uint8_t utc_time[6];
   uint32_t timestamp;
@@ -119,7 +119,7 @@ struct FaultMessageInfo {
     printf("fault_state: %d\n", fault_state);
     printf("total_faultcode_num: %d, faultcode_id: %d, faultcode: 0x%08x\n", 
             total_faultcode_num, faultcode_id, faultcode);
-    switch (fault_prase_version) {
+    switch (fault_parse_version) {
       case 0x43:
         union_info.fault4_3.Print();
         break;
