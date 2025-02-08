@@ -79,6 +79,8 @@ DEFINE_MEMBER_CHECKER(intensity)
 DEFINE_MEMBER_CHECKER(ring)
 DEFINE_MEMBER_CHECKER(timestamp)
 DEFINE_MEMBER_CHECKER(confidence)
+DEFINE_MEMBER_CHECKER(weightFactor)
+DEFINE_MEMBER_CHECKER(envLight)
 
 template <typename T_Point>
 inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, x)>::type setX(T_Point& point, const float& value)
@@ -161,6 +163,30 @@ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, confidence)>::type set
                                                                                      const uint8_t& value)
 {
   point.confidence = value;
+}
+template <typename T_Point>
+inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, weightFactor)>::type setWeightFactor(T_Point& point,
+                                                                                      const uint8_t& value)
+{
+}
+
+template <typename T_Point>
+inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, weightFactor)>::type setWeightFactor(T_Point& point,
+                                                                                     const uint8_t& value)
+{
+  point.weightFactor = value;
+}
+template <typename T_Point>
+inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, envLight)>::type setEnvLight(T_Point& point,
+                                                                                      const uint8_t& value)
+{
+}
+
+template <typename T_Point>
+inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, envLight)>::type setEnvLight(T_Point& point,
+                                                                                     const uint8_t& value)
+{
+  point.envLight = value;
 }
 // get command
 template <typename T_Point>

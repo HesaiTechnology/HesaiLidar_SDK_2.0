@@ -125,6 +125,19 @@ typedef struct LidarPointXYZICRT
     double timestamp;  
 } LidarPointXYZICRT;
 
+typedef struct LidarPointXYZICWERT
+{
+    float x; 
+    float y;             
+    float z;             
+    float intensity;  
+    uint8_t confidence;  
+    uint8_t weightFactor;  
+    uint8_t envLight;  
+    uint16_t ring;
+    double timestamp;  
+} LidarPointXYZICWERT;
+
 typedef struct LidarPointRTHI
 {
     int theta; 
@@ -177,6 +190,8 @@ struct PointDecodeData {
   uint16_t distances;
   uint8_t reflectivities;
   uint8_t confidence;
+  uint8_t weight_factor;
+  uint8_t env_light;
   uint8_t chn_index;
   uint8_t mirror_index;
 } PACKED;

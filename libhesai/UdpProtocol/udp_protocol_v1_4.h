@@ -70,17 +70,15 @@ struct HS_LIDAR_BODY_CHN_UNIT_NO_CONF_ME_V4 {
 struct HS_LIDAR_BODY_CHN_UNIT_ME_V4 {
   uint16_t m_u16Distance;
   uint8_t m_u8Reflectivity;
-  uint8_t m_u8Confidence;
+  uint8_t reserved[3];
 
   uint16_t GetDistance() const { return little_to_native(m_u16Distance); }
   uint8_t GetReflectivity() const { return m_u8Reflectivity; }
-  uint8_t GetConfidenceLevel() const { return m_u8Confidence; }
-
 
   void Print() const {
     printf("HS_LIDAR_BODY_CHN_UNIT_ME_V4:\n");
-    printf("Dist:%u, Reflectivity: %u, confidenceLevel:%d\n", GetDistance(),
-           GetReflectivity(), GetConfidenceLevel());
+    printf("Dist:%u, Reflectivity: %u\n", GetDistance(),
+           GetReflectivity());
   }
   void PrintMixData() const {
     printf("HS_LIDAR_BODY_CHN_UNIT_ME_V4:\n");
@@ -375,6 +373,8 @@ struct HS_LIDAR_HEADER_ME_V4 {
   bool HasFuncSafety() const { return m_u8Status & kFunctionSafety; }
   bool HasCyberSecurity() const { return m_u8Status & kCyberSecurity; }
   bool HasConfidenceLevel() const { return m_u8Status & kConfidenceLevel; }
+  bool HasWeightFactor() const { return m_u8Status & 0x20; }
+  bool HasEnvLight() const { return m_u8Status & 0x40; }
   bool IsFirstBlockLastReturn() const {
     return m_u8EchoCount == kFirstBlockLastReturn;
   }
@@ -382,14 +382,14 @@ struct HS_LIDAR_HEADER_ME_V4 {
     return m_u8EchoCount == kFirstBlockStrongestReturn;
   }
 
+  int UnitSize() const {
+    return 3 + (HasConfidenceLevel() ? 1 : 0) + (HasWeightFactor() ? 1 : 0) + (HasEnvLight() ? 1 : 0);
+  }
+
   uint16_t GetPacketSize() const {
     return sizeof(HS_LIDAR_PRE_HEADER) + sizeof(HS_LIDAR_HEADER_ME_V4) +
            (sizeof(HS_LIDAR_BODY_AZIMUTH_ME_V4) +
-            (HasConfidenceLevel()
-                 ? sizeof(HS_LIDAR_BODY_CHN_UNIT_ME_V4)
-                 : sizeof(HS_LIDAR_BODY_CHN_UNIT_NO_CONF_ME_V4)) *
-                GetLaserNum()) *
-               GetBlockNum() +
+            UnitSize() * GetLaserNum()) * GetBlockNum() +
            sizeof(HS_LIDAR_BODY_CRC_ME_V4) +
            (HasFuncSafety() ? sizeof(HS_LIDAR_FUNC_SAFETY_ME_V4) : 0) +
            (HasCyberSecurity() ? sizeof(HS_LIDAR_CYBER_SECURITY_ME_V4) : 0) +
