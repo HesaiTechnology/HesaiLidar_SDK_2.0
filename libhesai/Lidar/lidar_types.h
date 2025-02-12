@@ -42,6 +42,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <memory>
 #include <atomic>
+#include <array>
 #define CHANNEL_NUM 256
 #define PACKET_NUM 3600
 namespace hesai

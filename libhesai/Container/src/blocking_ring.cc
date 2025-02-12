@@ -39,7 +39,7 @@ template <typename T, size_t N>
 bool BlockingRing<T, N>::try_pop_front(T& value) {
     LockC lock(_mutex);
     using namespace std::literals::chrono_literals;
-    bool ret = _condv.wait_for(lock, 500ms, std::bind(&Super::not_empty, this));
+    bool ret = _condv.wait_for(lock, 100ms, std::bind(&Super::not_empty, this));
     if (ret) {
         value = Super::peek_front();
         Super::eff_pop_front();
@@ -100,4 +100,11 @@ void BlockingRing<T, N>::eff_clear()
 {
     LockS lock(_mutex);
     Super::eff_clear();
+}
+
+template <typename T, size_t N>
+void BlockingRing<T, N>::eff_pop_front()
+{
+    LockS lock(_mutex);
+    Super::eff_pop_front();
 }

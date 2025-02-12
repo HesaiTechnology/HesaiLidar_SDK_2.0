@@ -68,7 +68,7 @@ enum CmdType {
 };
 
 typedef std::vector<uint8_t> u8Array_t;
-#define PACKED __attribute__((packed))
+#pragma pack(push, 1)
 struct SerialHeader {
   uint8_t start_flag_[7];    
   
@@ -99,8 +99,8 @@ struct SerialHeader {
     start_flag_[5] = 0x41;
     start_flag_[6] = 0x2C;
   }
-} PACKED;
-
+};
+#pragma pack(pop)
 class SerialClient {
  public:
   SerialClient();
@@ -109,12 +109,8 @@ class SerialClient {
   SerialClient(const SerialClient &orig) = delete;
   int QueryCommand(const uint8_t cmd, const u8Array_t &payload, u8Array_t &byteStreamOut, uint32_t timeout);
   void SetSerial(Source* source_send, Source* source_recv);
-  int RecvSpecialAckData(uint8_t &status, uint8_t &ret_code, int timeout = 1000);
-  int OtaQueryCommand(const uint32_t all_num, const uint32_t num, const uint32_t len, const uint8_t *payload, uint8_t &status, uint8_t &ret_code);
-  
+
   int ChangeUpgradeMode();
-  int RequestUpgradeLargePackage();
-  int GetVersionId(u8Array_t &byteStreamOut);
   int GetCorrectionInfo(u8Array_t &dataOut);
   int GetSnInfo(u8Array_t &dataOut);
   static const uint16_t crc_begin = 7;
