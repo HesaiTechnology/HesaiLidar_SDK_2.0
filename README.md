@@ -23,6 +23,7 @@ Recommanded
 -Ubuntu 18.04
 -Ubuntu 20.04
 -Ubuntu 22.04
+-Windows 10
 ```
 
 **Compiler vresion requirement**
@@ -38,9 +39,16 @@ $ sudo apt install libpcl-dev libpcap-dev libyaml-cpp-dev
 ## Clone
 ```
 $ git clone https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0.git
+
+Note: Window is not recommended to use the compressed package, there will be symbol problems lead to compilation errors
 ```
 
-## Build
+**Note when parsing JT128/JT256**
+```
+Need to add macro definition JT128_256, can add statement in CMakeLists.txt --- ‘add_definitions(-DJT128_256)’
+```
+
+## Ubuntu Build
 ```
 1.$ cd HesaiLidar_SDK_2.0
 2.$ mkdir build
@@ -48,9 +56,24 @@ $ git clone https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0.git
 4.$ cmake ..
 5.$ make
 ```
-**Note when parsing JT128/JT256**
+
+## window Build
 ```
-Need to add macro definition JT128_256, can add statement in CMakeLists.txt --- ‘add_definitions(-DJT128_256)’
+Environmental preparations:
+	- Visual Studio2022	 https://visualstudio.microsoft.com/zh-hans/downloads/
+	- cmake-gui  		 https://cmake.org/download/
+	- Git 				 https://git-scm.com/
+	- OpenSSL v1.1.1	 https://slproweb.com/products/Win32OpenSSL.html
+Note: Modify 'set(OPENSSL_ROOT_DIR "C:/Program Files/OpenSSL-Win64")' to the actual path
+
+Compile Environment Configuration:
+	1. Open CMake-GUI, select the source directory (`HesaiLidar_SDK_2.0`) and output directory (`HesaiLidar_SDK_2.0/build`)
+	2. Click `Configure`
+  	3. Click `Generate`
+	4. If it prints “Configuring done” and “Generating done” then it is OK, otherwise check for errors.
+	5. Click on `Open Project`
+	6. Right click `ALL BUILD` and click `Generate`
+	7. The corresponding executable file can be found in the `Debug/Release` folder under `Build`
 ```
 
 ## Run a sample

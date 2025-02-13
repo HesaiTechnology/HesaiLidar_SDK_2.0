@@ -103,6 +103,8 @@ __global__ void compute_xyzs_1_4_impl(T_Point *xyzs, const float* channel_azimut
   gpu::setTimestamp(xyzs[point_index], double(sensor_timestamp[iscan]) / kMicrosecondToSecond);
   gpu::setRing(xyzs[point_index], ichannel % lasernum);
   gpu::setConfidence(xyzs[point_index], point_data[point_index].confidence);
+  gpu::setWeightFactor(xyzs[point_index], point_data[point_index].weight_factor);
+  gpu::setEnvLight(xyzs[point_index], point_data[point_index].env_light);
 }
 template <typename T_Point>
 int Udp1_4ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {

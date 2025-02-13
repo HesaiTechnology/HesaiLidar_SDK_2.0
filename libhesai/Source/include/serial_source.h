@@ -28,12 +28,18 @@
 
 #include <stdint.h>
 #include <string>
-#include <termios.h>
 #include <vector>
 #include <iostream>
 #include <string.h>
 #include "source.h"
-
+#include "blocking_ring.h"
+#ifdef _MSC_VER
+#include <Windows.h>
+#else
+#include <termios.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#endif
 
 namespace hesai
 {
@@ -44,9 +50,10 @@ namespace lidar
 #define    HS_NCCS 19
 #define    SERIAL_POINT_CLOUD_RECV  0
 #define    SERIAL_COMMAND_RECV      1
+#define    SERIAL_CLEAR_RECV_BUF    2
 
 typedef std::vector<uint8_t> u8Array_t;
-
+#ifndef _MSC_VER
 struct termios2 {
   tcflag_t c_iflag;		/* input mode flags */
   tcflag_t c_oflag;		/* output mode flags */
@@ -57,7 +64,7 @@ struct termios2 {
   speed_t c_ispeed;		/* input speed */
   speed_t c_ospeed;		/* output speed */
 };
-
+#endif
 class SerialSource : public Source {
 public:
   ~SerialSource();
@@ -90,12 +97,20 @@ public:
    * @return true for valid
    */
   virtual void SetReceiveStype(int type);
-  void CRCInit();
-  uint32_t CRCCalc(const uint8_t *bytes, int len, int zeros_num);
-  uint32_t m_CRCTable[256];
+
 private:
-  static const uint32_t kDataMaxLength = 10240; // is greater than the u16Len parameter of the function Receive
+  void ReceivedThread();
+  bool running;
+  std::thread* runningRecvThreadPtr;
+  BlockingRing<UdpPacket, 10> cmdAckRecvBuf;
+  BlockingRing<UdpPacket, kPacketBufferSize> pointCloudRecvBuf;
+  static const uint32_t kOneRecvLength = 80;
+  static const uint32_t kDataMaxLength = 1024 * 80; // is greater than the u16Len parameter of the function Receive
+#ifdef _MSC_VER
+  HANDLE m_iFd;
+#else
   int32_t m_iFd;
+#endif
   std::string dev_;
   int baudrate_;
   int point_cloud_baudrate_;

@@ -110,7 +110,9 @@ int Udp1_8Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   const HS_LIDAR_HEADER_JT *pHeader =
       reinterpret_cast<const HS_LIDAR_HEADER_JT *>(
           udpPacket.buffer + sizeof(HS_LIDAR_PRE_HEADER_JT));
-  uint32_t ret = this->CRCCalc(udpPacket.buffer, udpPacket.packet_len - sizeof(uint32_t), 0);
+  int zeros_num = (udpPacket.packet_len % 4);
+  zeros_num = zeros_num == 0 ? 0 : (4 - zeros_num);
+  uint32_t ret = this->CRCCalc(udpPacket.buffer, udpPacket.packet_len - sizeof(uint32_t), zeros_num);
   // point to azimuth of udp start block
   if (pPreHeader->GetDataType() == 1) {
     const HS_LIDAR_BODY_IMU_JT *pBody =

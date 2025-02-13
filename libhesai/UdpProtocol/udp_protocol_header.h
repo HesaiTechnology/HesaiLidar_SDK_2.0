@@ -43,12 +43,16 @@ namespace lidar
 #define PACKED __attribute__((packed))
 #endif
 
-static bool IsLittleEndian() {
-  const int a = 1;
-  const unsigned char *p = reinterpret_cast<const unsigned char *>(&a);
-
-  return *p == 1 ? true : false;
-}
+union {
+  uint32_t i;
+  uint8_t c[4]; 
+} u = {0x01020304};
+    
+inline bool IsLittleEndian() { 
+  if (u.c[0] == 0x04)
+    return true; 
+  else return false;
+}  
 
 template<typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>  
 T reverseBytes(T value) {  

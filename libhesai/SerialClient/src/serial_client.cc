@@ -122,6 +122,7 @@ int SerialClient::QueryCommand(const uint8_t cmd, const u8Array_t &payload, u8Ar
   sendCommand.resize(payload.size() + sizeof(SerialHeader) + 2);
   memcpy(sendCommand.data() + sizeof(SerialHeader) + 2, payload.data(), payload.size());
   SerialStreamEncode(kCmd, sendCommand);
+  source_recv_->SetReceiveStype(SERIAL_CLEAR_RECV_BUF);
   if (source_send_->Send(sendCommand.data(), sendCommand.size(), 0) < 0) {
     return kInvalidEquipment;
   }
@@ -136,29 +137,12 @@ int SerialClient::QueryCommand(const uint8_t cmd, const u8Array_t &payload, u8Ar
   return 0;
 }
 
-int SerialClient::RecvSpecialAckData(uint8_t &status, uint8_t &ret_code, int timeout) {
-  if (source_recv_ == nullptr || source_recv_->IsOpened() == false) return kInvalidEquipment;
-  UdpPacket udp_packet;
-  int size = source_recv_->Receive(udp_packet, kBufSize, 1, timeout);
-  if (size < 0) return kReadTimeout; 
-  u8Array_t recvData, byteStreamOut;
-  recvData.resize(size);
-  memcpy(recvData.data(), udp_packet.buffer, size);
-  bool ret = SerialStreamDecode(kOta, recvData, byteStreamOut);
-  if (ret == false || (size_t)(byteStreamOut[0] + 2) != byteStreamOut.size()) return kInvalidData;
-  status = byteStreamOut[1];
-  ret_code = byteStreamOut[byteStreamOut.size() - 1];
-  return 0;
-}
-
 int SerialClient::ChangeUpgradeMode() {
   printf("change upgrade mode\n");
   u8Array_t payload, byteStreamOut;
   payload.push_back(0x04);
   payload.push_back(0x00);
-  source_recv_->SetReceiveStype(SERIAL_COMMAND_RECV);
   int ret = QueryCommand(0x03, payload, byteStreamOut, 20000);
-  source_recv_->SetReceiveStype(SERIAL_POINT_CLOUD_RECV);
   if (ret != 0) {
     return ret;
   }
@@ -171,125 +155,11 @@ int SerialClient::ChangeUpgradeMode() {
   return 0;
 }
 
-int SerialClient::OtaQueryCommand(const uint32_t all_num, const uint32_t num, const uint32_t len, const uint8_t *payload, uint8_t &status, uint8_t &ret_code) {
-  if (source_recv_ == nullptr || source_recv_->IsOpened() == false) return kInvalidEquipment;
-  u8Array_t sendCommand;
-  sendCommand.resize(sizeof(SerialHeader));
-  sendCommand.push_back(0x00);
-  sendCommand.push_back(0x00);
-  sendCommand.push_back(0x00);
-  sendCommand.push_back(0x04);
-  sendCommand.push_back(static_cast<uint8_t>(all_num >> 24));
-  sendCommand.push_back(static_cast<uint8_t>(all_num >> 16));
-  sendCommand.push_back(static_cast<uint8_t>(all_num >> 8));
-  sendCommand.push_back(static_cast<uint8_t>(all_num >> 0));
-  sendCommand.push_back(static_cast<uint8_t>(num >> 24));
-  sendCommand.push_back(static_cast<uint8_t>(num >> 16));
-  sendCommand.push_back(static_cast<uint8_t>(num >> 8));
-  sendCommand.push_back(static_cast<uint8_t>(num >> 0));
-  sendCommand.push_back(static_cast<uint8_t>(len >> 24));
-  sendCommand.push_back(static_cast<uint8_t>(len >> 16));
-  sendCommand.push_back(static_cast<uint8_t>(len >> 8));
-  sendCommand.push_back(static_cast<uint8_t>(len >> 0));
-  sendCommand.resize(sendCommand.size() + len);
-  memcpy(sendCommand.data() + sizeof(SerialHeader) + 16, payload, len);
-  SerialStreamEncode(kOta, sendCommand);
-  // debug_print("send: ");
-  // debug_print_vec(sendCommand, sendCommand.size());
-  if (source_recv_->Send(sendCommand.data(), sendCommand.size(), 0) < 0) {
-    return kInvalidEquipment;
-  }
-  int ret = RecvSpecialAckData(status, ret_code, 20000);
-  if (ret != 0) {
-    return ret;
-  }
-  return 0;
-}
-
-int SerialClient::RequestUpgradeLargePackage() {
-  if (source_send_ == nullptr || source_recv_ == nullptr || source_send_->IsOpened() == false || source_recv_->IsOpened() == false) return kInvalidEquipment;
-  printf("request upgrade large package\n");
-  u8Array_t payload, byteStreamOut;
-  payload.push_back(0x05);
-  payload.push_back(0x04);
-  source_recv_->SetReceiveStype(SERIAL_COMMAND_RECV);
-  int ret = QueryCommand(0x02, payload, byteStreamOut, 5000);
-  if (ret != 0) {
-    source_recv_->SetReceiveStype(SERIAL_POINT_CLOUD_RECV);
-    return ret;
-  }
-  if (byteStreamOut.size() != 5 || byteStreamOut[1] != 0x02 || byteStreamOut[2] != 0x05 || byteStreamOut[3] != 0x04) {
-    source_recv_->SetReceiveStype(SERIAL_POINT_CLOUD_RECV);
-    return kInvalidData;
-  }
-  if (byteStreamOut[4] != 0x00) {
-    source_recv_->SetReceiveStype(SERIAL_POINT_CLOUD_RECV);
-    return CmdErrorCode2RetCode(byteStreamOut[4]);
-  }
-  source_recv_->Close();
-  source_recv_->Open();
-  printf("wait recv ready ack\n");
-  uint8_t status, ret_code;
-  ret = RecvSpecialAckData(status, ret_code, 2000);
-  if (ret != 0) {
-    return ret;
-  }
-  if (status != 0x55) {
-    return kFailedCalibration;
-  }
-  return 0;
-}
-
-int SerialClient::GetVersionId(u8Array_t &byteStreamOut) {
-  if (source_recv_ == nullptr || source_recv_->IsOpened() == false) return kInvalidEquipment;
-  u8Array_t sendCommand;
-  uint32_t all_num = 1, num = 0, len = 1024;
-  sendCommand.resize(sizeof(SerialHeader));
-  sendCommand.push_back(0x00);
-  sendCommand.push_back(0x00);
-  sendCommand.push_back(0x00);
-  sendCommand.push_back(0x05);
-  sendCommand.push_back(static_cast<uint8_t>(all_num >> 24));
-  sendCommand.push_back(static_cast<uint8_t>(all_num >> 16));
-  sendCommand.push_back(static_cast<uint8_t>(all_num >> 8));
-  sendCommand.push_back(static_cast<uint8_t>(all_num >> 0));
-  sendCommand.push_back(static_cast<uint8_t>(num >> 24));
-  sendCommand.push_back(static_cast<uint8_t>(num >> 16));
-  sendCommand.push_back(static_cast<uint8_t>(num >> 8));
-  sendCommand.push_back(static_cast<uint8_t>(num >> 0));
-  sendCommand.push_back(static_cast<uint8_t>(len >> 24));
-  sendCommand.push_back(static_cast<uint8_t>(len >> 16));
-  sendCommand.push_back(static_cast<uint8_t>(len >> 8));
-  sendCommand.push_back(static_cast<uint8_t>(len >> 0));
-  sendCommand.resize(sendCommand.size() + len, 0xFF);
-  SerialStreamEncode(kOta, sendCommand);
-  source_recv_->SetReceiveStype(SERIAL_COMMAND_RECV);
-  if (source_recv_->Send(sendCommand.data(), sendCommand.size(), 0) < 0) {
-    source_recv_->SetReceiveStype(SERIAL_POINT_CLOUD_RECV);
-    return kInvalidEquipment;
-  }
-
-  UdpPacket udp_packet;
-  int size = source_recv_->Receive(udp_packet, kBufSize, 1, 5000);
-  source_recv_->SetReceiveStype(SERIAL_POINT_CLOUD_RECV);
-  if (size < 0) return kReadTimeout; 
-  u8Array_t recvData;
-  recvData.resize(size);
-  memcpy(recvData.data(), udp_packet.buffer, size);
-  byteStreamOut.resize(size - 13);
-  memcpy(byteStreamOut.data(), udp_packet.buffer + 7, size - 13);
-  // bool ret = SerialStreamDecode(kOta, recvData, byteStreamOut);
-  // if (ret == false) return kInvalidData;
-  return 0;
-}
-
 int SerialClient::GetCorrectionInfo(u8Array_t &dataOut) {
   u8Array_t payload, byteStreamOut;
   payload.push_back(0x07);
   payload.push_back(0x00);
-  source_recv_->SetReceiveStype(SERIAL_COMMAND_RECV);
   int ret = QueryCommand(0x02, payload, byteStreamOut, 5000);
-  source_recv_->SetReceiveStype(SERIAL_POINT_CLOUD_RECV);
   if (ret != 0) {
     return ret;
   }
@@ -310,9 +180,7 @@ int SerialClient::GetSnInfo(u8Array_t &dataOut) {
   payload.push_back(0x0A);
   payload.push_back(0x01);
   payload.resize(38);
-  source_recv_->SetReceiveStype(SERIAL_COMMAND_RECV);
   int ret = QueryCommand(0x02, payload, byteStreamOut, 5000);
-  source_recv_->SetReceiveStype(SERIAL_POINT_CLOUD_RECV);
   if (ret != 0) {
     return ret;
   }

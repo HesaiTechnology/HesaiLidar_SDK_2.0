@@ -173,7 +173,7 @@ struct HS_LIDAR_BODY_POINT_JT {
 
 struct HS_LIDAR_BODY_IMU_JT {
   static constexpr double AccelUint = 1 / 8192.0;
-  static constexpr double AngVelUint = 1 / 32.768;
+  static constexpr double AngVelUint = 1 / 32.8;
   int16_t m_i16IMUXAccel;
   int16_t m_i16IMUYAccel;
   int16_t m_i16IMUZAccel;

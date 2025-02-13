@@ -145,6 +145,32 @@ namespace gpu
     point.confidence = value;
   }
 
+  template <typename T_Point>
+  __device__ inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, weightFactor)>::type setWeightFactor(T_Point& point,
+                                                                                        const uint8_t& value)
+  {
+  }
+
+  template <typename T_Point>
+  __device__ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, weightFactor)>::type setWeightFactor(T_Point& point,
+                                                                                      const uint8_t& value)
+  {
+    point.weightFactor = value;
+  }
+
+  template <typename T_Point>
+  __device__ inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, envLight)>::type setEnvLight(T_Point& point,
+                                                                                        const uint8_t& value)
+  {
+  }
+
+  template <typename T_Point>
+  __device__ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, envLight)>::type setEnvLight(T_Point& point,
+                                                                                      const uint8_t& value)
+  {
+    point.envLight = value;
+  }
+
 } // namespace gpu
 
 template <typename PointT>

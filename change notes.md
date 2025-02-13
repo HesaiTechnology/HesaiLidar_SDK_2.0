@@ -96,3 +96,4 @@ V2.0.9
 3. Support LAS protocol format storage.
 4. The initialization distinguishes (PandarN, OT) (XT, XTM), and the point cloud S-stratification correction of XT is controlled using a flag bit parameter (xt_spot_correction).
 5. Support ET2.5(ET25-E2X) 2.7(ET30HA2) for firetimes correction.
+6. OT128 support to get weight factor and env light fields (Need to register its template as LidarPointXYZICWERT when declaring HesaiLidarSdk).
