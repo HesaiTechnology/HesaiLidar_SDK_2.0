@@ -85,7 +85,7 @@ static constexpr float kAllFineResolutionFloat = kResolutionFloat * kFineResolut
 static constexpr int kFineResolutionInt = 256;
 static constexpr int kAllFineResolutionInt = kResolutionInt * kFineResolutionInt;
 //synchronize host time with sensor time per kPcapPlaySynchronizationCount packets
-static constexpr int kPcapPlaySynchronizationCount = 100;
+static constexpr int kPcapPlaySynchronizationCount = 10;
 //min points of one frame for displaying frame message
 static constexpr int kMinPointsOfOneFrame = 1000;
 //max time interval between two frame
@@ -166,9 +166,11 @@ typedef struct _LidarImuData {
   double imu_ang_vel_x;
   double imu_ang_vel_y;
   double imu_ang_vel_z;
+  bool flag;
 
   _LidarImuData()
   {
+    flag = false;
     timestamp = 0;
     imu_accel_x = -1;
     imu_accel_y = -1;
