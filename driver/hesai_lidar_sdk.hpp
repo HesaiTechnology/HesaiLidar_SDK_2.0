@@ -196,6 +196,9 @@ public:
         }
         continue;
       }
+      if (lidar_ptr_->frame_.imu_config.flag) {
+        if (imu_cb_) imu_cb_(lidar_ptr_->frame_.imu_config);
+      }
 
       //do not compute xyzi of points if enable packet_loss_tool_
       // if(packet_loss_tool_ == true) continue;

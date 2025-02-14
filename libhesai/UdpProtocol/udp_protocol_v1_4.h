@@ -292,10 +292,10 @@ struct HS_LIDAR_TAIL_IMU_ME_V4 {
     return little_to_native(m_i16IMUTemperature);
   }
   double GetIMUAccelUnit() const {
-    return little_to_native(m_u16IMUAccelUnit) / 1000.f;
+    return little_to_native(m_u16IMUAccelUnit) / 1000.f / 1000.f;
   }
   double GetIMUAngVelUnit() const {
-    return little_to_native(m_u16IMUAngVelUnit) / 1000.f;
+    return little_to_native(m_u16IMUAngVelUnit) / 100.f / 1000.f;
   }
   uint32_t GetIMUTimestamp() const {
     return little_to_native(m_u32IMUTimeStamp);

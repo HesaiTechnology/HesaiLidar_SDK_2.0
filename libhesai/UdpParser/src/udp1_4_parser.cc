@@ -441,6 +441,10 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     uint32_t packet_seqnum = pTailSeqNum->m_u32SeqNum;
     this->CalPktLoss(packet_seqnum);
   }
+  const HS_LIDAR_TAIL_IMU_ME_V4 *pTailImu = 
+      reinterpret_cast<const HS_LIDAR_TAIL_IMU_ME_V4 *>(
+            (const unsigned char *)pTail + sizeof(HS_LIDAR_TAIL_ME_V4) + 
+            (pHeader->HasSeqNum() ? sizeof(HS_LIDAR_TAIL_SEQ_NUM_ME_V4) : 0));
 
   if (frame.use_timestamp_type == 0) {
     frame.sensor_timestamp[frame.packet_num] = pTail->GetMicroLidarTimeU64();
@@ -451,7 +455,17 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
 #endif
   } else {
     frame.sensor_timestamp[frame.packet_num] = udpPacket.recv_timestamp;
-  }    
+  }
+  // get imu
+  frame.imu_config.timestamp = double(frame.sensor_timestamp[frame.packet_num]) / kMicrosecondToSecond;
+  frame.imu_config.imu_accel_x = pTailImu->GetIMUXAccel();
+  frame.imu_config.imu_accel_y = pTailImu->GetIMUYAccel();
+  frame.imu_config.imu_accel_z = pTailImu->GetIMUZAccel();
+  frame.imu_config.imu_ang_vel_x = pTailImu->GetIMUXAngVel();
+  frame.imu_config.imu_ang_vel_y = pTailImu->GetIMUYAngVel();
+  frame.imu_config.imu_ang_vel_z = pTailImu->GetIMUZAngVel();
+  frame.imu_config.flag = true;
+
   uint64_t packet_timestamp = pTail->GetMicroLidarTimeU64();
   this->CalPktTimeLoss(packet_timestamp);
   frame.host_timestamp = GetMicroTickCountU64();
