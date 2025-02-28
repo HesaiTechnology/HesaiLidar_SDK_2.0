@@ -60,7 +60,9 @@ int Udp1_8Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int pa
         int azimuth_coll = (int(this->azimuth_collection_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
         int elevation_corr = (int(this->elevation_correction_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
         if (this->optical_center.flag) {
+          azimuth_coll -= 190.0 * kAllFineResolutionFloat;
           GeneralParser<T_Point>::GetDistanceCorrection(this->optical_center, azimuth_coll, elevation_corr, distance, OpticalCenter);
+          azimuth_coll += 190.0 * kAllFineResolutionFloat;
         }
         elevation = elevation_corr;
         azimuth = Azimuth + azimuth_coll;
