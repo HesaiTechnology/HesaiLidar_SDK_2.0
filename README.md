@@ -96,6 +96,7 @@ Set the parameters in param in main.cc or main.cu
 	param.input_param.udp_port = 2368; // 2368 is the lidar udp port
 	param.input_param.host_ip_address = "192.168.1.100"; // 192.168.1.100 is the pc ip address
 	param.input_param.multicast_ip_address = "239.0.0.1"; // 239.0.0.1 is the lidar multcast ip address, set this parameter to "" when lidar do not support muticast
+	param.input_param.correction_file_path = "/path/to/correction.csv";
 	param.decoder_param.distance_correction_lidar_flag = false;   // Set to true when distance correction needs to be turned on
 ```
 // Reciving data from connected Lidar (Serial data)
@@ -103,6 +104,7 @@ Set the parameters in param in main.cc or main.cu
 	param.input_param.source_type = DATA_FROM_SERIAL;
 	param.input_param.rs485_com = "Your serial port name for receiving point cloud"; 
   	param.input_param.rs232_com = "Your serial port name for sending cmd"; 
+	param.input_param.correction_file_path = "/path/to/correction.csv";
 	param.decoder_param.distance_correction_lidar_flag = false;   // Set to true when distance correction needs to be turned on
 ```
 
