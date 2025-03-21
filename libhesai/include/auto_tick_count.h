@@ -34,6 +34,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <vector>
 #include <iostream>
+#include <cstdint>
 namespace hesai
 {
 namespace lidar
