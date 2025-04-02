@@ -56,7 +56,7 @@ struct PcapHeader {
     uint32_t snaplen;
     uint32_t network;
 };
-static_assert(sizeof(PcapHeader) == 24);
+static_assert(sizeof(PcapHeader) == 24, "");
 
 struct PcapRecord {
     uint32_t ts_sec;
@@ -64,13 +64,13 @@ struct PcapRecord {
     uint32_t incl_len;
     uint32_t orig_len;
 };
-static_assert(sizeof(PcapRecord) == 16);
+static_assert(sizeof(PcapRecord) == 16, "");
 struct Ethernet {
     uint8_t destination_MAC_address[6];
     uint8_t source_MAC_address[6];
     uint16_t ether_type;
 };
-static_assert(sizeof(Ethernet) == 14);
+static_assert(sizeof(Ethernet) == 14, "");
 struct PcapIPHeader {
     Ethernet ether;
     struct IP {
@@ -90,7 +90,7 @@ struct PcapIPHeader {
     } ip;
     PcapIPHeader(uint8_t protocol, uint16_t pkt_len);
 };
-static_assert(sizeof(PcapIPHeader::IP) == 20);
+static_assert(sizeof(PcapIPHeader::IP) == 20, "");
 struct PcapIPv6Header {
     Ethernet ether;
     struct IPv6 {
@@ -105,24 +105,24 @@ struct PcapIPv6Header {
     } ipv6;
     PcapIPv6Header(uint8_t protocol, uint16_t pkt_len);
 };
-static_assert(sizeof(PcapIPv6Header::IPv6) == 40);
+static_assert(sizeof(PcapIPv6Header::IPv6) == 40, "");
 struct UDP {
     uint16_t source_port;
     uint16_t distination_port;
     uint16_t length;
     uint16_t check_sum;
 };
-static_assert(sizeof(UDP) == 8);
+static_assert(sizeof(UDP) == 8, "");
 struct PcapUDPHeader : public PcapIPHeader {
     UDP udp;
     PcapUDPHeader(uint16_t pkt_len, uint16_t port = 2368);
 };
-static_assert(sizeof(PcapUDPHeader) == 42);
+static_assert(sizeof(PcapUDPHeader) == 42, "");
 struct PcapUDPv6Header : public PcapIPv6Header {
     UDP udp;
     PcapUDPv6Header(uint16_t pkt_len, uint16_t port = 2368);
 };
-static_assert(sizeof(PcapUDPv6Header) == 62);
+static_assert(sizeof(PcapUDPv6Header) == 62, "");
 struct TCP {
     uint16_t source_port;
     uint16_t distination_port;
@@ -136,17 +136,17 @@ struct TCP {
     uint16_t check_sum;
     uint16_t urp;
 };
-static_assert(sizeof(TCP) == 20);
+static_assert(sizeof(TCP) == 20, "");
 struct PcapTCPHeader : public PcapIPHeader {
     TCP tcp;
     PcapTCPHeader(uint16_t pkt_len, uint16_t port = 2368);
 };
-static_assert(sizeof(PcapTCPHeader) == 54);
+static_assert(sizeof(PcapTCPHeader) == 54, "");
 struct PcapTCPv6Header : public PcapIPv6Header {
     TCP tcp;
     PcapTCPv6Header(uint16_t pkt_len, uint16_t port = 2368);
 };
-static_assert(sizeof(PcapTCPv6Header) == 74);
+static_assert(sizeof(PcapTCPv6Header) == 74, "");
 #pragma pack(pop)
 
 class PcapSource : public Source {

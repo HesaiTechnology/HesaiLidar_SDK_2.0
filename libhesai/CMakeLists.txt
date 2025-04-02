@@ -27,8 +27,15 @@ set(WITH_LOG ON CACHE BOOL "Build log code")
 
 add_definitions(-DQT_MESSAGELOGCONTEXT)
 
-
-include_directories(
+find_package(OpenSSL REQUIRED)
+# Make each module an 'OBJECT' library, can be refered to by get_link_libraries
+if(WITH_PTCCLIENT)
+    add_library(ptcClient_lib 
+    PtcClient/src/ptc_client.cc
+    PtcClient/src/tcp_client.cc
+    PtcClient/src/tcp_ssl_client.cc
+    )
+    target_include_directories(ptcClient_lib PRIVATE
     ./
     include
     Lidar
@@ -46,29 +53,39 @@ include_directories(
     PtcClient/include
     SerialClient/include
     Logger/include
-    ${OPENSSL_INCLUDE_DIR}
-)
-
-# Make each module an 'OBJECT' library, can be refered to by get_link_libraries
-if(WITH_PTCCLIENT)
-    add_library(ptcClient_lib 
-    PtcClient/src/ptc_client.cc
-    PtcClient/src/tcp_client.cc
-    PtcClient/src/tcp_ssl_client.cc
-    )
+    ${OPENSSL_INCLUDE_DIR})
     target_link_libraries(ptcClient_lib
                         ${OPENSSL_LIBRARIES}
                         )
     set_target_properties(ptcClient_lib 
         PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
 endif(WITH_PTCCLIENT)
+
+if (WITH_SERIALCLIENT)
     add_library(serialClient_lib 
     SerialClient/src/serial_client.cc
     )
+    target_include_directories(serialClient_lib PRIVATE     
+    ./
+    include
+    Lidar
+    UdpProtocol
+    Server
+    UdpParser
+    UdpParser/include
+    UdpParser/src
+    PtcParser
+    PtcParser/include
+    PtcParser/src
+    Source/include
+    Container/include
+    Container/src
+    PtcClient/include
+    SerialClient/include
+    Logger/include
+    ${OPENSSL_INCLUDE_DIR})
     set_target_properties(serialClient_lib 
         PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
-if (WITH_SERIALCLIENT)
-
 endif(WITH_SERIALCLIENT)
 
 if(WITH_PTCPARSER)
@@ -77,6 +94,26 @@ if(WITH_PTCPARSER)
     PtcParser/src/ptc_1_0_parser.cc
     PtcParser/src/ptc_2_0_parser.cc
     PtcParser/ptc_parser.cc)
+    target_include_directories(ptcParser_lib PRIVATE     
+    ./
+    include
+    Lidar
+    UdpProtocol
+    Server
+    UdpParser
+    UdpParser/include
+    UdpParser/src
+    PtcParser
+    PtcParser/include
+    PtcParser/src
+    Source/include
+    Container/include
+    Container/src
+    PtcClient/include
+    SerialClient/include
+    Logger/include
+    ${OPENSSL_INCLUDE_DIR})
+    target_link_libraries(ptcParser_lib ${OPENSSL_LIBRARIES})
     set_target_properties(ptcParser_lib 
         PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
 endif(WITH_PTCPARSER)
@@ -86,6 +123,7 @@ if(WITH_CONTAINER)
     add_library(container_lib 
     Container/src/ring_2d_shared.cc
     Container/src/ring_2dex.cc)
+    target_include_directories(container_lib PRIVATE Container/include)
     set_target_properties(container_lib
         PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
 endif(WITH_CONTAINER)
@@ -98,6 +136,26 @@ if(WITH_LIDARBOARD)
         Source/src/serial_source.cc
         Source/src/pcap_saver.cc
         )
+    target_include_directories(source_lib PRIVATE     
+    ./
+    include
+    Lidar
+    UdpProtocol
+    Server
+    UdpParser
+    UdpParser/include
+    UdpParser/src
+    PtcParser
+    PtcParser/include
+    PtcParser/src
+    Source/include
+    Container/include
+    Container/src
+    PtcClient/include
+    SerialClient/include
+    Logger/include
+    ${OPENSSL_INCLUDE_DIR})
+
     target_link_libraries(source_lib
         platutils_lib
         container_lib
@@ -111,20 +169,39 @@ if(WITH_PLATUTIL)
     add_library(platutils_lib 
         ./src/plat_utils.cc
         ./src/auto_tick_count.cc)
+    target_include_directories(platutils_lib PRIVATE
+    ./
+    include
+    Lidar
+    UdpProtocol
+    Server
+    UdpParser
+    UdpParser/include
+    UdpParser/src
+    PtcParser
+    PtcParser/include
+    PtcParser/src
+    Source/include
+    Container/include
+    Container/src
+    PtcClient/include
+    SerialClient/include
+    Logger/include
+    ${OPENSSL_INCLUDE_DIR})
     set_target_properties(platutils_lib
         PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
 endif(WITH_PLATUTIL)
-
 
 
 if(WITH_LOG)
     find_package(Threads)
     add_library(log_lib EXCLUDE_FROM_ALL
         Logger/src/logger.cc)
+    target_include_directories(log_lib PRIVATE Logger/include)
     target_link_libraries(log_lib
         ${CMAKE_THREAD_LIBS_INIT})
     set_target_properties(log_lib
         PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
 endif(WITH_LOG)
 
-include_directories(${PROJECT_SOURCE_DIR})
+# include_directories(${PROJECT_SOURCE_DIR})

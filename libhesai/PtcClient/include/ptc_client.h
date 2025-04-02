@@ -188,8 +188,8 @@ class PtcClient {
   Mutex _mutex;
   static const std::string kLidarIPAddr;
   static const uint16_t kTcpPort = 9347;
-  uint16_t m_u16PtcPort;
-  bool running_;
+  // uint16_t m_u16PtcPort;
+  // bool running_;
   PtcMode client_mode_;
   uint8_t ptc_version_;
   std::shared_ptr<ClientBase> client_;
