@@ -1,5 +1,5 @@
 # HesaiLidar_SDK_2.0
-## About the project
+## About the project1
 This repository includes the software development kit for Hesai LiDAR sensor manufactured by Hesai Technology
 
 ## Support Lidar type
