@@ -2,7 +2,7 @@
 ## About the project
 This repository includes the software development kit for Hesai LiDAR sensor manufactured by Hesai Technology
 
-## Support Lidar type1
+## Support Lidar type
 - Pandar
 - AT128/AT128P
 - QT
