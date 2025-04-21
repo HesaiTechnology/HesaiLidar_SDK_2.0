@@ -12,7 +12,7 @@ This repository includes the software development kit for Hesai LiDAR sensor man
 - OT
 - ATX
 - JT16
-- JT128、JT256 (need define JT128_256)
+- JT128(need define JT128_256)
 
 ## Environment and Dependencies
 
