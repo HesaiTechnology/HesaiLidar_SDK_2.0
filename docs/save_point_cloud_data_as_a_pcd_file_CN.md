@@ -61,3 +61,21 @@ make
 ```cpp
 std::this_thread::sleep_for(std::chrono::milliseconds(1000))
 ```
+
+## 5 进阶应用
+#### 5.1 如何定义ASCII格式的PCD文件数据精度
+
+`writeASCII` 是 `pcl::PCDWriter` 类的一个方法，以下是其常见用法：
+```cpp
+pcl::PCDWriter writer;
+writer.writeASCII("output.pcd", cloud);
+```
+按默认的方法保存的PCD文件数据精度有限，例如时间戳会表示为科学计数法。
+
+如何更改PCD文件数据精度？
+```cpp
+pcl::PCDWriter writer;
+// you can change the value of precision to adjust the precison
+int precision = 16;
+writer.writeASCII(file_name1, *pcl_pointcloud, precision);
+```
