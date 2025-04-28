@@ -1,4 +1,4 @@
-#### 7.1.1 PCAP-connected LiDAR
+#### 7.1.1 PCAP-connected lidars
 ```cpp
 // test.cc - PCAP configuration
 param.input_param.source_type = DATA_FROM_PCAP;
@@ -8,11 +8,11 @@ param.input_param.firetimes_path = "path/to/firetimes.csv";          // Laser fi
 param.decoder_param.distance_correction_lidar_flag = false; // Set to true when distance correction needs to be turned on
 ```
 
-#### 7.1.2 Network-connected LiDAR
+#### 7.1.2 Network-connected lidars
 ```cpp
 // test.cc - Network configuration
 param.input_param.source_type = DATA_FROM_LIDAR;
-param.input_param.device_ip_address = '192.168.1.201';     // LiDAR IP address
+param.input_param.device_ip_address = '192.168.1.201';     // IP address of the lidar
 param.input_param.ptc_port = 9347;                         // PTC protocol port
 param.input_param.udp_port = 2368;                         // Point cloud data port
 param.input_param.host_ip_address = "192.168.1.100";       // Host PC IP address
@@ -21,7 +21,7 @@ param.input_param.correction_file_path = "/path/to/correction.csv";
 param.decoder_param.distance_correction_lidar_flag = false;	// Set to true when distance correction needs to be turned on
 ```
 
-#### 7.1.3 Serial-connected LiDAR (JT16)
+#### 7.1.3 Serial-connected lidars (JT16)
 
 ```cpp
 // test.cc - Serial configuration

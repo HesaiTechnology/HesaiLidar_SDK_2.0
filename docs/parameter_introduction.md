@@ -29,7 +29,7 @@
    *(Default: false)*
 
 #### 4.1.4 Calibration Settings
-8. `distance_correction_lidar_flag`: Enable mechanical LiDAR optical center correction  
+8. `distance_correction_lidar_flag`: Enable optical center correction for mechanical lidar models
    *(Required for Pandar/QT/OT/XT series)*
 
 9. `xt_spot_correction`: Enable XT16/32 S-stratification correction  
@@ -54,7 +54,7 @@
    - `1`: SSL encrypted
 
 #### 4.2.2 Network Configuration
-3. `device_ip_address`: LiDAR IP address  
+3. `device_ip_address`: IP address of the lidar
    *(Default: 192.168.1.201)*
 
 4. `udp_port`: Point cloud data port  
