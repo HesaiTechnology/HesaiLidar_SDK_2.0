@@ -1,10 +1,10 @@
 # HesaiLidar_SDK_2.0
 
-[中文版本](<README_CN.md>)
+[👉 中文版](<README_CN.md>)
 
 ## 1 Applicability
 
-### 1.1 Supported LiDARs
+### 1.1 Supported lidars
 - Pandar40P
 - Pandar64
 - Pandar128E3X
@@ -30,7 +30,7 @@
 - Ubuntu 22.04
 - Windows 10
 
-## 2 Clone & Compile
+## 2 Getting started
 
 ### 2.1 Clone
 ```bash
@@ -53,6 +53,7 @@ git clone --recurse-submodules https://github.com/HesaiTechnology/HesaiLidar_SDK
 - `libyaml` (if needed, install libyaml to parse correction files)
 
 ### 2.3 Build
+<!-- TODO compile vs build -->
 
 #### 2.3.1 Ubuntu Build Instructions
 ```bash
@@ -75,12 +76,12 @@ make -j$(nproc)
 ```
 
 #### 2.3.2 Windows Build Instructions
-Please refer to **[compile on Windows](docs\compile_on_windows.md)**.
+Please refer to **[compile on Windows](docs/compile_on_windows.md)**.
 
 ## 3 Application Guide
 
-### 3.1 Parsing LiDAR Data Online
-Please refer to **[Parsing LiDAR Data Online](docs\parsing_lidar_data_online.md)**.
+### 3.1 Parsing lidar Data Online
+Please refer to **[Parsing lidar Data Online](docs\parsing_lidar_data_online.md)**.
 
 ### 3.2 Parsing PCAP File Data Offline
 Please refer to **[Parsing PCAP File Data Offline](docs\parsing_pcap_file_data_offline.md)**.
@@ -88,11 +89,11 @@ Please refer to **[Parsing PCAP File Data Offline](docs\parsing_pcap_file_data_o
 ### 3.3 Visualization of Point Cloud Data
 Please refer to **[Visualization of Point Cloud Data](docs\visualization_of_point_cloud_data.md)**.
 
-### 3.4 Parsing Multi-LiDAR Data Online
-Please refer to **[Parsing Multi-LiDAR Data Online](docs\parsing_multi_lidar_data_online.md)**.
+### 3.4 Online parsing of multi-lidar data
+Please refer to **[Parsing Multi-lidar Data Online](docs\parsing_multi_lidar_data_online.md)**.
 
-### 3.5 Parsing Multi-LiDAR Data Offline
-Please refer to **[Parsing Multi-LiDAR Data Offline](docs\parsing_multi_lidar_data_offline.md)**.
+### 3.5 Offline parsing of multi-lidar data
+Please refer to **[Parsing Multi-lidar Data Offline](docs\parsing_multi_lidar_data_offline.md)**.
 
 ### 3.6 Save Point Cloud Data as a PCAP File
 Please refer to **[Save Point Cloud Data as a PCAP File](docs\save_point_cloud_data_as_a_pcap_file.md)**.
