@@ -1,33 +1,20 @@
 # HesaiLidar_SDK_2.0
 
-[English Version](<README.md>)
+[👉 English version](<README.md>)
 
 ## 1 适用性
 
 ### 1.1 支持的雷达型号
-- Pandar40P
-- Pandar64
-- Pandar128E3X
-- OT128
-- PandarQT
-- QT128C2X
-- PandarXT-16
-- PandarXT
-- XT32M2X
-- AT128E2X
-- AT128P
-- ATX
-- FT120
-- ET25
-- ETX
-- JT16
-- JT128
+
+| Pandar       | OT    | QT       | XT          | AT     | ET   | JT    |
+|:-------------|:------|:---------|:------------|:-------|:-----|:------|
+| Pandar40P    | OT128 | PandarQT | PandarXT    | AT128P | ET25 | JT16  |
+| Pandar64     |       | QT128C2X | PandarXT-16 | ATX    | ETX  | JT128 |
+| Pandar128E3X |       |          | XT32M2X     |        |      |       |
 
 ### 1.2 支持的操作系统
-- Ubuntu 16.04
-- Ubuntu 18.04
-- Ubuntu 20.04
-- Ubuntu 22.04
+
+- Ubuntu 16/18/20/22.04 
 - Windows 10
 
 ## 2 克隆 & 编译
