@@ -39,12 +39,21 @@ make
 ```bash
 ./packet_loss_tool
 ```
+输出示例：
+```log
+total recevice packet time: 15000ms
+total receviced packet count: 93229
+package loss: 
+total loss packet count: 0
+timestamp loss: 
+total loss packet count: 0
+```
 
 ### 方法2：统计1s内两次丢包之间总共的丢包率
 在test.cc中param部分，设置param.decoder_param.enable_packet_loss_tool = true，开启丢包统计功能
 编译和运行方式参考方法1
 当出现丢包时，终端会打印类似如下警告信息：
-```cpp
+```log
 [WARNING] pkt loss freq: 3 / 56268
 ```
 表示在统计周期1s内，从上一次丢包开始，到下一次新的丢包之间，共丢失了3个包，应收到包的总数为56268
@@ -80,8 +89,8 @@ void packetLossCallback(const uint32_t& total_packets, const uint32_t& lost_pack
 sample.RegRecvCallback(packetLossCallback);
 ```
 编译和运行方式参考方法1
-输出示例
-```cpp
+输出示例:
+```log
 [Frame Loss Rate]  97.47% (20241 / 20767)
 [Total Loss Rate]  2.12% (20241 / 956569)
 ```
