@@ -75,7 +75,7 @@ make -j$(nproc)
 ```
 
 #### 2.3.2 Windows Build Instructions
-Please refer to **[compile on Windows](docs\compile_on_windows.md)**.
+Please refer to **[compile on Windows](docs/compile_on_windows.md)**.
 
 ## 3 Application Guide
 
