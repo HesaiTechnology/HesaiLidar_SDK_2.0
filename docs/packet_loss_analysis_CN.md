@@ -9,10 +9,10 @@
 ### 方法1：统计一段时间内的丢包率和时间戳跳变率
 在tool文件夹的[packet_loss_tool.cc](..\tool\packet_loss_tool.cc)中param部分，设置好网络配置（默认的雷达设置状态下无需更改）
 ```cpp
-param.input_param.device_ip_address = "192.168.1.201";  //雷达ip
+param.input_param.device_ip_address = "192.168.1.201";  //雷达IP
 param.input_param.ptc_port = 9347;  //无需更改             
 param.input_param.udp_port = 2368;  //udp端口
-param.input_param.host_ip_address = "192.168.1.100";  //上位机ip
+param.input_param.host_ip_address = "192.168.1.100";  //上位机IP
 ```
 可以修改统计时间
 ```cpp
