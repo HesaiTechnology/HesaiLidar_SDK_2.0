@@ -4,12 +4,12 @@
 本功能实现了通过SDK向雷达发送PTC指令，获取雷达的信息或者设置雷达参数
 
 ## 2 发送PTC指令的方式
-在tool文件夹的ptc_tool.cc中param部分，设置好网络配置（默认的雷达设置状态下无需更改）
+在tool文件夹的[ptc_tool.cc](..\tool\ptc_tool.cc)中param部分，设置好网络配置（默认的雷达设置状态下无需更改）
 ```cpp
-param.input_param.device_ip_address = "192.168.1.201"; //雷达ip
+param.input_param.device_ip_address = "192.168.1.201"; //雷达IP
 param.input_param.ptc_port = 9347;  //无需更改             
 param.input_param.udp_port = 2368;  //udp端口
-param.input_param.host_ip_address = "192.168.1.100";  //上位机ip
+param.input_param.host_ip_address = "192.168.1.100";  //上位机IP
 ```
 ### 编译
 ```bash
@@ -34,42 +34,42 @@ make
 ```
 
 ### 使用示例
-#### 1. 设置雷达目的ip
-设置目的ip和端口号
+#### 1. 设置雷达目的IP
+设置目的IP和端口号
 ```cpp
-std::string destination_ip = "255.255.255.255";
-uint16_t udp_port = 2368;
-uint16_t gps_udp_port = 10110;
+std::string destination_ip = "255.255.255.255";  //可以按需设置为单播、组播、广播
+uint16_t udp_port = 2368;  //设置udp端口
+uint16_t gps_udp_port = 10110;  //设置gps端口
 ```
-运行后终端输出如下信息代表设置成功
+运行后终端有如下相关打印代表设置参数成功
 ```log
 SetDesIpandPort successed!
 Current destination_ip: 255.255.255.255, Current udp_port: 2368, Current gps_udp_port: 10111
 ```
 
-#### 2. 设置雷达ip
-将is_set_net设置为1
+#### 2. 设置雷达IP
+开启设置雷达IP的功能，将is_set_net设置为1
 ```cpp
  int is_set_net = 1;
 ```
-设置ip、子网掩码、网关和vlan
+设置IP、子网掩码、网关和VLAN
 ```cpp
-std::string net_IP = "192.168.1.202";
-std::string net_mask = "255.255.255.0";
-std::string net_getway = "192.168.1.1";
-uint8_t vlan_flag = 0;
-uint16_t vlan_ID = 0;
+std::string net_IP = "192.168.1.201";  //设置雷达IP
+std::string net_mask = "255.255.255.0";  //设置子网掩码
+std::string net_getway = "192.168.1.1";  //设置网关
+uint8_t vlan_flag = 0;  //设置VLAN标志，0表示不设置，1表示设置
+uint16_t vlan_ID = 0;  //设置VLAN ID
 ```
-运行后终端输出如下信息代表设置成功
+运行后终端有如下相关打印代表设置参数成功
 ```log
 SetNet successed!
-Current net_IP: 192.168.1.202, Current net_mask: 255.255.255.0, Current net_getway: 192.168.1.1
+Current net_IP: 192.168.1.201, Current net_mask: 255.255.255.0, Current net_getway: 192.168.1.1
 Current vlan_flag: 0, Current vlan_ID: 0
 ```
-注意：设置雷达ip后运行会终止，需要重新设置网络配置为雷达对应的ip后，修改is_set_net为0，再继续进行其它操作
+注意：设置雷达IP后运行会终止，需要重新设置网络配置为雷达对应的IP后，修改is_set_net为0，再继续进行其它操作
 
 #### 3. 获取雷达角度校准文件
-在ptc.tool.cc中添加如下代码，会在build目录下生成correction文件
+在[ptc_tool.cc](..\tool\ptc_tool.cc)中添加如下代码，会在build目录下生成correction文件
 ```cpp
 u8Array_t correction_data;
 if (sample.lidar_ptr_->ptc_client_->GetCorrectionInfo(correction_data) == 0) {
@@ -89,10 +89,10 @@ if (sample.lidar_ptr_->ptc_client_->GetCorrectionInfo(correction_data) == 0) {
     std::cout << "GetCorrectionInfo failed!" << std::endl;
 }
 ```
-运行后终端输出如下信息代表设置成功
+运行后终端有如下相关打印代表设置参数成功
 ```log
 Read correction file from lidar success
 GetCorrectionInfo succeeded!
-Correction data size: 526 bytes
+Correction data size: 526 bytes  // correction文件大小,不同雷达的大小不同
 Saved correction data to correction
 ```
