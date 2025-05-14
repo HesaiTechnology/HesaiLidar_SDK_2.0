@@ -43,9 +43,9 @@ git clone --recurse-submodules https://github.com/HesaiTechnology/HesaiLidar_SDK
 
 **注意:** 我们不建议在Windows上使用压缩包，因为它可能会由于符号问题导致编译错误。
 
-### 2.3 编译
+### 2.2 编译
 
-#### 2.3.1 Ubuntu下的编译说明
+#### 2.2.1 Ubuntu下的编译说明
 ```bash
 # 0. 安装依赖项
 sudo apt update && sudo apt install -y libpcl-dev libpcap-dev libyaml-cpp-dev
@@ -65,49 +65,40 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j$(nproc)
 ```
 
-#### 2.3.2 Windows下的编译说明
-请参考 **[如何在Windows下编译SDK](docs\compile_on_windows_CN.md)**.
+#### 2.2.2 Windows下的编译说明
+请参考 **[如何在Windows下编译SDK](docs/compile_on_windows_CN.md)**.
 
 ## 3 应用指南
 
 ### 3.1 在线解析激光雷达数据
- 请参考 **[如何在线解析激光雷达数据](docs\parsing_lidar_data_online_CN.md)**。
+ 请参考 **[如何在线解析激光雷达数据](docs/parsing_lidar_data_online_CN.md)**。
 
 ### 3.2 离线解析PCAP文件数据
-请参考 **[如何离线解析PCAP文件数据](docs\parsing_pcap_file_data_offline_CN.md)**。
+请参考 **[如何离线解析PCAP文件数据](docs/parsing_pcap_file_data_offline_CN.md)**。
 
 ### 3.3 点云数据的可视化
-请参考 **[如何可视化点云数据](docs\visualization_of_point_cloud_data_CN.md)**。
+请参考 **[如何可视化点云数据](docs/visualization_of_point_cloud_data_CN.md)**。
 
-### 3.4 在线解析多激光雷达数据
-请参考 **[如何在线解析多激光雷达数据](docs\parsing_multi_lidar_data_online_CN.md)**。
+### 3.4 坐标转换
+请参考 **[如何进行坐标转换](docs/coordinate_transformation_CN.md)**。
 
-### 3.5 离线解析多激光雷达数据
-请参考 **[如何离线解析PCAP中多激光雷达的数据](docs\parsing_multi_lidar_data_offline_CN.md)**。
+### 3.5 定义帧时间戳
+请参考 **[如何定义帧时间戳](docs/define_frame_timestamp_CN.md)**。
 
-### 3.6 保存点云数据为PCAP文件
-请参考 **[如何将点云数据保存为PCAP文件](docs\save_point_cloud_data_as_a_pcap_file_CN.md)**。
+### 3.6 保存点云数据为PCD文件
+请参考 **[如何将点云数据保存为PCD文件](docs/save_point_cloud_data_as_a_pcd_file_CN.md)**。
 
-### 3.7 坐标转换
-请参考 **[如何进行坐标转换](docs\coordinate_transformation_CN.md)**。
+### 3.7 使用GPU加速
+请参考 **[如何使用GPU加速优化性能](docs/use_gpu_acceleration_CN.md)**.
 
-### 3.8 定义帧时间戳
-请参考 **[如何定义帧时间戳](docs\define_frame_timestamp_CN.md)**。
+### 3.8 调用SDK API命令接口
+请参考 **[如何调用SDK API命令接口](docs/invoke_sdk_api_command_interface_CN.md)**.
 
-### 3.9 保存点云数据为PCD文件
-请参考 **[如何将点云数据保存为PCD文件](docs\save_point_cloud_data_as_a_pcd_file_CN.md)**。
+### 3.9 常见故障处理（WARNING）
+请参考 **[常见故障处理（WARNING）](docs/common_troubleshooting_CN.md)**.
 
-### 3.10 使用GPU加速
-请参考 **[如何使用GPU加速优化性能](docs\use_gpu_acceleration_CN.md)**.
-
-### 3.11 调用SDK API命令接口
-请参考 **[如何调用SDK API命令接口](docs\invoke_sdk_api_command_interface_CN.md)**.
-
-### 3.12 常见故障处理（WARNING）
-请参考 **[常见故障处理（WARNING）](docs\common_troubleshooting_CN.md)**.
-
-### 3.13 丢包统计
-请参考 **[如何进行丢包统计](docs\packet_loss_analysis_CN.md)**.
+### 3.10 丢包统计
+请参考 **[如何进行丢包统计](docs/packet_loss_analysis_CN.md)**.
 
 ## 4 功能参数解释
-请参考 **[功能参数解释](docs\parameter_introduction_CN.md)**.
+请参考 **[功能参数解释](docs/parameter_introduction_CN.md)**.
