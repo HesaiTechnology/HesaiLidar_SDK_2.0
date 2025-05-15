@@ -6,7 +6,7 @@
 // test.cc - Network configuration
 param.input_param.source_type = DATA_FROM_LIDAR;
 param.input_param.device_ip_address = '192.168.1.201';     // IP address of the lidar
-param.input_param.ptc_port = 9347;                         // PTC protocol port
+param.input_param.ptc_port = 9347;                         // TCP protocol port
 param.input_param.udp_port = 2368;                         // Point cloud data port
 param.input_param.host_ip_address = "192.168.1.100";       // Host PC IP address
 param.input_param.multicast_ip_address = "239.0.0.1";      // Multicast group (if used)

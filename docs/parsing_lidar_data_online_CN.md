@@ -7,7 +7,7 @@
 // 进入 test.cc 进行网络配置
 param.input_param.source_type = DATA_FROM_LIDAR;           // 设置数据来源为在线点云数据
 param.input_param.device_ip_address = '192.168.1.201';     // 激光雷达IP
-param.input_param.ptc_port = 9347;                         // PTC协议端口
+param.input_param.ptc_port = 9347;                         // TCP协议端口
 param.input_param.udp_port = 2368;                         // 点云数据端口
 param.input_param.host_ip_address = "192.168.1.100";       // 主机网口IP
 param.input_param.multicast_ip_address = "239.0.0.1";      // 可选项：如果目的IP为组播IP
