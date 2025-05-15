@@ -68,42 +68,42 @@ graph TD
    Solution Platform: x64
    ```
 
-2. Configure project properties:
+2. 配置项目属性:
    ```powershell
-   Right-click sample → Properties → 
+   右键点击 sample → Properties → 
    C/C++ → Preprocessor → 
    Preprocessor Definitions → Edit →
-   Add "NOMINMAX"
+   添加 "NOMINMAX"
    ```
 
-3. Build solution:
+3. 构建解决方案:
    ```bash
-   # Full solution build
+   # 构建完整解决方案
    Right-click solution → Build Solution
 
-   # Single project build
+   # 构建单项目解决方案
    Right-click sample → Build
    ```
 
-**Verification**:
+**验证**:
 ```powershell
-# Check executable
+# 检查可执行性
 cd build/Debug
 .\sample.exe --version
 ```
 
-## 4 Advanced Configuration
-**Permanent NOMINMAX Setting**:
+## 4 高级配置
+**永久性 NOMINMAX 设置**:
 ```cmake
-# Add to CMakeLists.txt
+# 添加到 CMakeLists.txt
 add_definitions(-DNOMINMAX)
 
-# Or target-specific
+# 或 靶向性
 target_compile_definitions(sample PRIVATE NOMINMAX)
 ```
 
-## 5 Troubleshooting
-**Common Errors**:
+## 5 故障排查
+**常见报错**:
 1. **LNK2005 Duplicate Symbols**:
    ```cmake
    # Project Properties → Linker → Command Line
@@ -123,7 +123,7 @@ target_compile_definitions(sample PRIVATE NOMINMAX)
    "LongPathsEnabled"=dword:00000001
    ```
 
-**Build Success Indicators**:
+**构建成功指示**:
 ```log
 - Output Window: "========== Build: 1 succeeded, 0 failed =========="
 - Executable Location: 
