@@ -1,14 +1,7 @@
-#### 7.1.1 PCAP-connected lidars
-```cpp
-// test.cc - PCAP configuration
-param.input_param.source_type = DATA_FROM_PCAP;
-param.input_param.pcap_path = "path/to/pcap";              // Path to recorded pcap file
-param.input_param.correction_file_path = "/path/to/correction.csv";  // Calibration file path (Angle Correction file path)
-param.input_param.firetimes_path = "path/to/firetimes.csv";          // Laser firing sequence (Firetimes file path)
-param.decoder_param.distance_correction_lidar_flag = false; // Set to true when distance correction needs to be turned on
-```
+# Parsing Lidar data online
 
-#### 7.1.2 Network-connected lidars
+## Preparation
+#### Network-connected lidars
 ```cpp
 // test.cc - Network configuration
 param.input_param.source_type = DATA_FROM_LIDAR;
@@ -21,8 +14,7 @@ param.input_param.correction_file_path = "/path/to/correction.csv";
 param.decoder_param.distance_correction_lidar_flag = false;	// Set to true when distance correction needs to be turned on
 ```
 
-#### 7.1.3 Serial-connected lidars (JT16)
-
+#### Serial-connected lidars (JT16)
 ```cpp
 // test.cc - Serial configuration
 param.input_param.source_type = DATA_FROM_SERIAL;
@@ -32,11 +24,11 @@ param.input_param.correction_file_path = "/path/to/correction.csv";
 param.decoder_param.distance_correction_lidar_flag = false;	// Set to true when distance correction needs to be turned on
 ```
 
-### 7.2 Build & Execution
+## Steps
 ```bash
-# Build the samples (from SDK root directory)
+# 1. Build Sample (from SDK root directory)
 make -j$(nproc)
 
-# Run the samples
+# 2. Run Sample
 $ ./sample
 ```

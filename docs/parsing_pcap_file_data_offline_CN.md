@@ -1,56 +1,49 @@
-# Parsing_pcap_file_data_offline
+# 离线解析PCAP点云数据
 
-## 1 简介
-本文档展示如何解析离线数据
-
-## 2 设置参数及路径
-### 2.1 CPU解析
-进入 [test.cc](..\test\test.cc) 
-
-#### 2.1.1 设置正确的参数
+## 准备
+#### CPU解析
 ```cpp
-  // assign param
-  param.input_param.source_type = DATA_FROM_PCAP;//设置数据来源为离线数据
-  param.input_param.pcap_path = {"Your pcap file path"}; // 离线数据路径
-  param.input_param.correction_file_path = {"Your correction file path"}; //校准文件路径
-  param.input_param.firetimes_path = {"Your firetime file path"}; // 可选项
+// 进入 test.cc 进行 PCAP 相关配置
+param.input_param.source_type = DATA_FROM_PCAP;            // 设置数据来源为离线PCAP点云数据
+param.input_param.pcap_path = "path/to/pcap";              // 离线PCAP点云数据路径
+param.input_param.correction_file_path = "/path/to/correction.csv";  // 校准文件（角度修正文件）
+param.input_param.firetimes_path = "path/to/firetimes.csv";          // 可选项：通道发光时序（发光时刻修正文件）
+param.decoder_param.distance_correction_lidar_flag = false; // 可选项：当需要使用光心修正的时候设置为 true
 ```
 
-### 2.2 GPU解析
-
-#### 2.2.1 确保GPU解析功能开启
-进入[CMakeLists.txt](..\CMakeLists.txt)
+#### GPU解析
+##### 1 确保GPU解析功能开启
 ```cpp
-if(${CUDA_FOUND}) ;//确保该行代码解除注释
-```
-#### 2.2.2 设置正确的参数
-进入 [test.cu](..\test\test.cu) 
-```cpp
-  // assign param
-  param.input_param.source_type = DATA_FROM_PCAP;//设置数据来源为离线数据
-  param.input_param.pcap_path = {"Your pcap file path"}; // 离线数据路径
-  param.input_param.correction_file_path = {"Your correction file path"}; //校准文件路径
-  param.input_param.firetimes_path = {"Your firetime file path"}; // 可选项
+// 进入 CMakeLists.txt 解除以下代码的注释
+find_package(CUDA )
+if(${CUDA_FOUND})
 ```
 
-## 3 编译
-在Hesai_SDK_2.0文件夹路径下，创建build文件夹，在build文件夹下新启terminal，运行cmake ..指令，运行make指令
+##### 2 设置正确的参数
 ```cpp
-cd HesaiLidar_SDK_2.0
-mkdir build
-cd build
-cmake ..
-make
+// 进入 test.cu 进行 PCAP 相关配置
+param.input_param.source_type = DATA_FROM_PCAP;            // 设置数据来源为离线PCAP点云数据
+param.input_param.pcap_path = "path/to/pcap";              // 离线PCAP点云数据路径
+param.input_param.correction_file_path = "/path/to/correction.csv";  // 校准文件（角度修正文件）
+param.input_param.firetimes_path = "path/to/firetimes.csv";          // 可选项：通道发光时序（发光时刻修正文件）
+param.decoder_param.distance_correction_lidar_flag = false; // 可选项：当需要使用光心修正的时候设置为 true
 ```
 
-## 4 运行
+## 操作
+#### CPU解析
+```bash
+# 1. 构建可执行示例程序 (从build文件夹下)：成功编译后，生成可执行程序
+make -j$(nproc)
 
-### 4.1 CPU解析
-成功编译后，build文件夹下会生成sample可执行文件，在build路径下输入./sample运行程序，系统会开始解析数据
-```cpp
-./sample
+# 2. 执行示例程序：开始解析数据
+$ ./sample
 ```
-### 4.2 GPU解析
-成功编译后，build文件夹下会生成sample_gpu可执行文件，在build路径下输入./sample_gpu运行程序，系统会开始解析数据
-```cpp
-./sample_gpu
+
+#### GPU解析
+```bash
+# 1. 构建可执行示例程序 (从build文件夹下)：成功编译后，生成可执行程序
+make -j$(nproc)
+
+# 2. 执行示例程序：开始解析数据
+$ ./sample_gpu
+```
