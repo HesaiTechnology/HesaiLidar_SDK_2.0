@@ -1,4 +1,4 @@
-# Parsing Lidar data online
+# Parsing Lidar Data Online
 
 ## Preparation
 #### Network-connected lidars

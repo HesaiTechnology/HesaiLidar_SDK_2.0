@@ -1,4 +1,4 @@
-# Parsing PCAP file data offline
+# Parsing PCAP File Data Offline
 
 ## Preparation
 #### Use CPU parsing

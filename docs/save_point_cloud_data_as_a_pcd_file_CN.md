@@ -1,4 +1,4 @@
-# Convert PCAP to PCD
+# PCAP转PCD
 HesaiLidar_SDK_2.0提供了将PCAP格式文件转换为PCD格式点云的示例代码。
 
 ## 准备
@@ -82,7 +82,7 @@ writer.writeASCII(file_name1, *pcl_pointcloud, precision);
   std::string file_name4 = "./PointCloudFrame" + std::to_string(frame.frame_index) + "_" + std::to_string(frame.points[0].timestamp)+ "_compress" + ".bin";
 ```
 
-- 以帧尾倒数第一个点的时间戳作为PCD文件名显示的时间戳
+- 以该帧内最后一个点的时间戳作为PCD文件名显示的时间戳
 ```cpp
   std::string file_name1 = "./PointCloudFrame" + std::to_string(frame.frame_index) + "_" + std::to_string(frame.points[points_num - 1].timestamp)+ ".pcd";
   std::string file_name2 = "./PointCloudFrame" + std::to_string(frame.frame_index) + "_" + std::to_string(frame.points[points_num - 1].timestamp)+ ".bin";

@@ -1,4 +1,4 @@
-# Common_error codes
+# Common Error Codes
 Here are some common warning codes that you may encounter.
 
 ##  Troubleshooting
