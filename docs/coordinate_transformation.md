@@ -1,6 +1,8 @@
 # Coordinate Transformation
-## 1 Introduction
-The coordinate transformation is defined in `lib_hesai/driver_param.h`
+Coordinate transformation is commonly applied in extrinsic calibration and similar operations.
+
+## Code Structure
+The coordinate transformation is defined in `lib_hesai/driver_param.h` 
 ```cpp
 typedef struct TransformParam  
 {
@@ -18,7 +20,7 @@ typedef struct TransformParam
   float yaw = 0.0f;    
 } TransformParam;
 ```
-## 2 Configuration
+## Configuration
 The transformation default value is given as zero.
 - `x,y,z` are given in `meter`
 - `Roll, Pitch, Yaw` angles are given in `radian`
