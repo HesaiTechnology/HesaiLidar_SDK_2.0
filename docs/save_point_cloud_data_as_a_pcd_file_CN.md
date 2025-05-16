@@ -1,9 +1,8 @@
 # Convert PCAP to PCD
-
-HesaiLidar_SDK_2.0提供了将PCAP文件转换为PCD格式的点云的示例代码。
+本文提供了将PCAP格式文件转换为PCD格式点云的示例代码。
 
 ## 1 设置参数及路径
-进入 [pcl_tools.cc](../tool/pcl_tool.cc) 找到main函数
+进入 [pcl_tools.cc](../tool/pcl_tool.cc) 
 
 #### 1.1 将source_type改为DATA_FROM_PCAP
 ```cpp

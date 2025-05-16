@@ -1,4 +1,4 @@
-## 4 Functional Parameter Reference
+# Functional Parameter Reference
 
 ### 4.1 Decoder Parameters (DecoderParam)
 
