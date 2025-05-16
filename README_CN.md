@@ -82,22 +82,19 @@ make -j$(nproc)
 ### 3.4 坐标转换
 请参考 **[如何进行坐标转换](docs/coordinate_transformation_CN.md)**。
 
-### 3.5 定义帧时间戳
-请参考 **[如何定义帧时间戳](docs/define_frame_timestamp_CN.md)**。
-
-### 3.6 保存点云数据为PCD文件
+### 3.5 保存点云数据为PCD文件
 请参考 **[如何将点云数据保存为PCD文件](docs/save_point_cloud_data_as_a_pcd_file_CN.md)**。
 
-### 3.7 使用GPU加速
+### 3.6 使用GPU加速
 请参考 **[如何使用GPU加速优化性能](docs/use_gpu_acceleration_CN.md)**.
 
-### 3.8 调用SDK API命令接口
+### 3.7 调用SDK API命令接口
 请参考 **[如何调用SDK API命令接口](docs/invoke_sdk_api_command_interface_CN.md)**.
 
-### 3.9 常见故障处理（WARNING）
+### 3.8 常见故障处理（WARNING）
 请参考 **[常见故障处理（WARNING）](docs/common_troubleshooting_CN.md)**.
 
-### 3.10 丢包统计
+### 3.9 丢包统计
 请参考 **[如何进行丢包统计](docs/packet_loss_analysis_CN.md)**.
 
 ## 4 功能参数解释

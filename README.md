@@ -81,22 +81,19 @@ Please refer to **[Visualization of Point Cloud Data](docs/visualization_of_poin
 ### 3.4 Coordinate Transformation
 Please refer to **[Coordinate Transformation](docs/coordinate_transformation.md)**.
 
-### 3.5 Define Frame Timestamp
-Please refer to **[Define Frame Timestamp](docs/define_frame_timestamp.md)**.
-
-### 3.6 Save Point Cloud Data as a PCD File
+### 3.5 Save Point Cloud Data as a PCD File
 Please refer to **[Save Point Cloud Data as a PCD File](docs/save_point_cloud_data_as_a_pcd_file.md)**.
 
-### 3.7 Use GPU Acceleration
+### 3.6 Use GPU Acceleration
 Please refer to **[Use GPU Acceleration](docs/use_gpu_acceleration.md)**.
 
-### 3.8 Invoke SDK API command interface
+### 3.7 Invoke SDK API command interface
 Please refer to **[Invoke SDK API command interface](docs/invoke_sdk_api_command_interface.md)**.
 
-### 3.9 Common Troubleshooting (Warning)
+### 3.8 Common Troubleshooting (Warning)
 Please refer to **[Common Troubleshooting (Warning)](docs/common_troubleshooting.md)**.
 
-### 3.10 Packet Loss Analysis
+### 3.9 Packet Loss Analysis
 Please refer to **[Packet Loss Analysis](docs/packet_loss_analysis.md)**.
 
 
