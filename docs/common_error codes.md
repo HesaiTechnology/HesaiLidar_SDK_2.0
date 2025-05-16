@@ -1,7 +1,7 @@
 # Common_error codes
-## 1 Introduction
 Here are some common warning codes that you may encounter.
-## 2 Troubleshooting
+
+##  Troubleshooting
 1. `Failed to obtain correction file from lidar!`
    This indicates that the program attempted to retrieve the angle correction data directly from the lidar but failed. After that, it still tries to load the correction file from a local path specified in the configuration `param.input_param.correction_file_path`. If a valid local file is found, the program can still proceed.
 
