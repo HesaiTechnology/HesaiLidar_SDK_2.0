@@ -1,8 +1,8 @@
 # Functional Parameter Reference
 
-### 4.1 Decoder Parameters (DecoderParam)
+### 1 Decoder Parameters (DecoderParam)
 
-#### 4.1.1 Time Synchronization
+#### 1.1 Time Synchronization
 1. `pcap_play_synchronization`: Enable real-time playback simulation when parsing PCAP files  
    *(Default: true)*
 
@@ -10,7 +10,7 @@
    - `0`: Point cloud timestamp (default)
    - `1`: System local time
 
-#### 4.1.2 Frame Processing
+#### 1.2 Frame Processing
 3. `frame_start_azimuth`: Frame split position (0-360 degrees)  
    *(Default: 0.0)*
 
@@ -18,7 +18,7 @@
    Points outside this range will be filtered  
    *(Default: 0.0-360.0)*
 
-#### 4.1.3 Packet Analysis
+#### 1.3 Packet Analysis
 5. `enable_packet_loss_tool`: Enable sequence-based packet loss statistics  
    *(Default: false)*
 
@@ -28,22 +28,22 @@
 7. `packet_timeloss_tool_continue`: Continuous timestamp monitoring  
    *(Default: false)*
 
-#### 4.1.4 Calibration Settings
+#### 1.4 Calibration Settings
 8. `distance_correction_lidar_flag`: Enable optical center correction for mechanical lidar models
    *(Required for Pandar/QT/OT/XT series)*
 
 9. `xt_spot_correction`: Enable XT16/32 S-stratification correction  
    *(Default: false)*
 
-#### 4.1.5 Performance
+#### 1.5 Performance
 10. `system_udpsocket_buffer_size`: UDP socket buffer size (bytes)  
     *(Default: 1500)*
 
 ---
 
-### 4.2 Input Parameters (InputParam)
+### 2 Input Parameters (InputParam)
 
-#### 4.2.1 Connection Basics
+#### 2.1 Connection Basics
 1. `source_type`: Data source selection  
    - `DATA_FROM_PCAP`: PCAP file playback
    - `DATA_FROM_LIDAR`: Network connection
@@ -53,7 +53,7 @@
    - `0`: TCP (default)
    - `1`: SSL encrypted
 
-#### 4.2.2 Network Configuration
+#### 2.2 Network Configuration
 3. `device_ip_address`: IP address of the lidar
    *(Default: 192.168.1.201)*
 
@@ -68,7 +68,7 @@
 
 7. `host_ip_address`: Host computer IP address
 
-#### 4.2.3 File Paths
+#### 2.3 File Paths
 8. `pcap_path`: PCAP file location  
    *(Required for PCAP mode)*
 
@@ -77,7 +77,7 @@
 
 10. `firetimes_path`: Laser firing sequence file
 
-#### 4.2.4 Serial Configuration (JT16 Only)
+#### 2.4 Serial Configuration (JT16 Only)
 11. `rs485_com`: Point cloud reception port  
     *(e.g., COM3 or /dev/ttyUSB0)*
 
@@ -92,16 +92,16 @@
 15. `rs232_baudrate`: Normal command baud rate  
     *(Default: 9600)*
 
-#### 4.2.5 Security
+#### 2.5 Security
 16. `certFile`: Client certificate path  
 17. `privateKeyFile`: Private key path  
 18. `caFile`: CA certificate path  
 
 ---
 
-### 4.3 Driver Parameters (DriverParam)
+### 3 Driver Parameters (DriverParam)
 
-#### 4.3.1 Logging Configuration
+#### 3.1 Logging Configuration
 1. `log_level`: Verbosity level  
    - `0`: Debug
    - `1`: Info (default)
