@@ -457,14 +457,20 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     frame.sensor_timestamp[frame.packet_num] = udpPacket.recv_timestamp;
   }
   // get imu
-  frame.imu_config.timestamp = double(frame.sensor_timestamp[frame.packet_num]) / kMicrosecondToSecond;
+  //frame.imu_config.timestamp = double(frame.sensor_timestamp[frame.packet_num]) / kMicrosecondToSecond;
+  frame.imu_config.timestamp = pTailImu->GetIMUTimestamp();
   frame.imu_config.imu_accel_x = pTailImu->GetIMUXAccel();
   frame.imu_config.imu_accel_y = pTailImu->GetIMUYAccel();
   frame.imu_config.imu_accel_z = pTailImu->GetIMUZAccel();
   frame.imu_config.imu_ang_vel_x = pTailImu->GetIMUXAngVel();
   frame.imu_config.imu_ang_vel_y = pTailImu->GetIMUYAngVel();
   frame.imu_config.imu_ang_vel_z = pTailImu->GetIMUZAngVel();
-  frame.imu_config.flag = true;
+  if(last_imu_timestamp_ != frame.imu_config.timestamp)
+  {
+    frame.imu_config.flag = true;
+    last_imu_timestamp_ = frame.imu_config.timestamp;
+  }
+  
 
   uint64_t packet_timestamp = pTail->GetMicroLidarTimeU64();
   this->CalPktTimeLoss(packet_timestamp);
