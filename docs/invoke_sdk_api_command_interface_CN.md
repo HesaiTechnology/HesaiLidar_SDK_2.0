@@ -1,41 +1,37 @@
 # 发送PTC指令 
+本文档介绍了如何通过SDK向雷达发送PTC指令，获取雷达的信息或者设置雷达参数
 
-## 1 概述
-本功能实现了通过SDK向雷达发送PTC指令，获取雷达的信息或者设置雷达参数
-
-## 2 发送PTC指令的方式
-在tool文件夹的[ptc_tool.cc](..\tool\ptc_tool.cc)中param部分，设置好网络配置（默认的雷达设置状态下无需更改）
+## 准备
+进入 [ptc_tool.cc](../tool/ptc_tool.cc) 
 ```cpp
+// 网络配置（默认的雷达设置状态下无需更改）
 param.input_param.device_ip_address = "192.168.1.201"; //雷达IP
-param.input_param.ptc_port = 9347;  //无需更改             
+param.input_param.ptc_port = 9347;  //ptc端口（无需更改）
 param.input_param.udp_port = 2368;  //udp端口
 param.input_param.host_ip_address = "192.168.1.100";  //上位机IP
 ```
-### 编译
-```bash
-# 0. 安装依赖项
-sudo apt update && sudo apt install -y libpcl-dev libpcap-dev libyaml-cpp-dev
 
-# 1. 导航到源目录
+## 操作
+### 1 编译
+在HesaiLidar_SDK_2.0文件夹下，启动Terminal终端，执行以下指令。
+```cpp
 cd HesaiLidar_SDK_2.0/tool
-
-# 2. 创建build目录并导航到build目录
-mkdir -p build && cd build
-
-# 3. 使用Cmake配置项目
+mkdir build
+cd build
 cmake ..
-
-# 4. 编译SDK
 make
 ```
-### 运行
-```bash
-./ptc.tool
+
+### 2 运行
+成功编译后，在build文件夹下运行生成的pcl_tool可执行文件，系统会有可视化窗口。
+```cpp
+./ptc_tool
 ```
 
-### 使用示例
+## 更多参考
+以下介绍几个常见的示例程序。
 #### 1. 设置雷达目的IP
-设置目的IP和端口号
+设置目的IP和相关端口号
 ```cpp
 std::string destination_ip = "255.255.255.255";  //可以按需设置为单播、组播、广播
 uint16_t udp_port = 2368;  //设置udp端口
@@ -69,7 +65,7 @@ Current vlan_flag: 0, Current vlan_ID: 0
 注意：设置雷达IP后运行会终止，需要重新设置网络配置为雷达对应的IP后，修改is_set_net为0，再继续进行其它操作
 
 #### 3. 获取雷达角度校准文件
-在[ptc_tool.cc](..\tool\ptc_tool.cc)中添加如下代码，会在build目录下生成correction文件
+在[ptc_tool.cc](../tool/ptc_tool.cc)中添加如下代码，会在build目录下生成correction文件
 ```cpp
 u8Array_t correction_data;
 if (sample.lidar_ptr_->ptc_client_->GetCorrectionInfo(correction_data) == 0) {
