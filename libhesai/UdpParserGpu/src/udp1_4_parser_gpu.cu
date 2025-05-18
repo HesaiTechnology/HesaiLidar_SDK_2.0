@@ -53,7 +53,9 @@ Udp1_4ParserGpu<T_Point>::~Udp1_4ParserGpu() {
 }
 template <typename T_Point>
 __global__ void compute_xyzs_1_4_impl(T_Point *xyzs, const float* channel_azimuths, const float* channel_elevations, const PointDecodeData* point_data, const uint64_t* sensor_timestamp, 
-    const double raw_distance_unit, Transform transform, LidarOpticalCenter optical_center, const uint16_t blocknum, const uint16_t lasernum, const uint16_t packet_index) {
+    const double raw_distance_unit, Transform transform, LidarOpticalCenter optical_center, const uint16_t blocknum, const uint16_t lasernum, const uint16_t packet_index, const int fov_start, const int fov_end) {
+  float fov_start_rad = fov_start * M_PI / 180.0f;
+  float fov_end_rad = fov_end * M_PI / 180.0f;
   auto iscan = blockIdx.x;
   auto ichannel = threadIdx.x;
   if (iscan >= packet_index || ichannel >= blocknum * lasernum) return;
@@ -77,6 +79,14 @@ __global__ void compute_xyzs_1_4_impl(T_Point *xyzs, const float* channel_azimut
     phi = std::asin(z / rho);
   } else {
     theta += azimuth;
+  }
+
+  if (theta < fov_start_rad || theta > fov_end_rad) {
+    gpu::setX(xyzs[point_index], 0);
+    gpu::setY(xyzs[point_index], 0);
+    gpu::setZ(xyzs[point_index], 0);
+    gpu::setIntensity(xyzs[point_index], 0);
+    return;
   }
 
   float z = rho * sin(phi);
@@ -115,8 +125,8 @@ int Udp1_4ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
   cudaSafeCall(cudaMemcpy(sensor_timestamp_cu_, frame.sensor_timestamp,
                           frame.packet_num * sizeof(uint64_t), 
                           cudaMemcpyHostToDevice), ReturnCode::CudaMemcpyHostToDeviceError);   
-compute_xyzs_1_4_impl<<<frame.packet_num, frame.block_num * frame.laser_num>>>(this->frame_.gpu()->points, channel_azimuths_cu_, channel_elevations_cu_, 
-  point_data_cu_, sensor_timestamp_cu_, frame.distance_unit, this->transform_, this->optical_center, frame.block_num, frame.laser_num, frame.packet_num);
+  compute_xyzs_1_4_impl<<<frame.packet_num, frame.block_num * frame.laser_num>>>(this->frame_.gpu()->points, channel_azimuths_cu_, channel_elevations_cu_, 
+  point_data_cu_, sensor_timestamp_cu_, frame.distance_unit, this->transform_, this->optical_center, frame.block_num, frame.laser_num, frame.packet_num, frame.config.fov_start, frame.config.fov_end);
   cudaSafeCall(cudaGetLastError(), ReturnCode::CudaXYZComputingError);
   this->frame_.DeviceToHost(0, frame.block_num * frame.laser_num * frame.packet_num * sizeof(T_Point));
   std::memcpy(frame.points, this->frame_.cpu()->points, frame.block_num * frame.laser_num * frame.packet_num * sizeof(T_Point));
