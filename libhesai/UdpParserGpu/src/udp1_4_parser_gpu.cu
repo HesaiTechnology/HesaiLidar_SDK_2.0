@@ -81,7 +81,7 @@ __global__ void compute_xyzs_1_4_impl(T_Point *xyzs, const float* channel_azimut
     theta += azimuth;
   }
 
-  if (theta < fov_start_rad || theta > fov_end_rad) {
+  if ((fov_start != -1 && theta < fov_start_rad) || (fov_end != -1 && theta > fov_end_rad)) {
     gpu::setX(xyzs[point_index], 0);
     gpu::setY(xyzs[point_index], 0);
     gpu::setZ(xyzs[point_index], 0);
