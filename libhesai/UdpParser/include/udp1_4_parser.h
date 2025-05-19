@@ -79,7 +79,7 @@ class Udp1_4Parser : public GeneralParser<T_Point> {
   bool IsNeedFrameSplit(uint16_t azimuth); 
 
  private:
-  uint32_t last_imu_timestamp_ = 0;
+  double last_imu_timestamp_ = 0;
   static const int kLaserNum = 128;
   double section_distance;
   std::string lidar_type_;
