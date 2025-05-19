@@ -6,11 +6,11 @@
 
 ### 1.1 Supported lidars
 
-| Pandar       | OT    | QT       | XT          | AT     | ET   | JT    |
-|:-------------|:------|:---------|:------------|:-------|:-----|:------|
-| Pandar40P    | OT128 | PandarQT | PandarXT    | AT128P | ET25 | JT16  |
-| Pandar64     | -     | QT128C2X | PandarXT-16 | ATX    | ETX  | JT128 |
-| Pandar128E3X | -     | -        | XT32M2X     | -      | -    | -     |
+| Pandar       | OT    | QT       | XT          | AT       | ET   | JT    |
+|:-------------|:------|:---------|:------------|:---------|:-----|:------|
+| Pandar40P    | OT128 | PandarQT | PandarXT    | AT128E2X | ET25 | JT16  |
+| Pandar64     | -     | QT128C2X | PandarXT-16 | AT128P   | ETX  | JT128 |
+| Pandar128E3X | -     | -        | XT32M2X     | ATX      | -    | -     |
 
 ### 1.2 Supported OS
 
@@ -29,9 +29,9 @@ Windows
 
 ### 1.4 Dependencies
 
-- `PCL` (if needed, install PCL to visualize point cloud data)
-- `libpcap` (if needed, install libpcap to parse PCAP file data)
-- `libyaml` (if needed, install libyaml to parse correction files)
+- To visualize point cloud data, install `PCL`.
+- To parse PCAP file data, install `libpcap`.
+<!-- - To parse the lidar correction files, install `libyaml`. // Needed when parsing config.yaml of ROS  -->
 
 ## 2 Getting started
 
@@ -39,12 +39,12 @@ Windows
 ```bash
 git clone --recurse-submodules https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0.git
 ```
-**Note:** We don’t recommend using the compressed package on Windows, as it may cause compilation errors due to symbol issues.
+> In Windows, downloading the repository as a ZIP file is not recommended, as it may lead to compilation errors due to symbolic link issues.
 
 ### 2.2 Build
 <!-- TODO compile vs build -->
 
-#### 2.2.1 Ubuntu Build Instructions
+#### 2.2.1 Build in Ubuntu
 ```bash
 # 0. Install dependencies
 sudo apt update && sudo apt install -y libpcl-dev libpcap-dev libyaml-cpp-dev
@@ -64,7 +64,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j$(nproc)
 ```
 
-#### 2.2.2 Windows Build Instructions
+#### 2.2.2 Build in Windows
 Please refer to **[compile on Windows](docs/compile_on_windows.md)**.
 
 ## 3 Application Guide
@@ -91,7 +91,7 @@ Please refer to **[Use GPU Acceleration](docs/use_gpu_acceleration.md)**.
 Please refer to **[Invoke SDK API command interface](docs/invoke_sdk_api_command_interface.md)**.
 
 ### 3.8 Common Troubleshooting (Warning)
-Please refer to **[Common Troubleshooting (Warning)](docs/common_troubleshooting.md)**.
+Please refer to **[Common Troubleshooting (Warning)](docs/common_error_codes.md)**.
 
 ### 3.9 Packet Loss Analysis
 Please refer to **[Packet Loss Analysis](docs/packet_loss_analysis.md)**.

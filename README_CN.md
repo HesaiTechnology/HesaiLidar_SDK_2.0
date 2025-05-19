@@ -31,7 +31,7 @@ Windows
 
 - 如果使用点云可视化功能，需安装 `PCL`
 - 如果解析 PCAP 文件，需安装 `libpcap`
-- 如果解析雷达的点云修正文件，需安装 `libyaml`
+<!-- - 如果解析雷达的点云修正文件，需安装 `libyaml`  // 解析ROS驱动中的config.yaml文件需要 -->
 
 ## 2 开始使用
 
@@ -41,7 +41,7 @@ Windows
 git clone --recurse-submodules https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0.git
 ```
 
-**注意:** 我们不建议在Windows上使用压缩包直接编译，因为它可能会由于符号问题导致编译错误。
+> 在Windows系统中，不建议将存储库下载为ZIP文件，因为它可能会由于符号链接问题而导致编译错误。
 
 ### 2.2 编译
 
