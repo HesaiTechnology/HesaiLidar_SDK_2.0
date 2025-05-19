@@ -11,7 +11,7 @@
    - C++ CMake tools
    ```
 
-    **注意:** 如果你使用的是 Visual Studio 2019，你需要安装 "Windows 10 SDK" 10.0.18362.0 或者更高版本。
+    **注意:** 如果你使用的是 Visual Studio 2019，你需要安装过程中选择安装 "Windows 10 SDK" 10.0.18362.0 或者更高版本。
 
 2. **[CMake 3.25+](https://cmake.org/download/)**
    ```powershell
