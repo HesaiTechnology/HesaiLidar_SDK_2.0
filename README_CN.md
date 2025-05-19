@@ -6,11 +6,11 @@
 
 ### 1.1 雷达型号
 
-| Pandar       | OT    | QT       | XT          | AT     | ET   | JT    |
-|:-------------|:------|:---------|:------------|:-------|:-----|:------|
-| Pandar40P    | OT128 | PandarQT | PandarXT    | AT128P | ET25 | JT16  |
-| Pandar64     | -     | QT128C2X | PandarXT-16 | ATX    | ETX  | JT128 |
-| Pandar128E3X | -     | -        | XT32M2X     | -      | -    | -     |
+| Pandar       | OT    | QT       | XT          | AT       | ET   | JT    |
+|:-------------|:------|:---------|:------------|:---------|:-----|:------|
+| Pandar40P    | OT128 | PandarQT | PandarXT    | AT128E2X | ET25 | JT16  |
+| Pandar64     | -     | QT128C2X | PandarXT-16 | AT128P   | ETX  | JT128 |
+| Pandar128E3X | -     | -        | XT32M2X     | ATX      | -    | -     |
 
 ### 1.2 操作系统
 
