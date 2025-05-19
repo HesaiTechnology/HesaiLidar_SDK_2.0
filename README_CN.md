@@ -31,6 +31,7 @@ Windows
 
 - 如果使用点云可视化功能，需安装 `PCL`
 - 如果解析 PCAP 文件，需安装 `libpcap`
+
 <!-- - 如果解析雷达的点云修正文件，需安装 `libyaml`  // 解析ROS驱动中的config.yaml文件需要 -->
 
 ## 2 开始使用
