@@ -5,8 +5,8 @@
 ## 1 CUDA环境准备
 使用GPU解析点云需要安装好显卡驱动及CUDA环境。
 
-1. 终端输入`nvidia-smi`命令可以看到当前GPU信息，若未安装可参考：[NVIDIA-DRIVERS]https://www.nvidia.cn/drivers/
-2. 终端输入`nvcc -V`命令可以看到当前CUDA版本，若未安装可参考：[CUDA-DOWNLOADS]https://developer.nvidia.com/cuda-downloads
+1. 终端输入`nvidia-smi`命令可以看到当前GPU信息，若未安装可参考：[NVIDIA-DRIVERS](https://www.nvidia.cn/drivers/)
+2. 终端输入`nvcc -V`命令可以看到当前CUDA版本，若未安装可参考：[CUDA-DOWNLOADS](https://developer.nvidia.com/cuda-downloads)
 
 ## 2 SDK配置
 在HesaiLidar_SDK_2.0文件夹下[CMakeLists.txt](../CMakeLists.txt) 文件中，确认用于查找和配置 NVIDIA CUDA 工具包的命令已释放：
