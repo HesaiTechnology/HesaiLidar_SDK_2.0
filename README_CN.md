@@ -92,7 +92,7 @@ make -j$(nproc)
 请参考 **[如何调用SDK API命令接口](docs/invoke_sdk_api_command_interface_CN.md)**.
 
 ### 3.8 常见故障处理（WARNING）
-请参考 **[常见故障处理（WARNING）](docs/common_troubleshooting_CN.md)**.
+请参考 **[常见故障处理（WARNING）](docs/common_error_codes_CN.md)**.
 
 ### 3.9 丢包统计
 请参考 **[如何进行丢包统计](docs/packet_loss_analysis_CN.md)**.
