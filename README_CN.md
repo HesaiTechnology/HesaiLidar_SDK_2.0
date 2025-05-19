@@ -41,7 +41,7 @@ Windows
 git clone --recurse-submodules https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0.git
 ```
 
-**注意:** 我们不建议在Windows上使用压缩包，因为它可能会由于符号问题导致编译错误。
+**注意:** 我们不建议在Windows上使用压缩包直接编译，因为它可能会由于符号问题导致编译错误。
 
 ### 2.2 编译
 
