@@ -29,7 +29,7 @@
 
 #### 1.4 校准设置
 8. `distance_correction_lidar_flag`: 为机械式激光雷达启用光心修正
-   *(Pandar/QT/OT/XT系列必需)*
+   *(Pandar/QT/OT/XT系列可选)*
 
 9. `xt_spot_correction`:  启用XT16/32 S形分层校正  
    *(默认: false)*
@@ -63,7 +63,7 @@
    *(默认: 9347)*
 
 6. `multicast_ip_address`: 组播地址 
-   *(空字符串表示单播)*
+   *(空字符串表示不设置组播地址)*
 
 7. `host_ip_address`: 主机IP地址
 
@@ -108,7 +108,7 @@
    - `3`: 错误
 
 2. `log_Target`: 输出目标  
-   - `0`: 控制台 (默认)
+   - `0`: 运行终端 (默认)
    - `1`: 文件
    - `2`: 同时输出
 
