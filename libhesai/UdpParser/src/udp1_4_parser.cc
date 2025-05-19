@@ -458,7 +458,7 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   }
   // get imu
   //frame.imu_config.timestamp = double(frame.sensor_timestamp[frame.packet_num]) / kMicrosecondToSecond;
-  frame.imu_config.timestamp = pTailImu->GetIMUTimestamp();
+  frame.imu_config.timestamp = pTailImu->GetIMUTimestamp() * 25.0 / 1e6; /* unit=25micros */
   frame.imu_config.imu_accel_x = pTailImu->GetIMUXAccel();
   frame.imu_config.imu_accel_y = pTailImu->GetIMUYAccel();
   frame.imu_config.imu_accel_z = pTailImu->GetIMUZAccel();
