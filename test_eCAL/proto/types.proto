@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package types;
+
+message AlgoInterfaceVersionNumber_t
+{
+  uint32 algoInterfaceVersionNumber = 1;
+}
+
+message BaseOpMode_t
+{
+  uint32 baseOpMode = 1;
+}
+
+message AlgoDataTimeStamp_t
+{
+  uint64 algoDataTimeStamp  = 1;
+}
+
+message AlgoCycleCounter_t
+{
+  uint32 algoCycleCounter = 1;
+}
+
+message AlgoComponentVersionNumber_t
+{
+  uint32 algoComponentVersionNumber = 1;
+}
+
+message AlgoVersionInfoArray_t
+{
+  repeated uint32 algoVersionInfoArray = 1;
+}
+
+message SignalHeader_t
+{
+  AlgoDataTimeStamp_t timeStamp          = 1;
+  AlgoCycleCounter_t  measurementCounter = 2;
+  AlgoCycleCounter_t  cycleCounter       = 3;
+  uint32              sigStatus          = 4;
+}
+
+message BaseCtrlData_t
+{
+  AlgoInterfaceVersionNumber_t versionNumber = 1;
+  SignalHeader_t               sigHeader     = 2;
+  BaseOpMode_t                 opMode        = 3;
+}
+
+message AlgoCompState_t
+{
+  AlgoInterfaceVersionNumber_t versionNumber     = 1; // Interface version number, meaning the version of the Proto Message of the component
+  SignalHeader_t               sigHeader         = 2; // Signal header which is processed. Contains timestamp, frame stamp, ect.
+  AlgoComponentVersionNumber_t algoVersionNumber = 3; // The algorithm component version.
+  AlgoVersionInfoArray_t       algoVersionInfo   = 4; // A string (array of uint8) to reflect version and variants, like debug builds.
+  uint32                       compState         = 5; // The state of the algo after current processing step. Taken as a rough return code to indicate problems during the processing.
+  uint32                       errorCode         = 6; // The general error code as bitmask.
+  uint32                       genAlgoQualifier  = 7; // The generic algo qualifier interface as bitmask. Used to roughly classify error reasons.
+}
+
+message Mat3x4_t
+{
+  float a00 = 1;
+  float a10 = 2;
+  float a20 = 3;
+  float a01 = 4;
+  float a11 = 5;
+  float a21 = 6;
+  float a02 = 7;
+  float a12 = 8;
+  float a22 = 9;
+  float a03 = 10;
+  float a13 = 11;
+  float a23 = 12;
+}
+
+message PoseParameters_t
+{
+  float    roll               = 1;
+  float    pitch              = 2;
+  float    yaw                = 3;
+  float    rollSigma          = 4;
+  float    pitchSigma         = 5;
+  float    yawSigma           = 6;
+  uint32   rollQuality        = 7;
+  uint32   pitchQuality       = 8;
+  uint32   yawQuality         = 9;
+  uint32   totalAngleQuality  = 10;
+  float    tx                 = 11;
+  float    ty                 = 12;
+  float    tz                 = 13;
+  float    txSigma            = 14;
+  float    tySigma            = 15;
+  float    tzSigma            = 16;
+  uint32   txQuality          = 17;
+  uint32   tyQuality          = 18;
+  uint32   tzQuality          = 19;
+  uint32   totalTranslQuality = 20;
+  Mat3x4_t transform          = 21;
+}
+
+message Time
+{
+  uint32 secs  = 1;
+  uint32 nsecs = 2;
+}
+
+message Point2d
+{
+  float x = 1;
+  float y = 2;
+}
+
+message Point3d
+{
+  float x = 1;
+  float y = 2;
+  float z = 3;
+}

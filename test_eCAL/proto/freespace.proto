@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package frs;
+
+message freespace
+{
+  
+}
+
+message frs_out
+{
+  freespace frs = 1;
+}

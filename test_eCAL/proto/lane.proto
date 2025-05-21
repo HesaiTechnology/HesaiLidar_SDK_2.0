@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package lane;
+
+message Lane_out
+{
+  float f_touchpoint = 1;
+}

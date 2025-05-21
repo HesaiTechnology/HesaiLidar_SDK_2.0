@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package pcl_header;
+
+import "types.proto";
+
+message Header
+{
+  uint32     seq      = 1;
+  types.Time stamp    = 2;
+  string     frame_id = 3;
+}
