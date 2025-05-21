@@ -4,23 +4,25 @@
 
 **Essential Components**:
 1. **[Visual Studio 2022](https://visualstudio.microsoft.com/downloads/)**  
-   Select during installation:
-   ```plaintext
+    
+    During installation, select:
+
    - Desktop development with C++
    - Windows 10/11 SDK (latest version)
    - C++ CMake tools
-   ```
 
-    **Note:** If you are using Visual Studio 2019, you need to install the "Windows 10 SDK" version 10.0.18362.0 or later.
+   > For Visual Studio 2019, install "Windows 10 SDK" (v10.0.18362.0 or later).
 
 2. **[CMake 3.25+](https://cmake.org/download/)**
+   
    ```powershell
    # Verify installation
    cmake --version
    ```
 
 3. **[Git](https://git-scm.com/)**  
-    ```powershell
+
+   ```powershell
    # Recommended configuration(Configuring the line ending conversions during installation)
    git config --global core.autocrlf true
    ```
@@ -29,104 +31,125 @@
    git --version
    ```
 
+4. To enable PTCS (PTC over TLS) communication with the lidar, install **[OpenSSL 1.1.1](https://slproweb.com/products/Win32OpenSSL.html)**.
 
-
-**Conditional Libraries**:
-   - **[OpenSSL 1.1.1](https://slproweb.com/products/Win32OpenSSL.html)**  
-      ```cmake
-      # Set in CMake-GUI
-      set(OPENSSL_ROOT_DIR "C:\Program Files\OpenSSL-Win64") 
-      ```
+5. To visualize point cloud data, install **[PCL 1.12.1](https://github.com/PointCloudLibrary/pcl/releases/tag/pcl-1.12.1)**.
    
-   - [PCL 1.12.1](https://github.com/PointCloudLibrary/pcl/releases) - Windows prebuilt binaries
-
-**Optional Tools**:  
-   - [vcpkg](https://github.com/microsoft/vcpkg) (for managing pcap/yaml-cpp libraries)
+   Download the AllInOne executable.
 
 
 ## 2 CMake Configuration
-```mermaid
-graph TD
-    A[Open CMake-GUI] --> B[Set Source/Build Paths]
-    B --> C[Configure]
-    C --> D[Generate]
-    D --> E{Errors?}
-    E -->|Yes| F[Check OpenSSL Path or Other Issues]
-    E -->|No| G[Open Project]
-```
-**Example**：(Here is an example of how to compile [test.cc](..\test\test.cc).)
-```plaintext
-   Source code:    D:/HesaiLidar_SDK_2.0	# Modify according to actual path
-   Build dir:      D:/HesaiLidar_SDK_2.0/build	# Modify according to actual path
-   ```
+
+1. Launch the CMake GUI.
+2. Specify source and build directories.
+
+   - **Where is the source code**: `path_to_your_project/HesaiLidar_SDK_2.0`
+
+      (e.g., `D:/HesaiLidar_SDK_2.0`)
+   
+   - **Where to build the binaries**: `path_to_your_project/HesaiLidar_SDK_2.0/build`
+   
+      (e.g., `D:/HesaiLidar_SDK_2.0/build`)
+
+3. Click **Configure** > Select **Visual Studio 17 2022** as the generator > **Finish**.
+
+4. To enable PTCS (PTC over TLS) communication with the lidar, configure `OPENSSL_ROOT_DIR`.
+
+   1. Check the **Advanced** checkbox on the upper right of the main CMake GUI window.
+   2. Scroll down the list of advanced variables to find `OPENSSL_ROOT_DIR`.
+   3. Double-click its **Value** field and enter:
+
+      ```cmake
+      C:\Program Files\OpenSSL-Win64
+      ```
+
+   4. Click **Configure** again to let CMake detect OpenSSL using the new path.
+
+5. Once configuration finishes without errors, click **Generate**.
+
+6. If errors appear, verify the OpenSSL path or other missing dependencies. Otherwise, open the generated solution in Visual Studio.
+
+
 ## 3 Visual Studio Compilation
-**Build Steps**:
-1. Select build configuration:
-   ```cpp
-   // IDE Toolbar Settings
-   Solution Configuration: Debug/Release	# Modify according to actual configuration, here is Debug
-   Solution Platform: x64
-   ```
 
-2. Configure project properties:
-   ```powershell
-   Right-click sample → Properties → 
-   C/C++ → Preprocessor → 
-   Preprocessor Definitions → Edit →
-   Add "NOMINMAX"
-   ```
+1. Select Configuration & Platform.
 
-3. Build solution:
-   ```bash
-   # Full solution build
-   Right-click solution → Build Solution
+   - **Solution Configuration:** Debug
+   - **Solution Platform:** x64
 
-   # Single project build
-   Right-click sample → Build
-   ```
+<!-- TODO: whether to remove "Solution Configuration" -->
 
-**Verification**:
-```powershell
-# Check executable
-cd build/Debug
-.\sample.exe --version
-```
+2. Define `NOMINMAX` for the Sample Project.
 
-## 4 Advanced Configuration
-**Permanent NOMINMAX Setting**:
-```cmake
-# Add to CMakeLists.txt
-add_definitions(-DNOMINMAX)
+   Open `HesaiLidar_SDK_2.0/CMakeLists.txt` and add this line:
 
-# Or target-specific
-target_compile_definitions(sample PRIVATE NOMINMAX)
-```
-
-## 5 Troubleshooting
-**Common Errors**:
-1. **LNK2005 Duplicate Symbols**:
    ```cmake
-   # Project Properties → Linker → Command Line
-   /FORCE:MULTIPLE
+   add_compile_definitions(NOMINMAX)
    ```
 
-2. **C4996 Deprecation Warnings**:
-   ```cpp
-   // Preprocessor Definitions
-   _SILENCE_ALL_DEPRECATION_WARNINGS
+3. Build
+
+   - **Full solution:** Right-click the **solution** → **Build Solution**.
+   - **Single project:** Right-click **sample** → **Build**.
+
+4. Verify Executable
+
+   ```powershell
+   cd build/Debug
+   .\sample.exe --version
    ```
 
-3. **Windows Path Length Limit**:
-   ```reg
-   Windows Registry Editor Version 5.00
-   [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem]
-   "LongPathsEnabled"=dword:00000001
-   ```
+Output of a successful build:
 
-**Build Success Indicators**:
 ```log
 - Output Window: "========== Build: 1 succeeded, 0 failed =========="
 - Executable Location: 
   Debug: build/Debug/sample.exe
   Release: build/Release/sample.exe
 ```
+
+
+## 4 Troubleshooting
+
+Common errors and troubleshooting steps:
+
+- **LNK2005: Duplicate Symbols**:
+
+   1. In the **Solution Explorer**, right-click your project > **Properties**.  
+   2. Navigate to **Linker** > **Command Line** > **Additional Options**.  
+   3. Add the flag:  
+
+      ```cmake
+      /FORCE:MULTIPLE
+      ```
+
+- **C4996 Deprecation Warnings**:
+  
+  1. In the **Solution Explorer**, right-click your project > **Properties**.  
+  2. Go to **C/C++** > **Preprocessor** > **Preprocessor Definitions** > **Edit**.  
+  3. Add:  
+
+      ```cpp
+      _SILENCE_ALL_DEPRECATION_WARNINGS
+      ```
+
+- **Windows Path Length Limit**:
+  
+  1. Press **Win + R**, type `regedit`, and press **Enter** to open the Registry Editor.
+
+  2. Navigate to this path:
+
+     ```reg
+     HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem
+     ```
+
+  3. In the pane on the right, look for a value named `LongPathsEnabled`.
+
+     > If this value does not exist:
+     > 1. Right-click in the pane.
+     > 2. Select **New** > **DWORD (32-bit) Value**.
+     > 3. Name it `LongPathsEnabled`.
+
+  4. Double-click on `LongPathsEnabled` and set its value to `1`.
+  5. Click **OK** and close the Registry Editor.
+  6. Restart your computer for the changes to take effect.

@@ -40,7 +40,7 @@ uint16_t gps_udp_port = 10110;  //设置gps端口
 运行后终端有如下相关打印代表设置参数成功
 ```log
 SetDesIpandPort successed!
-Current destination_ip: 255.255.255.255, Current udp_port: 2368, Current gps_udp_port: 10111
+Current destination_ip: 255.255.255.255, Current udp_port: 2368, Current gps_udp_port: 10110
 ```
 
 #### 2. 设置雷达IP
