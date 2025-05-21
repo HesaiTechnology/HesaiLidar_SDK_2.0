@@ -10,6 +10,39 @@ configure_file(
   "${CMAKE_CURRENT_BINARY_DIR}/Version.h"
 )
 
+# <------- eCAL/proto ---------->
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON) # needed for eCAL
+
+if (MSVC)
+  set(CMAKE_CXX_STANDARD 14)             # needed for eCAL
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)    # needed for eCAL
+endif()
+
+find_package(eCAL REQUIRED)
+find_package(Protobuf REQUIRED)
+
+include_directories(.
+    pointcloud
+)
+
+set(protobuf_files
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/pcl.proto
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/pcl_header.proto
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/pcl_pfield.proto
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/types.proto
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/lane.proto
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/foxglove/LinePrimitive.proto
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/foxglove/Color.proto
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/foxglove/Pose.proto
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/foxglove/Point3.proto
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/foxglove/Quaternion.proto
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/foxglove/Vector3.proto
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/foxglove/PointCloud.proto
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/foxglove/PackedElementField.proto
+)
+# <------- eCAL/proto ---------->
+
+
 cmake_policy(SET CMP0053 NEW)
 set(CMAKE_BUILD_TYPE ON)
 set(CMAKE_BUILD_TYPE Release)
@@ -57,11 +90,18 @@ include_directories(
 )
 link_directories(./libhesai/PtcClient/lib)
 
-add_executable(sample
-  test/test.cc
-)
+#add_executable(sample
+#  test/test.cc
+#)
 
-target_link_libraries(sample
+add_executable(sample_eCal
+  test_eCAL/pointcloud/PointCloudHandler.cpp
+  test_eCAL/test.cc
+)
+PROTOBUF_TARGET_CPP(sample_eCal ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/ ${protobuf_files})
+
+
+target_link_libraries(sample_eCal
   source_lib
   container_lib
   ptcClient_lib
@@ -69,6 +109,8 @@ target_link_libraries(sample
   ptcParser_lib
   log_lib
   ${OPENSSL_LIBRARIES}
+  eCAL::core
+  protobuf::libprotobuf
 )
 
 # if install different cuda version, set the cuda path, like cuda-11.4
