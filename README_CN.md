@@ -1,6 +1,6 @@
 # HesaiLidar_SDK_2.0
 
-[👉 English version](<README.md>)
+[👉 English version](README)
 
 ## 1 检查适用性
 
@@ -67,36 +67,36 @@ make -j$(nproc)
 ```
 
 #### 2.2.2 Windows下的编译说明
-请参考 **[如何在Windows下编译SDK](docs/compile_on_windows_CN.md)**.
+请参考 **[如何在Windows下编译SDK](docs/compile_on_windows_CN)**.
 
 ## 3 应用指南
 
 ### 3.1 在线解析激光雷达数据
- 请参考 **[如何在线解析激光雷达数据](docs/parsing_lidar_data_online_CN.md)**。
+ 请参考 **[如何在线解析激光雷达数据](docs/parsing_lidar_data_online_CN)**。
 
 ### 3.2 离线解析PCAP文件数据
-请参考 **[如何离线解析PCAP文件数据](docs/parsing_pcap_file_data_offline_CN.md)**。
+请参考 **[如何离线解析PCAP文件数据](docs/parsing_pcap_file_data_offline_CN)**。
 
 ### 3.3 点云数据的可视化
-请参考 **[如何可视化点云数据](docs/visualization_of_point_cloud_data_CN.md)**。
+请参考 **[如何可视化点云数据](docs/visualization_of_point_cloud_data_CN)**。
 
 ### 3.4 坐标转换
-请参考 **[如何进行坐标转换](docs/coordinate_transformation_CN.md)**。
+请参考 **[如何进行坐标转换](docs/coordinate_transformation_CN)**。
 
 ### 3.5 保存点云数据为PCD文件
-请参考 **[如何将点云数据保存为PCD文件](docs/save_point_cloud_data_as_a_pcd_file_CN.md)**。
+请参考 **[如何将点云数据保存为PCD文件](docs/save_point_cloud_data_as_a_pcd_file_CN)**。
 
 ### 3.6 使用GPU加速
-请参考 **[如何使用GPU加速优化性能](docs/use_gpu_acceleration_CN.md)**.
+请参考 **[如何使用GPU加速优化性能](docs/use_gpu_acceleration_CN)**.
 
 ### 3.7 调用SDK API命令接口
-请参考 **[如何调用SDK API命令接口](docs/invoke_sdk_api_command_interface_CN.md)**.
+请参考 **[如何调用SDK API命令接口](docs/invoke_sdk_api_command_interface_CN)**.
 
 ### 3.8 常见故障处理（WARNING）
-请参考 **[常见故障处理（WARNING）](docs/common_error_codes_CN.md)**.
+请参考 **[常见故障处理（WARNING）](docs/common_error_codes_CN)**.
 
 ### 3.9 丢包统计
-请参考 **[如何进行丢包统计](docs/packet_loss_analysis_CN.md)**.
+请参考 **[如何进行丢包统计](docs/packet_loss_analysis_CN)**.
 
 ## 4 功能参数解释
-请参考 **[功能参数解释](docs/parameter_introduction_CN.md)**.
+请参考 **[功能参数解释](docs/parameter_introduction_CN)**.
