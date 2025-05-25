@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.8.11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 14)
+
 PROJECT(Template)
-set(VERSION_MAJOR 2)
+set(VERSION_MAJOR 3)
 set(VERSION_MINOR 0)
-set(VERSION_TINY  9)
+set(VERSION_TINY  0)
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/Version.h.in"
   "${CMAKE_CURRENT_BINARY_DIR}/Version.h"
