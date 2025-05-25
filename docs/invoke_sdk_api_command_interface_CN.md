@@ -6,9 +6,9 @@
 ```cpp
 // 网络配置（默认的雷达设置状态下无需更改）
 param.input_param.device_ip_address = "192.168.1.201"; //雷达IP
-param.input_param.ptc_port = 9347;  //ptc端口（无需更改）
-param.input_param.udp_port = 2368;  //udp端口
-param.input_param.host_ip_address = "192.168.1.100";  //上位机IP
+param.input_param.ptc_port = 9347;  //TCP端口（无需更改）
+param.input_param.udp_port = 2368;  //UDP端口
+param.input_param.host_ip_address = "192.168.1.100";  //IP
 ```
 
 ## 操作
@@ -23,7 +23,7 @@ make
 ```
 
 ### 2 运行
-成功编译后，在build文件夹下运行生成的pcl_tool可执行文件，系统会有可视化窗口。
+成功编译后，在build文件夹下运行生成的ptc_tool可执行文件。
 ```cpp
 ./ptc_tool
 ```
@@ -62,7 +62,7 @@ SetNet successed!
 Current net_IP: 192.168.1.201, Current net_mask: 255.255.255.0, Current net_getway: 192.168.1.1
 Current vlan_flag: 0, Current vlan_ID: 0
 ```
-注意：设置雷达IP后运行会终止，需要重新设置网络配置为雷达对应的IP后，修改is_set_net为0，再继续进行其它操作
+**注意：设置雷达IP后运行会终止，需要重新设置网络配置为雷达对应的IP后，修改is_set_net为0，再继续进行其它操作**
 
 #### 3. 获取雷达角度校准文件
 在[ptc_tool.cc](../tool/ptc_tool.cc)中添加如下代码，会在build目录下生成correction文件

@@ -15,7 +15,7 @@
 param.input_param.source_type = DATA_FROM_LIDAR;  // 设置数据来源为实时数据
 param.input_param.ptc_port = 9347;  // TCP端口号
 param.input_param.udp_port = 2368;  // UDP端口号
-param.input_param.host_ip_address = "192.168.1.100";  //终端IP地址
+param.input_param.host_ip_address = "192.168.1.100";  //本地网口IP
 param.input_param.correction_file_path = {"Your correction file path"};   // 校准文件（角度修正文件），建议使用雷达自身校准文件
 param.input_param.firetimes_path = {"Your firetime file path"};   // 可选项：通道发光时序（发光时刻修正文件）
 ```

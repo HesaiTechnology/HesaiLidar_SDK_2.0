@@ -16,7 +16,7 @@ Open [pcl_tool.cc](../tool/pcl_tool.cc)
 param.input_param.source_type = DATA_FROM_LIDAR;  // Set the data source to real-time data
 param.input_param.ptc_port = 9347;  // TCP protocol port
 param.input_param.udp_port = 2368;  // UDP protocol port
-param.input_param.host_ip_address = "192.168.1.100";  // Destination IP Address
+param.input_param.host_ip_address = "192.168.1.100";  // Host PC IP address
 param.input_param.firetimes_path = {"Your firetime file path"};   // Optional：Laser firing sequence (Firetimes file path)
 ```
 ##### Visualization of PCAP point cloud data
