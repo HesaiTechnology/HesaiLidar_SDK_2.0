@@ -17,33 +17,45 @@ eCAL::protobuf::CPublisher<pcl::PointCloud2> publisher_pcl2;
 
 void init_eCAL(int argc, char** argv) {
   // Initialize eCAL
-  eCAL::Initialize(argc, argv, "Hesai AT128");
+  eCAL::Initialize(argc, argv, "HesaiAT128->eCAL");
   // create publisher
-///  publisher_pcl2 = eCAL::protobuf::CPublisher<pcl::PointCloud2>("MRL360");
-  publisher_pcl2 = eCAL::protobuf::CPublisher<pcl::PointCloud2>("meta_pcl");
+  publisher_pcl2 = eCAL::protobuf::CPublisher<pcl::PointCloud2>("HesaiAT128");
   printf("Ecal publisher created\n");
   // set eCAL state to healthy (--> eCAL Monitor)
-  eCAL::Process::SetState(proc_sev_healthy, proc_sev_level1, "AT128 eCAL publishers initialized");
+  eCAL::Process::SetState(proc_sev_healthy, proc_sev_level1, "HesaiAT128 eCAL publisher initialized");
 }
 
+void splitDouble(double value, float &high, float &low) {
+  high = static_cast<float>(std::floor(value)); // Integer part as float
+  low = static_cast<float>(value - high);      // Fractional part as float
+}
 void publish_pointloud2(const LidarDecodedFrame<LidarPointXYZICRT> &frame, eCAL::protobuf::CPublisher<pcl::PointCloud2>& publisher_pcl2) {
   // Create a protobuf message object
   pcl::PointCloud2 at128_pointcloud;
   std::vector<float> pts;
+  double ts_frame_low = 0.0;
+  double ts_frame_high = 0.0;
+  float ts_high, ts_low;
   for (uint32_t i = 0; i < frame.points_num; i++)
   {
     pts.push_back(frame.points[i].x);
     pts.push_back(frame.points[i].y);
     pts.push_back(frame.points[i].z);
     pts.push_back(frame.points[i].intensity);
-    if (i < 1000) printf("%f\n",frame.points[i].x);
+    pts.push_back(frame.points[i].confidence);
+    pts.push_back(static_cast<float>(frame.points[i].ring)); // uint16_t
+    splitDouble(frame.points[i].timestamp, ts_high, ts_low); // double to float conversion
+    pts.push_back(ts_low);
+    pts.push_back(ts_high);
+    if (i==0) {
+      ts_frame_high = ts_high;
+      ts_frame_low = ts_low;
+    }
   }
-//  printf("\n\n");
   // fill the protobuf message object
-  setPointCloud(&at128_pointcloud, { "x","y","z","intensity" }, pts);
-//  data->timestamp
-//  mrl360_pointcloud.mutable_header()->mutable_stamp()->set_secs(p.secs);
-//  mrl360_pointcloud.mutable_header()->mutable_stamp()->set_nsecs(p.nsecs);
+  setPointCloud(&at128_pointcloud, { "x","y","z","intensity","confidence","ring","ts_low","ts_high" }, pts);
+  at128_pointcloud.mutable_header()->mutable_stamp()->set_secs(ts_frame_high);
+  at128_pointcloud.mutable_header()->mutable_stamp()->set_nsecs(ts_frame_low * 1e9);
   // Send the message
   publisher_pcl2.Send(at128_pointcloud);
 };
