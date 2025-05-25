@@ -11,7 +11,7 @@ param.input_param.ptc_port = 9347;                         // TCP协议端口
 param.input_param.udp_port = 2368;                         // 点云数据端口
 param.input_param.host_ip_address = "192.168.1.100";       // 本地网口IP
 param.input_param.multicast_ip_address = "239.0.0.1";      // 可选项：如果目的IP为组播IP
-param.input_param.correction_file_path = "/path/to/correction.csv";
+param.input_param.correction_file_path = "/path/to/correction.csv"; // 角度修正文件（建议使用雷达自身的角度修正文件）
 param.decoder_param.distance_correction_lidar_flag = false;	// 可选项：当需要使用光心修正的时候设置为 true
 ```
 
@@ -21,7 +21,7 @@ param.decoder_param.distance_correction_lidar_flag = false;	// 可选项：当�
 param.input_param.source_type = DATA_FROM_SERIAL;               // 设置数据来源为串口数据
 param.input_param.rs485_com = "/dev/ttyUSB0";                   // RS485 点云串口 (在Windows系统中是COM0)，串口号以实际为准
 param.input_param.rs232_com = "/dev/ttyUSB1";                   // RS232 控制串口 (在Windows系统中是COM1)，串口号以实际为准
-param.input_param.correction_file_path = "/path/to/correction.csv";
+param.input_param.correction_file_path = "/path/to/correction.csv"; // 角度修正文件（建议使用雷达自身的角度修正文件）
 param.decoder_param.distance_correction_lidar_flag = false;	// 可选项：当需要使用光心修正的时候设置为 true
 ```
 
