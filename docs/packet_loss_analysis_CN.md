@@ -39,12 +39,12 @@ make
 ```
 输出示例：
 ```log
-total recevice packet time: 15000ms  //统计时间
-total receviced packet count: 93229  //统计总包数
+total recevice packet time: 15000ms  // 统计时间
+total receviced packet count: 93229  // 统计总包数
 package loss: 
-total loss packet count: 0  //统计总丢包数  
+total loss packet count: 0  // 统计总丢包数  
 timestamp loss: 
-total loss packet count: 0  //统计总时间戳跳变数
+total loss packet count: 0  // 统计总时间戳跳变数
 ```
 
 
@@ -91,8 +91,9 @@ void packetLossCallback(const uint32_t& total_packets, const uint32_t& lost_pack
 ```cpp
 sample.RegRecvCallback(packetLossCallback);
 ```
-编译和运行方式参考方法1
-#### 输出示例:
+编译和运行方式参考方法1。
+
+输出示例:
 ```log
 [Frame Loss Rate]  97.47% (20241 / 20767)
 [Total Loss Rate]  2.12% (20241 / 956569)
