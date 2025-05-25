@@ -5,16 +5,16 @@
 进入 [ptc_tool.cc](../tool/ptc_tool.cc) 
 ```cpp
 // 网络配置（默认的雷达设置状态下无需更改）
-param.input_param.device_ip_address = "192.168.1.201"; //雷达IP
-param.input_param.ptc_port = 9347;  //TCP端口（无需更改）
-param.input_param.udp_port = 2368;  //UDP端口
-param.input_param.host_ip_address = "192.168.1.100";  //IP
+param.input_param.device_ip_address = "192.168.1.201"; // 雷达IP
+param.input_param.ptc_port = 9347;  // TCP端口（无需更改）
+param.input_param.udp_port = 2368;  // UDP端口
+param.input_param.host_ip_address = "192.168.1.100";  // 本地网口IP
 ```
 
 ## 操作
 ### 1 编译
 在HesaiLidar_SDK_2.0文件夹下，启动Terminal终端，执行以下指令。
-```cpp
+```bash
 cd HesaiLidar_SDK_2.0/tool
 mkdir build
 cd build
@@ -24,7 +24,7 @@ make
 
 ### 2 运行
 成功编译后，在build文件夹下运行生成的ptc_tool可执行文件。
-```cpp
+```bash
 ./ptc_tool
 ```
 

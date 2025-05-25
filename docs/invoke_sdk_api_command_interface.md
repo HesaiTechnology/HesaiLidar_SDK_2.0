@@ -15,7 +15,7 @@ param.input_param.host_ip_address = "192.168.1.100";  // Host PC IP address
 ## Steps
 ### 1 Compile
 Navigate to the HesaiLidar_SDK_2.0 directory, open a Terminal window, and run the following commands.
-```cpp
+```bash
 cd HesaiLidar_SDK_2.0/tool
 mkdir build
 cd build
@@ -25,7 +25,7 @@ make
 
 ### 2 Run
 Once compiled successfully, go to the build folder, execute the generated ptc_tool executable.
-```cpp
+```bash
 ./ptc_tool
 ```
 
@@ -51,7 +51,7 @@ Enable the function of setting Lidar IP by setting is_set_net to 1.
 ```
 Set net_IP, net_mask, net_getway and etc.
 ```cpp
-std::string net_IP = "192.168.1.201";  //set lidar IP
+std::string net_IP = "192.168.1.201";  // set lidar IP
 std::string net_mask = "255.255.255.0";  // set netmask
 std::string net_getway = "192.168.1.1";  // set net gateway
 uint8_t vlan_flag = 0;  // flag of setting vlan (0: disable, 1: enable)

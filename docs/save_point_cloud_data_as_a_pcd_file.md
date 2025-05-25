@@ -37,7 +37,7 @@ The sample code contains four commented-out macro definitions (`#define`), whose
 ## Steps
 ### 1 Compile
 Navigate to the HesaiLidar_SDK_2.0 directory, open a Terminal window, and run the following commands.
-```cpp
+```bash
 cd HesaiLidar_SDK_2.0/tool
 mkdir build
 cd build
@@ -47,7 +47,7 @@ make
 
 ### 2 Run
 Once compiled successfully, go to the build folder, execute the generated pcl_tool executable, and the system will display a visualization window. The system will also generate per-frame point cloud data from the corresponding PCAP file in the build directory.
-```cpp
+```bash
 ./pcl_tool
 ```
 **Note：**

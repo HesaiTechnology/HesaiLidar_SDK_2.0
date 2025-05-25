@@ -4,7 +4,7 @@
 ## 准备
 进入 [pcl_tool.cc](../tool/pcl_tool.cc) 
 
-### 启用点云查看器
+### 启用可视化查看工具
 ```cpp
 #define ENABLE_VIEWER;  // 确保该行代码解注释
 ```
@@ -33,7 +33,7 @@ param.input_param.firetimes_path = {"Your firetime file path"}; // 可选项：�
 ## 操作
 ### 1 编译
 在HesaiLidar_SDK_2.0文件夹下，启动Terminal终端，执行以下指令。
-```cpp
+```bash
 cd HesaiLidar_SDK_2.0/tool
 mkdir build
 cd build
@@ -43,7 +43,7 @@ make
 
 ### 2 运行
 成功编译后，在build文件夹下运行生成的pcl_tool可执行文件，系统会有可视化窗口。
-```cpp
+```bash
 ./pcl_tool
 ```
 

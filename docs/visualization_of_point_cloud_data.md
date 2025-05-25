@@ -32,7 +32,7 @@ param.input_param.firetimes_path = {"Your firetime file path"}; // Optional：La
 ## Steps
 ### 1 Compile
 Navigate to the HesaiLidar_SDK_2.0 directory, open a Terminal window, and run the following commands.
-```cpp
+```bash
 cd HesaiLidar_SDK_2.0/tool
 mkdir build
 cd build
@@ -42,7 +42,7 @@ make
 
 ### 2 Run
 Once compiled successfully, go to the build folder, execute the generated pcl_tool executable, and the system will display a visualization window.
-```cpp
+```bash
 ./pcl_tool
 ```
 
