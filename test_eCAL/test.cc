@@ -19,10 +19,15 @@ void init_eCAL(int argc, char** argv) {
   // Initialize eCAL
   eCAL::Initialize(argc, argv, "HesaiAT128->eCAL");
   // create publisher
-  publisher_pcl2 = eCAL::protobuf::CPublisher<pcl::PointCloud2>("HesaiAT128");
+//  publisher_pcl2 = eCAL::protobuf::CPublisher<pcl::PointCloud2>("HesaiAT128");
+  publisher_pcl2 = eCAL::protobuf::CPublisher<pcl::PointCloud2>("meta_pcl");
   printf("Ecal publisher created\n");
   // set eCAL state to healthy (--> eCAL Monitor)
   eCAL::Process::SetState(proc_sev_healthy, proc_sev_level1, "HesaiAT128 eCAL publisher initialized");
+}
+
+void exit_eCAL() {
+  eCAL::Finalize(); // finalize eCAL API
 }
 
 void splitDouble(double value, float &high, float &low) {
@@ -143,7 +148,7 @@ int main(int argc, char *argv[])
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   printf("The PCAP file has been parsed and we will exit the program.\n");
 
-  eCAL::Finalize(); // finalize eCAL API
-
+  exit_eCAL();
+  
   return 0;
 }
