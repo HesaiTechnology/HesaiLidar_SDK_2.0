@@ -30,7 +30,7 @@ void exit_eCAL() {
   eCAL::Finalize(); // finalize eCAL API
 }
 
-void splitDouble(double value, float &high, float &low) {
+void splitDouble(const double value, float &high, float &low) {
   high = static_cast<float>(std::floor(value)); // Integer part as float
   low = static_cast<float>(value - high);      // Fractional part as float
 }
@@ -57,6 +57,7 @@ void publish_pointloud2(const LidarDecodedFrame<LidarPointXYZICRT> &frame, eCAL:
       ts_frame_low = ts_low;
     }
   }
+
   // fill the protobuf message object
   setPointCloud(&at128_pointcloud, { "x","y","z","intensity","confidence","ring","ts_low","ts_high" }, pts);
   at128_pointcloud.mutable_header()->mutable_stamp()->set_secs(ts_frame_high);
