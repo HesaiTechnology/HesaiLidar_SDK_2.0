@@ -179,6 +179,14 @@ typedef struct _LidarImuData {
     imu_ang_vel_y = -1;
     imu_ang_vel_z = -1;
   }
+
+    bool operator!=(const _LidarImuData& other) const
+  {
+    return imu_accel_x != other.imu_accel_x || imu_accel_y != other.imu_accel_y || imu_accel_z != other.imu_accel_z ||
+           imu_ang_vel_x != other.imu_ang_vel_x || imu_ang_vel_y != other.imu_ang_vel_y ||
+           imu_ang_vel_z != other.imu_ang_vel_z;
+  }
+
 } LidarImuData;
 
 #define POINT_DATA_OFFSET               (0)
