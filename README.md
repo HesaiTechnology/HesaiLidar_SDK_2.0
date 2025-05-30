@@ -1,6 +1,6 @@
 # HesaiLidar_SDK_2.0
 
-[👉 中文版](README_CN)
+[👉 中文版](README_CN.md)
 
 ## 1 Applicability
 
@@ -66,37 +66,37 @@ make -j$(nproc)
 ```
 
 #### 2.2.2 Build in Windows
-Please refer to **[compile on Windows](docs/compile_on_windows)**.
+Please refer to **[compile on Windows](docs/compile_on_windows.md)**.
 
 ## 3 Application Guide
 
 ### 3.1 Parsing lidar Data Online
-Please refer to **[Parsing lidar Data Online](docs/parsing_lidar_data_online)**.
+Please refer to **[Parsing lidar Data Online](docs/parsing_lidar_data_online.md)**.
 
 ### 3.2 Parsing PCAP File Data Offline
-Please refer to **[Parsing PCAP File Data Offline](docs/parsing_pcap_file_data_offline)**.
+Please refer to **[Parsing PCAP File Data Offline](docs/parsing_pcap_file_data_offline.md)**.
 
 ### 3.3 Visualization of Point Cloud Data
-Please refer to **[Visualization of Point Cloud Data](docs/visualization_of_point_cloud_data)**.
+Please refer to **[Visualization of Point Cloud Data](docs/visualization_of_point_cloud_data.md)**.
 
 ### 3.4 Coordinate Transformation
-Please refer to **[Coordinate Transformation](docs/coordinate_transformation)**.
+Please refer to **[Coordinate Transformation](docs/coordinate_transformation.md)**.
 
 ### 3.5 Save Point Cloud Data as a PCD File
-Please refer to **[Save Point Cloud Data as a PCD File](docs/save_point_cloud_data_as_a_pcd_file)**.
+Please refer to **[Save Point Cloud Data as a PCD File](docs/save_point_cloud_data_as_a_pcd_file.md)**.
 
 ### 3.6 Use GPU Acceleration
-Please refer to **[Use GPU Acceleration](docs/use_gpu_acceleration)**.
+Please refer to **[Use GPU Acceleration](docs/use_gpu_acceleration.md)**.
 
 ### 3.7 Invoke SDK API command interface
-Please refer to **[Invoke SDK API command interface](docs/invoke_sdk_api_command_interface)**.
+Please refer to **[Invoke SDK API command interface](docs/invoke_sdk_api_command_interface.md)**.
 
 ### 3.8 Common Troubleshooting (Warning)
-Please refer to **[Common Troubleshooting (Warning)](docs/common_error_codes)**.
+Please refer to **[Common Troubleshooting (Warning)](docs/common_error_codes.md)**.
 
 ### 3.9 Packet Loss Analysis
-Please refer to **[Packet Loss Analysis](docs/packet_loss_analysis)**.
+Please refer to **[Packet Loss Analysis](docs/packet_loss_analysis.md)**.
 
 
 ## 4 Functional Parameter Reference
-Please refer to **[Functional Parameter Reference](docs/parameter_introduction)**.
+Please refer to **[Functional Parameter Reference](docs/parameter_introduction.md)**.
