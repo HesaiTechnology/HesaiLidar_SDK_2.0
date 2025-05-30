@@ -216,6 +216,10 @@ public:
         }
         continue;
       }
+      if (lidar_ptr_->frame_.imu_config.flag)
+      {
+        if (imu_cb_) imu_cb_(lidar_ptr_->frame_.imu_config);
+      }
 
       //one frame is receive completely, split frame
       if (lidar_ptr_->frame_.scan_complete) {
