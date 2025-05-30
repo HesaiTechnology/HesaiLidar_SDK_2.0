@@ -159,7 +159,7 @@ typedef struct InputParam
 
   std::string ros_recv_correction_topic = NULL_TOPIC;
   std::string ros_recv_packet_topic = NULL_TOPIC;
-
+  float ros_imu_publish_rate = -1.0F;
 
 } InputParam;
 
