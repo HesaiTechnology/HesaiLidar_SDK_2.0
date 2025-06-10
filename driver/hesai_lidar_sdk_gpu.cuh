@@ -210,11 +210,9 @@ public:
 
       //get distance azimuth reflection, etc.and put them into decode_packet
       ret = lidar_ptr_->DecodePacket(lidar_ptr_->frame_, packet);
-      if(ret != 0) {
-        if (ret == 1) {
-          imu_cb_(lidar_ptr_->frame_.imu_config);
-        }
-        continue;
+      if (lidar_ptr_->frame_.imu_config.flag) {
+        if (imu_cb_) imu_cb_(lidar_ptr_->frame_.imu_config);
+        lidar_ptr_->frame_.imu_config.flag = false;
       }
       if (lidar_ptr_->frame_.imu_config.flag)
       {
