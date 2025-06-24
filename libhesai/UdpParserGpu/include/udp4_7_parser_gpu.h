@@ -27,50 +27,32 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 #ifndef UDP4_7_PARSER_GPU_H_
 #define UDP4_7_PARSER_GPU_H_
-#pragma once
-#include <array>
-#include <atomic>
-#include <chrono>
-#include <functional>
-#include <cstring>
-#include <map>
-#include <memory>
-#include <mutex>
 #include "general_parser_gpu.h"
-
+#include "udp_protocol_v4_7.h"
 namespace hesai
 {
 namespace lidar
 {
-
 // class Udp4_7ParserGpu
 // computes points for PandarAT128
-// you can compute xyzi of points using the ComputeXYZI fuction, which uses gpu to compute
 template <typename T_Point>
-class Udp4_7ParserGpu: public GeneralParserGpu<T_Point>{
-
+class Udp4_7ParserGpu: public GeneralParserGpu<T_Point> {
  private:
-  // corrections
-  bool corrections_loaded_;
-  float* channel_elevations_cu_;
-  float* deles_cu;
-  PointDecodeData* point_data_cu_;
-  uint64_t* sensor_timestamp_cu_;
-
+  ATX::ATXCorrectionFloat* ATX_correction_cu_;
+  const ATX::ATXCorrections* ATX_correction_ptr;
+  ATX::ATXFiretimesFloat* ATX_firetimes_cu;
  public:
-  Udp4_7ParserGpu();
+  Udp4_7ParserGpu(uint16_t maxPacket, uint16_t maxPoint);
   ~Udp4_7ParserGpu();
 
-  // compute xyzi of points from decoded packet， use gpu device
-  // param packet is the decoded packet; xyzi of points after computed is puted in frame  
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
-  virtual int LoadCorrectionFile(std::string correction_path);
-  virtual int LoadCorrectionString(char *correction_string);
-  ATXCorrections m_ATX_corrections;
-
+  virtual void LoadCorrectionStruct(void *);
+  virtual void LoadFiretimesStruct(void *);
+  virtual void updateCorrectionFile();
+  virtual void updateFiretimeFile();
+  const ATX::ATXFiretimes* ATX_firetimes_ptr_;
 };
 }
 }
-
 #include "udp4_7_parser_gpu.cu"
 #endif  // UDP4_7_PARSER_GPU_H_

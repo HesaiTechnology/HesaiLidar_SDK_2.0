@@ -61,3 +61,10 @@ bool PtcParser::PtcStreamDecode(uint8_t cmd, uint8_t retcode, const u8Array_t &p
   }
   return false;
 }
+
+bool PtcParser::SplitFileFrames(const u8Array_t &file, uint8_t u8Cmd, std::vector<u8Array_t>& packages) {
+  if(parser_ != nullptr) {
+    return parser_->SplitFileFrames(file, u8Cmd, packages);
+  }
+  return false;
+}

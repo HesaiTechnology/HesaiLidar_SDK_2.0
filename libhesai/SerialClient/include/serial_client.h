@@ -36,6 +36,7 @@
 #include <functional>
 #include <memory>
 #include <string.h>
+#include "inner_com.h"
 
 namespace hesai
 {
@@ -67,7 +68,6 @@ enum CmdType {
   kOta = 2,
 };
 
-typedef std::vector<uint8_t> u8Array_t;
 #pragma pack(push, 1)
 struct SerialHeader {
   uint8_t start_flag_[7];    
@@ -109,8 +109,8 @@ class SerialClient {
   SerialClient(const SerialClient &orig) = delete;
   int QueryCommand(const uint8_t cmd, const u8Array_t &payload, u8Array_t &byteStreamOut, uint32_t timeout);
   void SetSerial(Source* source_send, Source* source_recv);
-
   int ChangeUpgradeMode();
+  int ChangeMode(uint8_t mode);
   int GetCorrectionInfo(u8Array_t &dataOut);
   int GetSnInfo(u8Array_t &dataOut);
   static const uint16_t crc_begin = 7;

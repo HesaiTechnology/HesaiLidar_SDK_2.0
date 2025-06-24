@@ -1,10 +1,8 @@
 #include "ring.h"
-#include <cassert>
-#include <iterator>
 using namespace hesai::lidar;
 template <typename T, size_t N>
 template <typename Item>
-class Ring<T, N>::ItemIterator {
+class Ring_SDK<T, N>::ItemIterator {
 public:
     using iterator_category = std::random_access_iterator_tag;
     using value_type = T;
@@ -39,82 +37,82 @@ public:
 };
 
 template <typename T, size_t N>
-Ring<T, N>::Ring() : _ring(new std::array<T, N>), _begin(0), _size(0) {};
+Ring_SDK<T, N>::Ring_SDK() : _ring(new std::array<T, N>), _begin(0), _size(0) {};
 
 template <typename T, size_t N>
-inline constexpr size_t Ring<T, N>::size() const { return _size; }
+inline constexpr size_t Ring_SDK<T, N>::size() const { return _size; }
 
 template <typename T, size_t N>
-inline bool Ring<T, N>::empty() const { return _size == 0; }
+inline bool Ring_SDK<T, N>::empty() const { return _size == 0; }
 
 template <typename T, size_t N>
-inline bool Ring<T, N>::not_empty() const { return !empty(); }
+inline bool Ring_SDK<T, N>::not_empty() const { return !empty(); }
 
 template <typename T, size_t N>
-inline bool Ring<T, N>::full() const { return _size >= N; }
+inline bool Ring_SDK<T, N>::full() const { return _size >= N; }
 
 template <typename T, size_t N>
-inline bool Ring<T, N>::not_full() const { return !full(); }
+inline bool Ring_SDK<T, N>::not_full() const { return !full(); }
 
 template <typename T, size_t N>
-inline void Ring<T, N>::clear() { for (auto& item : *this) { item = T(); } _size = 0; _begin = 0; }
+inline void Ring_SDK<T, N>::clear() { std::generate(_ring->begin(), _ring->end(), []() { return T(); }); _size = 0; _begin = 0; }
 
 template <typename T, size_t N>
-inline void Ring<T, N>::eff_clear() { _size = 0; _begin = 0; }
-
-template <typename T, size_t N>
-template <typename... Args>
-inline void Ring<T, N>::emplace_back(Args&&... args) { assert(!full()); (*_ring)[(_begin + _size) % N] = T(args...); ++_size;}
-
-template <typename T, size_t N>
-inline void Ring<T, N>::push_back(T&& item) { assert(!full()); (*_ring)[(_begin + _size) % N] = item; ++_size; }
-
-template <typename T, size_t N>
-inline const T& Ring<T, N>::peek_back() const { assert(!empty()); return (*_ring)[(_begin + _size - 1) % N]; }
-
-template <typename T, size_t N>
-inline T Ring<T, N>::pop_back() { assert(!empty()); --_size; T item; std::swap(item, (*_ring)[(_begin + _size) % N]); return item; }
-
-template <typename T, size_t N>
-inline void Ring<T, N>::eff_pop_back() { --_size; }
+inline void Ring_SDK<T, N>::eff_clear() { _size = 0; _begin = 0; }
 
 template <typename T, size_t N>
 template <typename... Args>
-inline void Ring<T, N>::emplace_front(Args&&... args) { assert(!full()); _begin = (_begin + N - 1) % N; (*_ring)[_begin] = T(args...); ++_size; }
+inline void Ring_SDK<T, N>::emplace_back(Args&&... args) { assert(!full()); (*_ring)[(_begin + _size) % N] = T(args...); ++_size;}
 
 template <typename T, size_t N>
-inline void Ring<T, N>::push_front(T&& item) { assert(!full()); _begin = (_begin + N - 1) % N; (*_ring)[_begin] = item; ++_size; }
+inline void Ring_SDK<T, N>::push_back(T&& item) { assert(!full()); (*_ring)[(_begin + _size) % N] = item; ++_size; }
 
 template <typename T, size_t N>
-inline const T& Ring<T, N>::peek_front() const { assert(!empty()); return (*_ring)[_begin]; }
+inline const T& Ring_SDK<T, N>::peek_back() const { assert(!empty()); return (*_ring)[(_begin + _size - 1) % N]; }
 
 template <typename T, size_t N>
-inline T Ring<T, N>::pop_front() { assert(!empty()); --_size; T item; std::swap(item, (*_ring)[_begin]); _begin = (_begin + 1) % N; return item; }
+inline T Ring_SDK<T, N>::pop_back() { assert(!empty()); --_size; T item; std::swap(item, (*_ring)[(_begin + _size) % N]); return item; }
 
 template <typename T, size_t N>
-inline void Ring<T, N>::eff_pop_front() { --_size; _begin = (_begin + 1) % N; }
+inline void Ring_SDK<T, N>::eff_pop_back() { --_size; }
 
 template <typename T, size_t N>
-inline typename Ring<T, N>::iterator Ring<T, N>::begin() { return iterator((T*)_ring.get(), _begin); }
+template <typename... Args>
+inline void Ring_SDK<T, N>::emplace_front(Args&&... args) { assert(!full()); _begin = (_begin + N - 1) % N; (*_ring)[_begin] = T(args...); ++_size; }
 
 template <typename T, size_t N>
-inline typename Ring<T, N>::iterator Ring<T, N>::end() { return iterator((T*)_ring.get(), _begin + _size); }
+inline void Ring_SDK<T, N>::push_front(T&& item) { assert(!full()); _begin = (_begin + N - 1) % N; (*_ring)[_begin] = item; ++_size; }
 
 template <typename T, size_t N>
-inline typename Ring<T, N>::const_iterator Ring<T, N>::cbegin() const { return const_iterator((const T*)_ring.get(), _begin); }
+inline const T& Ring_SDK<T, N>::peek_front() const { assert(!empty()); return (*_ring)[_begin]; }
 
 template <typename T, size_t N>
-inline typename Ring<T, N>::const_iterator Ring<T, N>::cend() const { return const_iterator((const T*)_ring.get(), _begin + _size); }
+inline T Ring_SDK<T, N>::pop_front() { assert(!empty()); --_size; T item; std::swap(item, (*_ring)[_begin]); _begin = (_begin + 1) % N; return item; }
 
 template <typename T, size_t N>
-inline T& Ring<T, N>::operator[](size_t index) { assert(index < size()); return (*_ring)[(_begin + index) % N]; }
+inline void Ring_SDK<T, N>::eff_pop_front() { --_size; _begin = (_begin + 1) % N; }
 
 template <typename T, size_t N>
-inline const T& Ring<T, N>::operator[](size_t index) const { assert(index < size()); return (*_ring)[(_begin + index) % N]; }
+inline typename Ring_SDK<T, N>::iterator Ring_SDK<T, N>::begin() { return iterator((T*)_ring.get(), _begin); }
 
 template <typename T, size_t N>
-inline T* Ring<T, N>::data() { return _ring->data(); }
+inline typename Ring_SDK<T, N>::iterator Ring_SDK<T, N>::end() { return iterator((T*)_ring.get(), _begin + _size); }
 
 template <typename T, size_t N>
-inline const T* Ring<T, N>::data() const { return _ring->data(); };
+inline typename Ring_SDK<T, N>::const_iterator Ring_SDK<T, N>::cbegin() const { return const_iterator((const T*)_ring.get(), _begin); }
+
+template <typename T, size_t N>
+inline typename Ring_SDK<T, N>::const_iterator Ring_SDK<T, N>::cend() const { return const_iterator((const T*)_ring.get(), _begin + _size); }
+
+template <typename T, size_t N>
+inline T& Ring_SDK<T, N>::operator[](size_t index) { assert(index < size()); return (*_ring)[(_begin + index) % N]; }
+
+template <typename T, size_t N>
+inline const T& Ring_SDK<T, N>::operator[](size_t index) const { assert(index < size()); return (*_ring)[(_begin + index) % N]; }
+
+template <typename T, size_t N>
+inline T* Ring_SDK<T, N>::data() { return _ring->data(); }
+
+template <typename T, size_t N>
+inline const T* Ring_SDK<T, N>::data() const { return _ring->data(); };
 

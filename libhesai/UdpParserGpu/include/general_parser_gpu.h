@@ -27,185 +27,106 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 #ifndef GENERAL_PARSER_GPU_H_
 #define GENERAL_PARSER_GPU_H_
-#define MAX_LASER_NUM (512)
 #include <stdint.h>
 #include <iostream>
-#include "nvbuffer.h"
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <semaphore.h>
 #include <list>
+#include <sstream>
 #include <vector>
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <cstring>
+#include <map>
+#include <memory>
+#include <mutex>
+
 #include "lidar_types.h"
 #include "plat_utils.h"
+#include "general_parser.h"
 #include "logger.h"
+#include "udp_parser_gpu_kernel.h"
+#include "general_struct_gpu.h"
+
+#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
+#include <cuda_device_runtime_api.h>
+#include "safe_call.cuh"
+#include "return_code.h"
+#define HALF_CIRCLE 180.0
 #ifndef M_PI
 #define M_PI 3.1415926535898
 #endif
 
-#ifndef CIRCLE
-#define CIRCLE 36000
-#endif
+#define PUT_POINT_IN_POINT_INFO \
+  auto &pointData = frame.pointData[j]; \
+  auto &packetData = frame.packetData[i]; \
+  int point_index_rerank = point_index + point_num; \
+  float azi_ = this->points_[j].azimuthCalib / M_PI * HALF_CIRCLE; \
+  float elev_ = this->points_[j].elevationCalib / M_PI * HALF_CIRCLE; \
+  GeneralParserGpu<T_Point>::DoRemake(azi_, elev_, frame.fParam.remake_config, point_index_rerank); \
+  if(point_index_rerank >= 0) { \
+    auto& ptinfo = frame.points[point_index_rerank]; \
+    set_x(ptinfo, this->points_[j].x); \
+    set_y(ptinfo, this->points_[j].y); \
+    set_z(ptinfo, this->points_[j].z); \
+    set_ring(ptinfo, pointData.channel_index); \
+    set_intensity(ptinfo, pointData.reflectivity); 
 
-#ifndef HALF_CIRCLE 
-#define HALF_CIRCLE 18000
-#endif
 
-#define PANDAR_HAS_MEMBER(C, member) has_##member<C>::value
 namespace hesai
 {
 namespace lidar
 {
 
-namespace gpu
-{
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, x)>::type setX(T_Point& point, const float& value)
-  {
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, x)>::type setX(T_Point& point, const float& value)
-  {
-    point.x = value;
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, y)>::type setY(T_Point& point, const float& value)
-  {
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, y)>::type setY(T_Point& point, const float& value)
-  {
-    point.y = value;
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, z)>::type setZ(T_Point& point, const float& value)
-  {
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, z)>::type setZ(T_Point& point, const float& value)
-  {
-    point.z = value;
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, intensity)>::type setIntensity(T_Point& point,
-                                                                                        const uint8_t& value)
-  {
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, intensity)>::type setIntensity(T_Point& point,
-                                                                                      const uint8_t& value)
-  {
-    point.intensity = value;
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, timestamp)>::type setTimestamp(T_Point& point,
-                                                                                        const double& value)
-  {
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, timestamp)>::type setTimestamp(T_Point& point,
-                                                                                      const double& value)
-  {
-    point.timestamp = value;
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, ring)>::type setRing(T_Point& point,
-                                                                                        const uint16_t& value)
-  {
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, ring)>::type setRing(T_Point& point,
-                                                                                      const uint16_t& value)
-  {
-    point.ring = value;
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, confidence)>::type setConfidence(T_Point& point,
-                                                                                        const uint8_t& value)
-  {
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, confidence)>::type setConfidence(T_Point& point,
-                                                                                      const uint8_t& value)
-  {
-    point.confidence = value;
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, weightFactor)>::type setWeightFactor(T_Point& point,
-                                                                                        const uint8_t& value)
-  {
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, weightFactor)>::type setWeightFactor(T_Point& point,
-                                                                                      const uint8_t& value)
-  {
-    point.weightFactor = value;
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, envLight)>::type setEnvLight(T_Point& point,
-                                                                                        const uint8_t& value)
-  {
-  }
-
-  template <typename T_Point>
-  __device__ inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, envLight)>::type setEnvLight(T_Point& point,
-                                                                                      const uint8_t& value)
-  {
-    point.envLight = value;
-  }
-
-} // namespace gpu
-
-template <typename PointT>
-struct PointCloudStruct  {
-  PointT points[kMaxPacketNumPerFrame * kMaxPointsNumPerPacket];
-};
 // class GeneralParserGpu
 // the GeneralParserGpu class is a base class for computing points with gpu
 // you can compute xyzi of points using the ComputeXYZI fuction, which uses gpu to compute
 template <typename T_Point>
 class GeneralParserGpu {
  public:
-  GeneralParserGpu();
-  ~GeneralParserGpu();
-  virtual int LoadCorrectionFile(std::string correction_path) = 0;
-  virtual int LoadCorrectionString(char *correction_string) = 0;
-  virtual void LoadFiretimesFile(std::string firetimes_path);
-  virtual int LoadFiretimesString(char *firetimes_string);
-  
+  GeneralParserGpu(uint16_t maxPacket, uint16_t maxPoint);
+  virtual ~GeneralParserGpu();
+  virtual void LoadCorrectionStruct(void *);
+  virtual void LoadFiretimesStruct(void *);
+  void setCorrectionLoadFlag(bool* flag) { get_correction_file_ = flag; }
+  void setFiretimeLoadFlag(bool* flag) { get_firetime_file_ = flag; }
+  void setCorrectionLoadSequenceNum(uint32_t* num) { correction_load_sequence_num_ = num; correction_load_sequence_num_cuda_use_ = *num; }
+  void setFiretimeLoadSequenceNum(uint32_t* num) { firetime_load_sequence_num_ = num; firetime_load_sequence_num_cuda_use_ = *num; }
+  virtual void updateCorrectionFile();
+  virtual void updateFiretimeFile();
   // compute xyzi of points from decoded packet， use gpu device
   // param packet is the decoded packet; xyzi of points after computed is puted in frame  
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame) = 0;
-  void SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
-  void SetXtSpotCorrection(bool);
-  void SetOpticalCenter(LidarOpticalCenter other) { optical_center.setNoFlag(other); optical_center.flag = other.flag; }
-  Transform transform_;
-  bool corrections_loaded_ = false;
+  void DoRemake(float azi_, float elev_, const RemakeConfig &remake_config, int &point_idx);
  protected:
-  double firetime_correction_[kMaxPointsNumPerPacket];
-  MemBufferClass<PointCloudStruct<T_Point>> frame_;
+  bool* get_correction_file_;
+  bool* get_firetime_file_;
+  uint32_t* correction_load_sequence_num_;
+  uint32_t* firetime_load_sequence_num_;
+  uint32_t correction_load_sequence_num_cuda_use_ = 0;
+  uint32_t firetime_load_sequence_num_cuda_use_ = 0;
+
+  float* correction_azi_cu_;
+  float* correction_ele_cu_;
+  float* firetimes_cu_;
+  PointDecodeData* point_data_cu_;
+  PacketDecodeData* packet_data_cu_;
+  LidarPointXYZDAE* points_;
+  LidarPointXYZDAE* points_cu_;
+  uint32_t* valid_points_cu_;
+  const CorrectionData* correction_ptr;
+  const float* firetimes_ptr;
   LidarOpticalCenter optical_center;
-  bool xt_spot_correction = false;
+  uint8_t* point_cloud_cu_ = nullptr;
+  // new cuda param
+  uint8_t* input_data_cuda_ = nullptr;
+  uint32_t point_cloud_size_ = 0;
 };
 }
 }
 #include "general_parser_gpu.cu"
-
 #endif  // GENERAL_PARSER_GPU_H_

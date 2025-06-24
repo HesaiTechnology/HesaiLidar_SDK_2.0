@@ -30,28 +30,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include "general_parser.h"
-#include "pcap_saver.h"
 #include "lidar_types.h"
 #include "udp_p40_parser.h"
 #include "udp_p64_parser.h"
 #include "udp1_4_parser.h"
 #include "udp1_8_parser.h"
-#include "udp2_4_parser.h"
-#include "udp2_5_parser.h"
-#include "udp2_6_parser.h"
-#include "udp2_7_parser.h"
 #include "udp3_1_parser.h"
 #include "udp3_2_parser.h"
 #include "udp4_3_parser.h"
 #include "udp4_7_parser.h"
 #include "udp6_1_parser.h"
 #include "udp7_2_parser.h"
-#include "udp_p40_parser.h"
-#include "udp_p64_parser.h"
-#define PKT_SIZE_40P (1262)
-#define PKT_SIZE_AC (1256)
-#define PKT_SIZE_64 (1194)
-#define PKT_SIZE_20 (1270)
 namespace hesai
 {
 namespace lidar
@@ -60,8 +49,8 @@ namespace lidar
 // the UdpParser class is an interface layer.it instantiates a specific udp parser class,
 // which is determined by lidar type.
 // UdpParser mainly parsers udp or pcap packets and computes xyzi of points 
-// you can parser the upd or pcap packets using the DocodePacket fuction
-// you can compute xyzi of points using the ComputeXYZI fuction, which uses cpu to compute
+// you can parser the udp or pcap packets using the DecodePacket function
+// you can compute xyzi of points using the ComputeXYZI function, which uses cpu to compute
 template <typename T_Point>
 class UdpParser {
  public:
@@ -69,54 +58,58 @@ class UdpParser {
   explicit UdpParser(const UdpPacket &packet);
   UdpParser();
   virtual ~UdpParser();
+  // set parser
   void CreatGeneralParser(const std::string& lidar_type);
   void CreatGeneralParser(const UdpPacket& packet);
-  GeneralParser<T_Point> *GetGeneralParser();
-  void SetGeneralParser(GeneralParser<T_Point> *Parser);
-  PcapSaver *GetPcapSaver();
+  void SetGeneralParser(GeneralParser<T_Point> *parser) { parser_ = parser; }
+  // get parser
+  GeneralParser<T_Point> *GetGeneralParser() { return parser_; }
 
-  // get lidar correction file from local file,and pass to udp parser
-  void LoadCorrectionFile(std::string correction_path);  //从本地文件获取
-  int LoadCorrectionString(char *correction_string);  //从角度文件char*数据获取
+  // load correction file, which is necessary for DecodePacket.
+  void LoadCorrectionFile(const std::string& correction_path);
+  int LoadCorrectionString(const char *correction_string, int len);
+  // load firetimes file
+  void LoadFiretimesFile(const std::string& firetimes_path);
+  int LoadFiretimesString(const char *firetimes_string, int len);
+  // load channel config file
+  int LoadChannelConfigFile(const std::string channel_config_path);
+  // get the pointer to the struct of the parsed correction file or firetimes file
+  void *getStruct(const int type) { if (parser_ != nullptr) return parser_->getStruct(type); else return nullptr; }
+  int getDisplay(bool **display) { if (parser_ != nullptr) return parser_->getDisplay(display); else return 0; }
+  // get/set correction/firetimes file loading flag
+  bool isSetCorrectionSucc() { if (parser_ != nullptr) return parser_->isSetCorrectionSucc(); else return false; }
+  bool isSetFiretimeSucc() { if (parser_ != nullptr) return parser_->isSetFiretimeSucc(); else return false; }
 
-  // get lidar firetime correction file from local file,and pass to udp parser
-  void LoadFiretimesFile(std::string firetimes_path);
-  void EnableUpdateMonitorInfo();
-  void DisableUpdateMonitorInfo();
-  uint16_t *GetMonitorInfo1();
-  uint16_t *GetMonitorInfo2();
-  uint16_t *GetMonitorInfo3();
-
-  // covert a origin udp packet to decoded packet, the decode function is in UdpParser module
   // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
-  int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket);  
-
-  // compute xyzi of points from decoded packet
-  // param packet is the decoded packet; xyzi of points after computed is puted in frame    
-  int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
-
+  int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket, const int packet_index = -1);  
+  // xyzi of points after computed is puted in frame  
+  int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32_t packet_index);
   // parse the detailed content of the fault message message
   int ParserFaultMessage(UdpPacket& udp_packet, FaultMessageInfo &fault_message_info);
-
-  int GetGeneralParser(GeneralParser<T_Point> **parser);
-  int SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
-  GeneralParser<T_Point>* GetParser() {return parser_;}
-  std::string GetLidarType() {return lidar_type_decoded_;}
-  void SetPcapPlay(bool pcap_time_synchronization, int source_type);
-  void SetFrameAzimuth(float frame_start_azimuth);
+  // get/clear the number of parsed packets
   uint32_t GetComputePacketNum() { if (parser_ != nullptr) return parser_->GetComputePacketNum(); else return 0; }
   void SetComputePacketNumToZero() { if (parser_ != nullptr) parser_->SetComputePacketNumToZero(); }
-  LidarOpticalCenter GetOpticalCenter() { if (parser_ != nullptr) return parser_->GetOpticalCenter(); else return LidarOpticalCenter{}; }
+  //
+  void setFrameRightMemorySpace(LidarDecodedFrame<T_Point> &frame) { if (parser_ != nullptr) parser_->setFrameRightMemorySpace(frame); }
+
+  // set frame azimuth
+  void SetFrameAzimuth(float frame_start_azimuth);
+  // set the parsing type
+  void SetPcapPlay(int source_type);
+  // fet the basic lidar model
+  std::string GetLidarType() {return lidar_type_decoded_;}
+
+
+  
  private:
   GeneralParser<T_Point> *parser_;
-  PcapSaver *pcap_saver_;
   std::string lidar_type_decoded_;
-  bool fisrt_packet_;
+  bool first_packet_;
   uint64_t last_host_timestamp_;
   uint64_t last_sensor_timestamp_;
-  uint8_t packet_count_;
-  bool pcap_time_synchronization_;
+  uint16_t packet_count_;
   int source_type_;
+  bool printErrorBool;
 };
 }  // namespace lidar
 }  // namespace hesai

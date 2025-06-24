@@ -447,7 +447,7 @@ int TcpSslClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
 }
 
 int TcpSslClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
-  (void)flags;
+  if (flags == 0xFF) return -1;
   int len = -1;
   bool ret = true;
   
@@ -466,7 +466,7 @@ int TcpSslClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
   int delta = GetMicroTickCount() - tick;
 
   if (delta >= 1000000) {
-    LogWarning("Receive execu: %dus", delta);
+    LogDebug("Receive execu: %dus", delta);
   }
 
   return len;

@@ -33,151 +33,106 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "udp_p64_parser.h"
-#include "general_parser.h"
-#include "udp_protocol_p64.h"
+
 using namespace hesai::lidar;
 template<typename T_Point>
 UdpP64Parser<T_Point>::UdpP64Parser() {
-  this->motor_speed_ = 0;
-  this->return_mode_ = 0;
   this->optical_center.setNoFlag(LidarOpticalCenter{-0.012, 0.03873, 0});
+  this->default_remake_config.min_azi = 0.f;
+  this->default_remake_config.max_azi = 360.f;
+  this->default_remake_config.ring_azi_resolution = 0.2f;
+  this->default_remake_config.max_azi_scan = 1800;   // (max_azi - min_azi) / ring_azi_resolution
+  this->default_remake_config.min_elev = -25.f;
+  this->default_remake_config.max_elev = 15.f;
+  this->default_remake_config.ring_elev_resolution = 0.16f;
+  this->default_remake_config.max_elev_scan = 250;   // (max_elev - min_elev) / ring_elev_resolution
+  LogInfo("init P64 parser");
 }
 
 template<typename T_Point>
-UdpP64Parser<T_Point>::~UdpP64Parser() { LogInfo("release general parser"); }
+UdpP64Parser<T_Point>::~UdpP64Parser() { LogInfo("release P64 parser"); }
+
+template <typename T_Point>
+void UdpP64Parser<T_Point>::setFrameRightMemorySpace(LidarDecodedFrame<T_Point> &frame) {
+  frame.resetMalloc(1800, 384);
+}
 
 template<typename T_Point>
-int UdpP64Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index) {
-  for (int blockid = 0; blockid < frame.block_num; blockid++) {
-    // T_Point point;
+int UdpP64Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32_t packet_index) {
+  if ((packet_index + 1) * frame.per_points_num >= frame.maxPackerPerFrame * frame.maxPointPerPacket) {
+    LogFatal("total points exceeded memory storage limit");
+    GeneralParser<T_Point>::FrameNumAdd();
+    return -1;
+  }
+  int point_index = packet_index * frame.per_points_num;
+  int point_num = 0;
+  for (int i = point_index; i < point_index + static_cast<int>(frame.valid_points[packet_index]); i++) {
+    auto &pointData = frame.pointData[i];
+    auto &packetData = frame.packetData[packet_index];
     int elevation = 0;
-    int azimuth = 0;   
-    
-    for (int i = 0; i < frame.laser_num; i++) {
-      int point_index = packet_index * frame.per_points_num + blockid * frame.laser_num + i;
-      float distance = static_cast<float>(frame.pointData[point_index].distances * frame.distance_unit);
-      int Azimuth = int(frame.pointData[point_index].azimuth  * kFineResolutionInt);
-      if (this->get_correction_file_) {
-        int azimuth_coll = (int(this->azimuth_collection_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
-        int elevation_corr = (int(this->elevation_correction_[i] * kAllFineResolutionFloat) + CIRCLE) % CIRCLE;
-        if (this->optical_center.flag) {
-          GeneralParser<T_Point>::GetDistanceCorrection(this->optical_center, azimuth_coll, elevation_corr, distance, GeometricCenter);
-        }
-        elevation = elevation_corr;
-        azimuth = Azimuth + azimuth_coll;
-        azimuth = (CIRCLE + azimuth) % CIRCLE;
-      } 
-      if (frame.config.fov_start != -1 && frame.config.fov_end != -1)
-      {
-        int fov_transfer = azimuth / 256 / 100;
-        if (fov_transfer < frame.config.fov_start || fov_transfer > frame.config.fov_end){//不在fov范围continue
-          memset(&frame.points[point_index], 0, sizeof(T_Point));
-          continue;
-        }
-      } 
-      float xyDistance = distance * this->cos_all_angle_[(elevation)];
-      float x = xyDistance * this->sin_all_angle_[(azimuth)];
-      float y = xyDistance * this->cos_all_angle_[(azimuth)];
-      float z = distance * this->sin_all_angle_[(elevation)];  
-      this->TransformPoint(x, y, z); 
-      setX(frame.points[point_index], x);
-      setY(frame.points[point_index], y);
-      setZ(frame.points[point_index], z);
-      setIntensity(frame.points[point_index], frame.pointData[point_index].reflectivities);
-      setTimestamp(frame.points[point_index], double(frame.sensor_timestamp[packet_index]) / kMicrosecondToSecond);
-      setRing(frame.points[point_index], static_cast<uint16_t>(i));
+    int azimuth = floatToInt(pointData.azimuth * kAllFineResolutionInt);
+    float distance = static_cast<float>(pointData.distance * frame.distance_unit);
+    if (this->get_firetime_file_ && frame.fParam.firetimes_flag) {
+      azimuth += (frame.fParam.rotation_flag > 0 ? 1 : -1) * 
+        doubleToInt(this->GetFiretimesCorrection(pointData.channel_index, packetData.spin_speed) * kAllFineResolutionInt);
+    }
+    if (this->get_correction_file_) {
+      int azimuth_coll = doubleToInt(this->correction.azimuth[pointData.channel_index] * kAllFineResolutionFloat);
+      int elevation_corr = doubleToInt(this->correction.elevation[pointData.channel_index] * kAllFineResolutionFloat);
+      if (frame.fParam.distance_correction_flag) {
+        GeneralParser<T_Point>::GetDistanceCorrection(this->optical_center, azimuth_coll, elevation_corr, distance, GeometricCenter);
+      }
+      elevation = elevation_corr;
+      azimuth += azimuth_coll;
+    } 
+    this->CircleRevise(azimuth);
+    this->CircleRevise(elevation);
+    if (frame.fParam.config.fov_start != -1 && frame.fParam.config.fov_end != -1) {
+      int fov_transfer = azimuth / kAllFineResolutionInt;
+      if (fov_transfer < frame.fParam.config.fov_start || fov_transfer > frame.fParam.config.fov_end) { //不在fov范围continue
+        continue;
+      }
+    }
+    uint64_t timestamp = packetData.t.sensor_timestamp * kMicrosecondToNanosecondInt + pointData.data.dnsOff.ns_offset;
+    float xyDistance = distance * this->cos_all_angle_[(elevation)];
+    float x = xyDistance * this->sin_all_angle_[(azimuth)];
+    float y = xyDistance * this->cos_all_angle_[(azimuth)];
+    float z = distance * this->sin_all_angle_[(elevation)];
+    this->TransformPoint(x, y, z, frame.fParam.transform);
+
+    int point_index_rerank = point_index + point_num; 
+    GeneralParser<T_Point>::DoRemake(azimuth, elevation, frame.fParam.remake_config, point_index_rerank); 
+    if(point_index_rerank >= 0) { 
+      auto& ptinfo = frame.points[point_index_rerank]; 
+      set_x(ptinfo, x); 
+      set_y(ptinfo, y); 
+      set_z(ptinfo, z); 
+      set_ring(ptinfo, pointData.channel_index); 
+      set_intensity(ptinfo, pointData.reflectivity);  
+      set_timestamp(ptinfo, double(packetData.t.sensor_timestamp) / kMicrosecondToSecond);
+      set_timeSecond(ptinfo, timestamp / kNanosecondToSecondInt);
+      set_timeNanosecond(ptinfo, timestamp % kNanosecondToSecondInt);
+
+      point_num++;
     }
   }
+  frame.valid_points[packet_index] = point_num;
   GeneralParser<T_Point>::FrameNumAdd();
   return 0;
 }
 
 template<typename T_Point>
-bool UdpP64Parser<T_Point>::IsNeedFrameSplit(uint16_t azimuth) {
-  // Determine frame_start_azimuth_ [0,360)
-  if (this->frame_start_azimuth_ < 0.0f || this->frame_start_azimuth_ >= 360.0f) {
-    this->frame_start_azimuth_ = 0.0f;
-  }
-  // The first two packet dont have the information of last_azimuth_  and last_last_azimuth, so do not need split frame
-  // The initial value of last_azimuth_ is -1
-  // Determine the rotation direction and division
-  
-  int32_t division = 0;
-  // If last_last_azimuth_ != -1，the packet is the third, so we can determine whether the current packet requires framing
-  if (this->last_last_azimuth_ != -1) 
-  {
-    // Get the division
-    int32_t division1 = abs(this->last_azimuth_ - this->last_last_azimuth_);
-    int32_t division2 = abs(this->last_azimuth_ - azimuth);
-    division = division1 > division2 ? division2 : division1 ;
-    // Prevent two consecutive packets from having the same angle when causing an error in framing
-    if ( division == 0) return false;
-    // In the three consecutive angle values, if the angle values appear by the division of the decreasing situation,it must be reversed
-    // The same is true for FOV
-    if( this->last_last_azimuth_ - this->last_azimuth_ == division || this->last_azimuth_ -azimuth == division)
-    {
-      this->rotation_flag = -1;
-    } else {
-      this->rotation_flag = 1;
-    }
-  } else {
-    // The first  and second packet do not need split frame
-    return false;
-  }
-  if (this->rotation_flag == 1) {
-    // When an angle jump occurs
-    if (this->last_azimuth_- azimuth > division)
-    {
-      if (uint16_t(this->frame_start_azimuth_ * kResolutionInt) > this->last_azimuth_ || uint16_t(this->frame_start_azimuth_ * kResolutionInt <= azimuth)) {
-        return true;
-      } 
-      return false;
-    }  
-    if (this->last_azimuth_ < azimuth && this->last_azimuth_ < uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
-        && azimuth >= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
-      return true;
-    }
-    return false;
-  } else {
-    if (azimuth - this->last_azimuth_ > division)
-    {
-      if (uint16_t(this->frame_start_azimuth_ * kResolutionInt) <= this->last_azimuth_ || uint16_t(this->frame_start_azimuth_ * kResolutionInt) > azimuth) {
-        return true;
-      } 
-      return false;
-    }  
-    if (this->last_azimuth_ > azimuth && this->last_azimuth_ > uint16_t(this->frame_start_azimuth_ * kResolutionInt) 
-        && azimuth <= uint16_t(this->frame_start_azimuth_ * kResolutionInt)) {
-      return true;
-    }
-    return false;
-  }
-}
-
-template<typename T_Point>
-int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket)
+int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket, const int packet_index)
 {
-  if (!this->get_correction_file_) {
-    static bool printErrorBool = true;
-    if (printErrorBool) {
-      LogInfo("No available angle calibration files, prohibit parsing of point cloud packages");
-      printErrorBool = false;
-    }
-    return -1;
-  }
-  if (udpPacket.buffer[0] != 0xEE || udpPacket.buffer[1] != 0xFF ) {
+  uint32_t packet_index_use = packet_index >= 0 ? packet_index : frame.packet_num;
+  if (udpPacket.buffer[0] != 0xEE || udpPacket.buffer[1] != 0xFF || 
+      (udpPacket.packet_len != PKT_SIZE_64_B6 && udpPacket.packet_len != PKT_SIZE_64_B6 + 4 &&
+      udpPacket.packet_len != PKT_SIZE_20_B7 && udpPacket.packet_len != PKT_SIZE_20_B7 + 4)) {
+    LogDebug("Invalid point cloud");
     return -1;
   }
   const HS_LIDAR_L64_Header *pHeader = 
       reinterpret_cast<const HS_LIDAR_L64_Header *>(&(udpPacket.buffer[0]));
-  
-  const HS_LIDAR_BODY_AZIMUTH_L64 *pAzimuth = 
-      reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_L64 *>(
-          (const unsigned char *)pHeader + sizeof(HS_LIDAR_L64_Header));
- 
-  const HS_LIDAR_BODY_CHN_UNIT_L64 *pChnUnit = 
-      reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_L64 *>(
-          (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_L64));
 
   const HS_LIDAR_TAIL_L64 *pTail = 
       reinterpret_cast<const HS_LIDAR_TAIL_L64 * >(
@@ -189,55 +144,84 @@ int UdpP64Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   const HS_LIDAR_TAIL_SEQ_NUM_L64 *pSeqNum = 
       reinterpret_cast<const HS_LIDAR_TAIL_SEQ_NUM_L64 *> (
         (const unsigned char *)pTail + sizeof(HS_LIDAR_TAIL_L64));
-
-  if (frame.use_timestamp_type == 0) {
-    frame.sensor_timestamp[frame.packet_num] = pTail->GetMicroLidarTimeU64();
-  } else {
-    frame.sensor_timestamp[frame.packet_num] = udpPacket.recv_timestamp;
-  }
-  this->CalPktLoss(pSeqNum->GetSeqNum());
-  this->CalPktTimeLoss(pTail->GetMicroLidarTimeU64());
-  this->spin_speed_ = pTail->GetMotorSpeed();
-  frame.spin_speed = pTail->GetMotorSpeed();
+  
+  this->CalPktLoss(pSeqNum->GetSeqNum(), frame.fParam);
+  this->CalPktTimeLoss(pTail->GetMicroLidarTimeU64(this->last_utc_time), frame.fParam);
+  frame.packetData[packet_index_use].spin_speed = pTail->GetMotorSpeed();
   frame.lidar_state = pTail->m_u8Shutdown;
   frame.return_mode = pTail->m_u8ReturnMode;
-  frame.per_points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
+
   frame.scan_complete = false;
-  frame.host_timestamp = GetMicroTickCountU64();
-  frame.distance_unit = pHeader->GetDistUnit();
   frame.block_num = pHeader->GetBlockNum();
   frame.laser_num = pHeader->GetLaserNum();
-
-  int index = frame.packet_num * pHeader->GetBlockNum() * pHeader->GetLaserNum();
-  uint16_t u16Azimuth = 0;
-  for (int blockid = 0; blockid < pHeader->GetBlockNum(); blockid++) {
-    u16Azimuth = pAzimuth->GetAzimuth();
-    pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_L64 *>(
-          (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_L64));
-
-    pAzimuth = reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_L64 *>(
-      (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_L64) + 
-      sizeof(HS_LIDAR_BODY_CHN_UNIT_L64) * pHeader->GetLaserNum());
-    
-    for (int i = 0; i < pHeader->GetLaserNum(); i++) {
-      if(this->get_firetime_file_) {
-        frame.pointData[index].azimuth = u16Azimuth  + this->rotation_flag * this->GetFiretimesCorrection(i, this->spin_speed_) * kResolutionFloat;
-      }else {
-        frame.pointData[index].azimuth = u16Azimuth;
-      }
-      frame.pointData[index].distances = pChnUnit->GetDistance();
-      frame.pointData[index].reflectivities = pChnUnit->GetReflectivity();
-      pChnUnit = pChnUnit + 1;
-      index++; 
-    }
+  frame.per_points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
+  frame.distance_unit = pHeader->GetDistUnit();
+  if (frame.per_points_num > frame.maxPointPerPacket) {
+    LogFatal("per_points_num(%u) out of %d", frame.per_points_num, frame.maxPointPerPacket);
+    return -1;
   }
-  if (IsNeedFrameSplit(u16Azimuth)) {
+  if (frame.laser_num > P64_LASERNUM) {
+    LogFatal("laser_num(%u) out of %d", frame.laser_num, P64_LASERNUM);
+    return -1;
+  }
+
+  if (frame.fParam.use_timestamp_type == 0) {
+    frame.packetData[packet_index_use].t.sensor_timestamp = pTail->GetMicroLidarTimeU64(this->last_utc_time);
+  } else {
+    frame.packetData[packet_index_use].t.sensor_timestamp = udpPacket.recv_timestamp;
+  }
+  if (frame.frame_start_timestamp == 0) frame.frame_start_timestamp = double(frame.packetData[packet_index_use].t.sensor_timestamp) / kMicrosecondToSecond;
+  frame.frame_end_timestamp = double(frame.packetData[packet_index_use].t.sensor_timestamp) / kMicrosecondToSecond;
+  if (frame.fParam.pcap_time_synchronization) frame.host_timestamp = GetMicroTickCountU64();
+
+  uint16_t u16Azimuth = 0;
+  const HS_LIDAR_BODY_AZIMUTH_L64 *pAzimuth = 
+      reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_L64 *>(
+          (const unsigned char *)pHeader + sizeof(HS_LIDAR_L64_Header));
+  u16Azimuth = pAzimuth->GetAzimuth();
+  if (this->IsNeedFrameSplit(u16Azimuth, frame.fParam)) {
     frame.scan_complete = true;
   }
   if (u16Azimuth != this->last_azimuth_) {
     this->last_last_azimuth_ = this->last_azimuth_;
     this->last_azimuth_ = u16Azimuth;
   }
+  if (frame.scan_complete)
+    return 0;
+
+  int index = packet_index_use * frame.per_points_num;
+  int point_num = 0;
+  int32_t block_ns_offset = 0;
+  for (int blockid = 0; blockid < pHeader->GetBlockNum(); blockid++) {
+    int current_block_echo_count = pHeader->GetReturnType() > 0 ? ((pHeader->GetReturnType() - 1 + blockid) % 2 + 1) : 0;
+    if (frame.fParam.echo_mode_filter != 0 && current_block_echo_count != 0 && frame.fParam.echo_mode_filter != current_block_echo_count) {
+      continue;
+    }
+    block_ns_offset = P64::P64_BLOCK_NS_OFFSET1 + P64::P64_BLOCK_NS_OFFSET2 * int((pHeader->GetBlockNum() - blockid - 1) / (frame.return_mode < RETURN_MODE_MULTI ? 1 : 2));
+    pAzimuth = reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_L64 *>(
+                (const unsigned char *)pHeader + sizeof(HS_LIDAR_L64_Header) + 
+                (sizeof(HS_LIDAR_BODY_AZIMUTH_L64) + sizeof(HS_LIDAR_BODY_CHN_UNIT_L64) * 
+                pHeader->GetLaserNum()) * blockid);
+    const HS_LIDAR_BODY_CHN_UNIT_L64 *pChnUnit = 
+        reinterpret_cast<const HS_LIDAR_BODY_CHN_UNIT_L64 *>(
+            (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_L64));
+    u16Azimuth = pAzimuth->GetAzimuth();
+    for (int i = 0; i < pHeader->GetLaserNum(); i++) {
+      if (this->correction.display[i] == false) {
+        pChnUnit++;
+        continue;
+      }
+      frame.pointData[index].channel_index = i;
+      frame.pointData[index].azimuth = static_cast<float>(u16Azimuth) / kResolutionFloat;
+      frame.pointData[index].distance = pChnUnit->GetDistance();
+      frame.pointData[index].reflectivity = pChnUnit->GetReflectivity();
+      if (this->get_firetime_file_) frame.pointData[index].data.dnsOff.ns_offset = block_ns_offset + floatToInt(this->firetime_correction_[i] * kMicrosecondToNanosecondInt);
+      pChnUnit++;
+      index++;   
+      point_num++;
+    }
+  }
+  frame.valid_points[packet_index_use] = point_num;
   frame.packet_num++;
   return 0;
 }

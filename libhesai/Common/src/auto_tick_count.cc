@@ -28,8 +28,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "auto_tick_count.h"
 
- 
-
 #include "plat_utils.h"
 using namespace hesai::lidar;
 TickCount::TickCount() {
@@ -95,10 +93,12 @@ int TickCount::ShowTimeSlice(std::string sLogFile, bool bSaveSysTime) {
   tm_now = localtime(&time_t_now);
 
   if (bSaveSysTime) {
+    char time_str[100];
+    strftime(time_str, sizeof(time_str), "%a %b %d %H:%M:%S %Y", tm_now);
     if (pFile != NULL)
-      fprintf(pFile, "recording time: %s-------------\n", asctime(tm_now));
+      fprintf(pFile, "recording time: %s-------------\n", time_str);
     if (pFileSel != NULL) {
-      fprintf(pFileSel, "recording time: %s-------------\n", asctime(tm_now));
+      fprintf(pFileSel, "recording time: %s-------------\n", time_str);
     }
   }
 

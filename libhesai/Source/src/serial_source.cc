@@ -51,9 +51,9 @@ SerialSource::SerialSource(const std::string dev, int baudrate, int point_cloud_
 }
 
 SerialSource::~SerialSource() {
+  Close();
   delete[] serialData;
   delete[] serialData_backup;
-  Close();
 }
 
 bool SerialSource::Open() {
@@ -93,7 +93,11 @@ bool SerialSource::IsOpened() {
 int SerialSource::Open(const char *dev, int baudrate) {
   Close();
 #ifdef _MSC_VER
-  m_iFd = CreateFile(dev,  
+  std::string devPath = dev;
+  if(devPath.length() > 4) {
+    devPath = "\\\\.\\" + devPath;
+  }
+  m_iFd = CreateFile(devPath.c_str(),  
                     GENERIC_READ | GENERIC_WRITE,  
                     0,  
                     nullptr,  

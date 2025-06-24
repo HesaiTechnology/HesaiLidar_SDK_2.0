@@ -53,16 +53,15 @@ class UdpParserGpu {
       m_generalParserGpu = nullptr;
     }
   };
-  int LoadCorrectionFile(std::string correction_path);
-  int LoadCorrectionString(char *correction_string);
-  void LoadFiretimesFile(std::string firetimes_path);
-  int LoadFiretimesString(char *firetimes_string);
-  void CreatGeneralParser(uint8_t major, uint8_t minor);
+  int LoadCorrectionStruct(void*);
+  int LoadFiretimesStruct(void*);
   int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
-  void SetLidarType(std::string lidar_type);
-  int SetTransformPara(float x, float y, float z, float roll, float pitch, float yaw);
-  int SetXtSpotCorrection(bool);
-  int SetOpticalCenter(LidarOpticalCenter other);
+  void SetLidarType(std::string lidar_type, uint16_t maxPacket, uint16_t maxPoint);
+
+  void setCorrectionLoadFlag(bool* flag) { if (m_generalParserGpu != nullptr) m_generalParserGpu->setCorrectionLoadFlag(flag); }
+  void setFiretimeLoadFlag(bool* flag) { if (m_generalParserGpu != nullptr) m_generalParserGpu->setFiretimeLoadFlag(flag); }
+  void setCorrectionLoadSequenceNum(uint32_t* num) { if (m_generalParserGpu != nullptr) m_generalParserGpu->setCorrectionLoadSequenceNum(num); }
+  void setFiretimeLoadSequenceNum(uint32_t* num) { if (m_generalParserGpu != nullptr) m_generalParserGpu->setFiretimeLoadSequenceNum(num); }
  private:
   GeneralParserGpu<T_Point> * m_generalParserGpu;
 
@@ -70,6 +69,5 @@ class UdpParserGpu {
 }
 }
 #include "udp_parser_gpu.cu"
-
 #endif  // UDP_PARSER_GPU_H_
 

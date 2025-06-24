@@ -31,7 +31,7 @@
 #include "general_ptc_parser.h"
 #include "ptc_1_0_parser.h"
 #include "ptc_2_0_parser.h"
-#include "lidar_types.h"
+#include "inner_com.h"
 #include <memory>
 
 namespace hesai
@@ -58,10 +58,12 @@ public:
 
   uint8_t GetHeaderIdentifier0() { return parser_->GetHeaderIdentifier0(); }
   uint8_t GetHeaderIdentifier1() { return parser_->GetHeaderIdentifier1(); }
-  uint16_t GetPtcParserHeaderSize() { return parser_->GetHeaderSize(); }
+  uint32_t GetPtcParserHeaderSize() { return parser_->GetHeaderSize(); }
   uint8_t GetHeaderReturnCode() { return parser_->GetHeaderReturnCode(); }
   uint8_t GetHeaderCmd() { return parser_->GetHeaderCmd(); }
   uint32_t GetHeaderPayloadLen() { return parser_->GetHeaderPayloadLen(); }
+
+  bool SplitFileFrames(const u8Array_t &file, uint8_t u8Cmd, std::vector<u8Array_t>& packages);
 
 private:
   GeneralPtcParser* parser_;

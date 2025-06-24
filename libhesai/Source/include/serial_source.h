@@ -33,7 +33,9 @@
 #include <string.h>
 #include "source.h"
 #include "blocking_ring.h"
+#include "inner_com.h"
 #ifdef _MSC_VER
+#define NOMINMAX
 #include <Windows.h>
 #else
 #include <termios.h>
@@ -52,7 +54,6 @@ namespace lidar
 #define    SERIAL_COMMAND_RECV      1
 #define    SERIAL_CLEAR_RECV_BUF    2
 
-typedef std::vector<uint8_t> u8Array_t;
 #ifndef _MSC_VER
 struct termios2 {
   tcflag_t c_iflag;		/* input mode flags */
