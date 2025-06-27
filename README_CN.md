@@ -6,11 +6,11 @@
 
 ### 1.1 雷达型号
 
-| Pandar       | OT    | QT       | XT          | AT       | ET   | JT    |
-|:-------------|:------|:---------|:------------|:---------|:-----|:------|
-| Pandar40P    | OT128 | PandarQT | PandarXT    | AT128E2X | ET25 | JT16  |
-| Pandar64     | -     | QT128C2X | PandarXT-16 | AT128P   | ETX  | JT128 |
-| Pandar128E3X | -     | -        | XT32M2X     | ATX      | -    | -     |
+| Pandar       | OT    | QT       | XT          | AT       | FT    | JT    |
+|:-------------|:------|:---------|:------------|:---------|:------|:------|
+| Pandar40P    | OT128 | PandarQT | PandarXT    | AT128E2X | FT120 | JT16  |
+| Pandar64     | -     | QT128C2X | PandarXT-16 | AT128P   | -     | -     |
+| Pandar128E3X | -     | -        | XT32M2X     | ATX      | -     | -     |
 
 ### 1.2 操作系统
 
@@ -31,6 +31,7 @@ Windows
 
 - 如果使用点云可视化功能，需安装 `PCL`
 - 如果解析 PCAP 文件，需安装 `libpcap`
+- 如果需要使用基于TLS/mTLS的Ptcs通讯（部分雷达支持），需安装 `openssl`
 
 <!-- - 如果解析雷达的点云修正文件，需安装 `libyaml`  // 解析ROS驱动中的config.yaml文件需要 -->
 
@@ -49,7 +50,7 @@ git clone --recurse-submodules https://github.com/HesaiTechnology/HesaiLidar_SDK
 #### 2.2.1 Ubuntu下的编译说明
 ```bash
 # 0. 安装依赖项
-sudo apt update && sudo apt install -y libpcl-dev libpcap-dev libyaml-cpp-dev
+sudo apt update && sudo apt install -y libpcl-dev libpcap-dev libyaml-cpp-dev openssl
 
 # 1. 导航到源目录
 cd HesaiLidar_SDK_2.0
@@ -68,6 +69,9 @@ make -j$(nproc)
 
 #### 2.2.2 Windows下的编译说明
 请参考 **[如何在Windows下编译SDK](docs/compile_on_windows_CN.md)**.
+
+#### 2.2.3 删除对openssl库的依赖（不使用PTCS通信）
+请参考 **[编译宏控制](docs/compile_macro_control_description_CN.md)** 中的操作，将宏 `WITH_PTCS_USE` 配置为失效即可。
 
 ## 3 应用指南
 
@@ -89,7 +93,7 @@ make -j$(nproc)
 ### 3.6 使用GPU加速
 请参考 **[如何使用GPU加速优化性能](docs/use_gpu_acceleration_CN.md)**.
 
-### 3.7 调用SDK API命令接口
+### 3.7 调用SDK API命令接口 （PTC通讯）
 请参考 **[如何调用SDK API命令接口](docs/invoke_sdk_api_command_interface_CN.md)**.
 
 ### 3.8 常见故障处理（WARNING）
@@ -97,6 +101,26 @@ make -j$(nproc)
 
 ### 3.9 丢包统计
 请参考 **[如何进行丢包统计](docs/packet_loss_analysis_CN.md)**.
+
+### 3.10 使用多线程加速解析
+请参考 **[功能参数解释](docs/parameter_introduction_CN.md)** 中的`thread_num`配置，将其配置为 >1 的值
+> 注意： 最大允许线程数为【CPU最大核数 - 2】，如果配置超出，会修改为该数字。多线程会占用更多CPU资源，请妥善配置。
+
+### 3.11 在线解析多台雷达数据
+进入 [multi_test.cc](./test/multi_test.cc) 中
+
+解析参数配置参考 **[如何在线解析激光雷达数据](docs/parsing_lidar_data_online_CN.md)**
+
+> 基本原理为使用多线程的方式启动两个SDK解析数据
+
+### 3.12 PCAP或实时接收中包含多雷达数据，筛选并解析指定雷达数据
+
+请参考 **[功能参数解释](docs/parameter_introduction_CN.md)** 中的 `device_udp_src_port` 和 `device_fault_port` 的说明
+
+通过配置 `device_udp_src_port`(点云报文源端口号) 和`device_ip_address`(点云报文源IP) 开启点云报文筛选功能，只解析该源IP+源端口号的点云报文。
+
+通过配置 `device_fault_port`(故障报文源端口号) 和`device_ip_address`(故障报文源IP) 开启故障报文筛选功能，只解析该源IP+源端口号的故障报文。
+
 
 ## 4 功能参数解释
 请参考 **[功能参数解释](docs/parameter_introduction_CN.md)**.

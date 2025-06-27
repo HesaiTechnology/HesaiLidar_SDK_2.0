@@ -2,20 +2,33 @@
 本文档介绍了如何通过SDK向雷达发送PTC指令，获取雷达的信息或者设置雷达参数
 
 ## 准备
-进入 [ptc_tool.cc](../tool/ptc_tool.cc) 
+进入 [ptc_tool.cc](../tool_ptc/ptc_tool.cc) 
+
+选择需要的通讯指令
+
 ```cpp
-// 网络配置（默认的雷达设置状态下无需更改）
-param.input_param.device_ip_address = "192.168.1.201"; // 雷达IP
-param.input_param.ptc_port = 9347;  // TCP端口（无需更改）
-param.input_param.udp_port = 2368;  // UDP端口
-param.input_param.host_ip_address = "192.168.1.100";  // 本地网口IP
+// #define SET_NET
+// #define SET_DES_IP_AND_PORT
+// #define SET_RETURN_MODE
+// #define SET_SYNC_ANGLE
+// #define SET_STANDBY_MODE
+// #define SET_SPIN_SPEED
+
+#define DEFINE_YOURSELF
 ```
+1. **`SET_NET`** ： 设置雷达配置信息
+2. **`SET_DES_IP_AND_PORT`** ： 设置雷达点云目的信息
+3. **`SET_RETURN_MODE`** ： 设置雷达回波模式
+4. **`SET_SYNC_ANGLE`** ： 设置雷达同步角模式
+5. **`SET_STANDBY_MODE`** ： 设置雷达工作模式
+6. **`SET_SPIN_SPEED`** ： 设置雷达转速信息
+7. **`DEFINE_YOURSELF`** ： 自定义命令
 
 ## 操作
 ### 1 编译
 在HesaiLidar_SDK_2.0文件夹下，启动Terminal终端，执行以下指令。
 ```bash
-cd HesaiLidar_SDK_2.0/tool
+cd HesaiLidar_SDK_2.0/tool_ptc
 mkdir build
 cd build
 cmake ..
@@ -24,13 +37,16 @@ make
 
 ### 2 运行
 成功编译后，在build文件夹下运行生成的ptc_tool可执行文件。
+
+执行时需要添加 `雷达的IP地址` 和 `PTC通讯端口`
+
 ```bash
-./ptc_tool
+./ptc_tool 192.168.1.201 9347
 ```
 
 ## 更多参考
 以下介绍几个常见的示例程序。
-#### 1. 设置雷达目的IP
+#### 1 设置雷达目的IP
 设置目的IP和相关端口号
 ```cpp
 std::string destination_ip = "255.255.255.255";  //可以按需设置为单播、组播、广播
@@ -40,14 +56,9 @@ uint16_t gps_udp_port = 10110;  //设置gps端口
 运行后终端有如下相关打印代表设置参数成功
 ```log
 SetDesIpandPort successed!
-Current destination_ip: 255.255.255.255, Current udp_port: 2368, Current gps_udp_port: 10110
 ```
 
-#### 2. 设置雷达IP
-开启设置雷达IP的功能，将is_set_net设置为1
-```cpp
- int is_set_net = 1;
-```
+#### 2 设置雷达IP
 设置IP、子网掩码、网关和VLAN
 ```cpp
 std::string net_IP = "192.168.1.201";  //设置雷达IP
@@ -59,36 +70,52 @@ uint16_t vlan_ID = 0;  //设置VLAN ID
 运行后终端有如下相关打印代表设置参数成功
 ```log
 SetNet successed!
-Current net_IP: 192.168.1.201, Current net_mask: 255.255.255.0, Current net_getway: 192.168.1.1
-Current vlan_flag: 0, Current vlan_ID: 0
 ```
-**注意：设置雷达IP后运行会终止，需要重新设置网络配置为雷达对应的IP后，修改is_set_net为0，再继续进行其它操作**
+**注意：设置雷达IP后运行会终止，需要重新设置网络配置为雷达对应的IP后，再继续进行其它操作**
 
-#### 3. 获取雷达角度校准文件
-在[ptc_tool.cc](../tool/ptc_tool.cc)中添加如下代码，会在build目录下生成correction文件
+#### 3 获取雷达角度校准文件
+在[ptc_tool.cc](../tool_ptc/ptc_tool.cc)中使用 `DEFINE_YOURSELF`, 添加保存逻辑，会在build目录下生成correction文件
 ```cpp
-u8Array_t correction_data;
-if (sample.lidar_ptr_->ptc_client_->GetCorrectionInfo(correction_data) == 0) {
-    std::cout << "GetCorrectionInfo succeeded!" << std::endl;
-    std::cout << "Correction data size: " << correction_data.size() << " bytes" << std::endl;
+#ifdef DEFINE_YOURSELF
+    u8Array_t dataIn;       
+    u8Array_t dataOut;      
+    uint8_t ptc_cmd = 0x05;
 
-    // 如果你想保存到文件，比如保存为correction
-    FILE* fp = fopen("correction", "wb");
-    if (fp != nullptr) {
-        fwrite(correction_data.data(), 1, correction_data.size(), fp);
-        fclose(fp);
-        std::cout << "Saved correction data to correction" << std::endl;
+    int ret = -1;
+    ret = ptc_client_->QueryCommand(dataIn, dataOut, ptc_cmd);
+    if (ret == 0) {
+        LogInfo("GetCorrectionInfo succeeded!");
+        // 如果你想保存到文件，比如保存为correction.dat
+        FILE* fp = fopen("correction.dat", "wb");
+        if (fp != nullptr) {
+            fwrite(dataOut.data(), 1, dataOut.size(), fp);
+            fclose(fp);
+            LogInfo("Saved correction data to correction");
+        } else {
+            LogInfo("Failed to open file for writing correction data!");
+        }
     } else {
-        std::cout << "Failed to open file for writing correction data!" << std::endl;
+        LogWarning("GetCorrectionInfo failed!");
     }
-} else {
-    std::cout << "GetCorrectionInfo failed!" << std::endl;
-}
+#endif
 ```
-运行后终端有如下相关打印代表设置参数成功
-```log
-Read correction file from lidar success
-GetCorrectionInfo succeeded!
-Correction data size: 526 bytes  // correction文件大小,不同雷达的大小不同
-Saved correction data to correction
+
+#### 4 根据PTC协议添加需要的指令
+在[ptc_tool.cc](../tool_ptc/ptc_tool.cc)中使用 `DEFINE_YOURSELF`
+
+```cpp
+#ifdef DEFINE_YOURSELF
+    u8Array_t dataIn;       // 负载数据，为PTC协议定义的data数据部分，如果为扩展命令也包含扩展命令本身
+    u8Array_t dataOut;      // 响应结果，不包含头部信息，只包含负载数据
+    uint8_t ptc_cmd = 0x05; // PTC命令，如果为扩展命令，则统一为0xFF
+
+    int ret = -1;
+    ret = ptc_client_->QueryCommand(dataIn, dataOut, ptc_cmd);
+    if (ret == 0) {
+        LogInfo("Define yourself success");
+    } else {
+        LogWarning("Define yourself fail, return_code: %d", ptc_client_->ret_code_); // ret_code_如果为正数，则为PTC返回的错误码，如果为负数，则是一些意外的错误，详见代码
+    }
+#endif
+
 ```

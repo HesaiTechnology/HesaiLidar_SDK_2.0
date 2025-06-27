@@ -6,11 +6,11 @@
 
 ### 1.1 Supported lidars
 
-| Pandar       | OT    | QT       | XT          | AT       | ET   | JT    |
-|:-------------|:------|:---------|:------------|:---------|:-----|:------|
-| Pandar40P    | OT128 | PandarQT | PandarXT    | AT128E2X | ET25 | JT16  |
-| Pandar64     | -     | QT128C2X | PandarXT-16 | AT128P   | ETX  | JT128 |
-| Pandar128E3X | -     | -        | XT32M2X     | ATX      | -    | -     |
+| Pandar       | OT    | QT       | XT          | AT       | FT    | JT    |
+|:-------------|:------|:---------|:------------|:---------|:------|:------|
+| Pandar40P    | OT128 | PandarQT | PandarXT    | AT128E2X | FT120 | JT16  |
+| Pandar64     | -     | QT128C2X | PandarXT-16 | AT128P   | -     | -     |
+| Pandar128E3X | -     | -        | XT32M2X     | ATX      | -     | -     |
 
 ### 1.2 Supported OS
 

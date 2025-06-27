@@ -7,33 +7,11 @@
 1. 终端输入`nvidia-smi`命令可以看到当前GPU信息，若未安装可参考：[NVIDIA-DRIVERS](https://www.nvidia.cn/drivers/)
 2. 终端输入`nvcc -V`命令可以看到当前CUDA版本，若未安装可参考：[CUDA-DOWNLOADS](https://developer.nvidia.com/cuda-downloads)
 
-#### SDK配置
-在HesaiLidar_SDK_2.0文件夹下[CMakeLists.txt](../CMakeLists.txt) 文件中，确认用于查找和配置 NVIDIA CUDA 工具包的命令已释放：
-```cpp
-find_package(CUDA)
-```
+#### 1 SDK配置
 
-#### 1 使用CUDA解析实时数据
-```cpp
-  // 进入 test.cu 进行网络配置
-  param.input_param.source_type = DATA_FROM_LIDAR;  // 数据来源是实时数据
-  param.input_param.device_ip_address = "192.168.1.201"; // 雷达IP
-  param.input_param.ptc_port = 9347;  // TCP端口
-  param.input_param.udp_port = 2368;  // UDP端口
-  param.input_param.host_ip_address = ""; // 本地网口IP（可选填）
-  param.input_param.multicast_ip_address = "";  // 组播IP（如有，必填）
-  param.decoder_param.distance_correction_lidar_flag = false;
-  param.decoder_param.socket_buffer_size = 262144000;
-  ```
-#### 2 使用CUDA解析离线数据
-```cpp
-  // 进入 test.cu 进行网络配置
-  param.input_param.source_type = DATA_FROM_PCAP; // 数据来源是PCAP点云数据
-  param.input_param.pcap_path = {"Your pcap file path"}; // PCAP文件路径
-  param.input_param.correction_file_path = {"Your correction file path"}; // 角度修正文件（必填项）
-  param.input_param.firetimes_path = {"Your firetime file path"}; // 发光时刻修正文件（选填项）
-   ```
+请参考 **[编译宏控制](docs/compile_macro_control_description_CN.md)** 中的操作，将宏 `FIND_CUDA` 配置为生效即可。
 
+#### 2 解析配置参考 **[如何在线解析激光雷达数据](docs/parsing_lidar_data_online_CN.md)** 和 **[如何离线解析PCAP文件数据](docs/parsing_pcap_file_data_offline_CN.md)**
 
 ## 操作
 ### 1 编译
@@ -42,21 +20,25 @@ find_package(CUDA)
 cd HesaiLidar_SDK_2.0
 mkdir -p build 
 cd build
-cmake ..
+cmake .. -DFIND_CUDA=true
 make
 ```
 
 ### 2 运行
 成功编译后，在build文件夹下运行生成的sample_gpu可执行文件。
 ```bash
-./sample_gpu
+./sample cuda
 ```
 
 
 ## 更多参考
-如果安装了多个CUDA版本，可以在[CMakeLists.txt](../CMakeLists.txt) 指定CUDA版本路径:
+#### 1 如果安装了多个CUDA版本，可以在[CMakeLists.txt](../CMakeLists.txt) 指定CUDA版本路径:
 
-```cpp
+  ```cpp
    # if install different cuda version, set the cuda path, like cuda-11.4
    # set(CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda-11.4/)
    ```
+
+#### 2 代码中是否开启gpu解析的控制参数
+
+  实际使用 `DriverParam` 中的 `use_gpu` 来控制gpu解析是否开启，在 `test.cc` 的 `main` 函数中，通过赋值 `param.use_gpu` 控制gpu解析是否开启

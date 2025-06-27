@@ -7,19 +7,13 @@
 
 #### 方法1：统计一段时间内的丢包率和时间戳跳变率
 进入 [packet_loss_tool.cc](../tool/packet_loss_tool.cc)
-```cpp
-// 网络配置（默认的雷达设置状态下无需更改）
-param.input_param.device_ip_address = "192.168.1.201";  //雷达IP
-param.input_param.ptc_port = 9347;  // TCP端口（无需更改）
-param.input_param.udp_port = 2368;  // UDP端口
-param.input_param.host_ip_address = "192.168.1.100";  // 本地网口IP
-```
+
+解析配置参考 **[如何在线解析激光雷达数据](docs/parsing_lidar_data_online_CN.md)** 和 **[如何离线解析PCAP文件数据](docs/parsing_pcap_file_data_offline_CN.md)**
 
 可以根据需要修改统计丢包的时间
 ```cpp
 float run_time = 15;  //统计15s
 ```
-
 
 ## 操作
 ### 1 编译
@@ -33,9 +27,9 @@ make
 ```
 
 ### 2 运行
-成功编译后，在build文件夹下运行生成的packet_loss_tool可执行文件。
+成功编译后，在build文件夹下运行生成的packet_loss_tool可执行文件，可添加参数指定运行时间(s)
 ```bash
-./packet_loss_tool
+./packet_loss_tool 15
 ```
 输出示例：
 ```log
