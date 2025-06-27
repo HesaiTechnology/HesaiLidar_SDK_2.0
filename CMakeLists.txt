@@ -8,7 +8,6 @@ set(WITH_PTCS_USE ON CACHE BOOL "Use Ptcs")
 
 if(FIND_CUDA)
     find_package(CUDA )
-endif()
 if(${CUDA_FOUND})
   	project(CommonModules LANGUAGES CXX CUDA)
 	set(CUDA_SOURCE_PROPERTY_FORMAT OBJ)
@@ -20,6 +19,9 @@ if(${CUDA_FOUND})
 else(${CUDA_FOUND})
 	MESSAGE(STATUS "cuda not found!")
 endif(${CUDA_FOUND})
+endif()
+
+
 
 
 
@@ -34,17 +36,21 @@ add_subdirectory(libhesai)
 add_library(hesai_sdk_lib
 	driver/hesai_lidar_sdk.cc
 	)
-target_link_libraries(hesai_sdk_lib
-					lidar_lib)
+target_link_libraries(hesai_sdk_lib PUBLIC 
+					lidar_lib
+					${OTHER_LIB})
 set_target_properties(hesai_sdk_lib 
 	PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
 target_include_directories(hesai_sdk_lib PUBLIC   
+    ${OTHER_INCLUDE_DIRS}
 	driver
 	./
 ) 
+if(FIND_CUDA)
 if(${CUDA_FOUND})
 	target_compile_definitions(hesai_sdk_lib PUBLIC USE_CUDA=1)
 endif(${CUDA_FOUND})
+endif()
 
 
 if(DISENABLE_TEST_CC)

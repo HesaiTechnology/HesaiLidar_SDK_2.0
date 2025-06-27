@@ -16,7 +16,6 @@ endif()
 
 if(FIND_CUDA)
     find_package(CUDA )
-endif()
 if(${CUDA_FOUND})
   project(CommonModules LANGUAGES CXX CUDA)
 	set(CUDA_SOURCE_PROPERTY_FORMAT OBJ)
@@ -30,6 +29,7 @@ if(${CUDA_FOUND})
 else(${CUDA_FOUND})
 	MESSAGE(STATUS "cuda not found!")
 endif(${CUDA_FOUND})
+endif()
 
 
 

@@ -34,6 +34,7 @@ namespace hesai
 {
 namespace lidar
 {
+
 template <typename T_Point>
 class HesaiLidarSdk 
 {
@@ -174,6 +175,7 @@ public:
     }
   }
 
+
   // process thread
   void Run()
   {
@@ -247,14 +249,16 @@ public:
           //waiting for parser thread compute xyzi of points in the same frame
           while(!lidar_ptr_->ComputeXYZIComplete(packet_index)) std::this_thread::sleep_for(std::chrono::microseconds(100));
         }
+        if (lidar_ptr_->frame_.fParam.remake_config.flag) {
+          auto& rq = lidar_ptr_->frame_.fParam.remake_config;
+          lidar_ptr_->frame_.points_num = rq.max_azi_scan * rq.max_elev_scan;
+        }
         if (lidar_ptr_->frame_.points_num == 0) {
           uint32_t points_num = 0;
           for (uint32_t i = 0; i < lidar_ptr_->frame_.packet_num; i++) {
-            if (lidar_ptr_->frame_.fParam.remake_config.flag == false) {
-              if (points_num != i * lidar_ptr_->frame_.per_points_num) {
-                memcpy(lidar_ptr_->frame_.points + points_num, lidar_ptr_->frame_.points + 
-                        i * lidar_ptr_->frame_.per_points_num, lidar_ptr_->frame_.getPointSize() * lidar_ptr_->frame_.valid_points[i]);
-              }
+            if (points_num != i * lidar_ptr_->frame_.per_points_num) {
+              memcpy(lidar_ptr_->frame_.points + points_num, lidar_ptr_->frame_.points + 
+                      i * lidar_ptr_->frame_.per_points_num, lidar_ptr_->frame_.getPointSize() * lidar_ptr_->frame_.valid_points[i]);
             }
             points_num += lidar_ptr_->frame_.valid_points[i];
           }
@@ -262,10 +266,6 @@ public:
         }
         //log info, display frame message
         if (ret == 0 && lidar_ptr_->frame_.points_num > kMinPointsOfOneFrame) {
-          if (lidar_ptr_->frame_.fParam.remake_config.flag) {
-            auto& rq = lidar_ptr_->frame_.fParam.remake_config;
-            lidar_ptr_->frame_.points_num = rq.max_azi_scan * rq.max_elev_scan;
-          }
           //publish point cloud topic
           if(point_cloud_cb_) point_cloud_cb_(lidar_ptr_->frame_);
 
@@ -387,7 +387,6 @@ public:
   void RegRecvCallback(const std::function<void(const LidarDecodedFrame<T_Point>&)>& callback) {
     point_cloud_cb_ = callback;
   }
-
 
   // assign callback fuction
   void RegRecvCallback(const std::function<void(const UdpFrame_t&, double)>& callback) {

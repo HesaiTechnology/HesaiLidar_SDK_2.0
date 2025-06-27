@@ -62,7 +62,7 @@ class UdpParserGpu {
   void setFiretimeLoadFlag(bool* flag) { if (m_generalParserGpu != nullptr) m_generalParserGpu->setFiretimeLoadFlag(flag); }
   void setCorrectionLoadSequenceNum(uint32_t* num) { if (m_generalParserGpu != nullptr) m_generalParserGpu->setCorrectionLoadSequenceNum(num); }
   void setFiretimeLoadSequenceNum(uint32_t* num) { if (m_generalParserGpu != nullptr) m_generalParserGpu->setFiretimeLoadSequenceNum(num); }
- private:
+  private:
   GeneralParserGpu<T_Point> * m_generalParserGpu;
 
 };

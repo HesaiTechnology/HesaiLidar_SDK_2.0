@@ -76,7 +76,19 @@ int Udp4_7ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
           continue;
         }
       }
-      PUT_POINT_IN_POINT_INFO
+      auto &pointData = frame.pointData[j]; 
+      auto &packetData = frame.packetData[i]; 
+      int point_index_rerank = point_index + point_num; 
+      float azi_ = this->points_[j].azimuthCalib / M_PI * HALF_CIRCLE; 
+      float elev_ = this->points_[j].elevationCalib / M_PI * HALF_CIRCLE; 
+      GeneralParserGpu<T_Point>::DoRemake(azi_, elev_, frame.fParam.remake_config, point_index_rerank);
+      if(point_index_rerank >= 0) { 
+        auto& ptinfo = frame.points[point_index_rerank]; 
+        set_x(ptinfo, this->points_[j].x); 
+        set_y(ptinfo, this->points_[j].y); 
+        set_z(ptinfo, this->points_[j].z); 
+        set_ring(ptinfo, pointData.channel_index); 
+        set_intensity(ptinfo, pointData.reflectivity); 
         set_timestamp(ptinfo, double(packetData.t.sensor_timestamp) / kMicrosecondToSecond);
         set_confidence(ptinfo, pointData.data.dcfd.confidence);
 
