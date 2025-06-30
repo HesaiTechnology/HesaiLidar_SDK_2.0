@@ -47,10 +47,10 @@
  
 ## Windows系统配置
 参考 **[如何在Windows下编译SDK](../docs/compile_on_windows_CN.md)** 中的`2 CMake配置`，使用 `CMake GUI` 工具配置。
-1. 在参数列表中找到 WITH_PTCS_USE 选项：
+1. **在参数列表中找到 WITH_PTCS_USE 选项**：
     - ✅ 勾选：启用宏
     - ⬜ 取消勾选：禁用宏
-2. 手动添加宏（可选）：
+2. **手动添加宏（可选）**：
     若未找到该选项，可以在 `Add Entry` 中添加：
     - Key：`WITH_PTCS_USE`
     - Type：`BOOL`

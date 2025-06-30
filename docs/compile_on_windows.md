@@ -31,11 +31,13 @@
    git --version
    ```
 
-4. To enable PTCS (PTC over TLS) communication with the lidar, install **[OpenSSL 1.1.1](https://slproweb.com/products/Win32OpenSSL.html)**.
+4. To enable PTCS (PTC over TLS/mTLS) communication with the lidar, install **[OpenSSL 1.1.1](https://slproweb.com/products/Win32OpenSSL.html)**. (Optional)
 
-5. To visualize point cloud data, install **[PCL 1.12.1](https://github.com/PointCloudLibrary/pcl/releases/tag/pcl-1.12.1)**.
+   > If you do not use PTCS, please refer to **[Compile Macro Control](../docs/compile_macro_control_description.md)** for the operation to disable the macro `WITH_PTCS_USE`.
+
+5. To visualize point cloud data, install **[PCL 1.12.1](https://github.com/PointCloudLibrary/pcl/releases/tag/pcl-1.12.1)**. (Optional)
    
-   Download the AllInOne executable.
+   > Download the AllInOne executable.
 
 
 ## 2 CMake Configuration
@@ -53,7 +55,7 @@
 
 3. Click **Configure** > Select **Visual Studio 17 2022** as the generator > **Finish**.
 
-4. To enable PTCS (PTC over TLS) communication with the lidar, configure `OPENSSL_ROOT_DIR`.
+4. To enable PTCS (PTC over TLS) communication with the lidar, configure `OPENSSL_ROOT_DIR`. (Optional)
 
    1. Check the **Advanced** checkbox on the upper right of the main CMake GUI window.
    2. Scroll down the list of advanced variables to find `OPENSSL_ROOT_DIR`.
@@ -77,36 +79,26 @@
    - **Solution Configuration:** Debug
    - **Solution Platform:** x64
 
-<!-- TODO: whether to remove "Solution Configuration" -->
-
-2. Define `NOMINMAX` for the Sample Project.
-
-   Open `HesaiLidar_SDK_2.0/CMakeLists.txt` and add this line:
-
-   ```cmake
-   add_compile_definitions(NOMINMAX)
-   ```
-
-3. Build
+2. Build
 
    - **Full solution:** Right-click the **solution** → **Build Solution**.
    - **Single project:** Right-click **sample** → **Build**.
 
-4. Verify Executable
+3. Verify Executable
 
    ```powershell
    cd build/Debug
    .\sample.exe --version
    ```
 
-Output of a successful build:
+   **Output of a successful build**:
 
-```log
-- Output Window: "========== Build: 1 succeeded, 0 failed =========="
-- Executable Location: 
-  Debug: build/Debug/sample.exe
-  Release: build/Release/sample.exe
-```
+   ```log
+   - Output Window: "========== Build: 1 succeeded, 0 failed =========="
+   - Executable Location: 
+   Debug: build/Debug/sample.exe
+   Release: build/Release/sample.exe
+   ```
 
 
 ## 4 Troubleshooting

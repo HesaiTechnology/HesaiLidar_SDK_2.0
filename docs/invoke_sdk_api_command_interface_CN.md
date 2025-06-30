@@ -19,7 +19,7 @@
 1. **`SET_NET`** ： 设置雷达配置信息
 2. **`SET_DES_IP_AND_PORT`** ： 设置雷达点云目的信息
 3. **`SET_RETURN_MODE`** ： 设置雷达回波模式
-4. **`SET_SYNC_ANGLE`** ： 设置雷达同步角模式
+4. **`SET_SYNC_ANGLE`** ： 设置雷达同步角
 5. **`SET_STANDBY_MODE`** ： 设置雷达工作模式
 6. **`SET_SPIN_SPEED`** ： 设置雷达转速信息
 7. **`DEFINE_YOURSELF`** ： 自定义命令
@@ -36,9 +36,9 @@ make
 ```
 
 ### 2 运行
-成功编译后，在build文件夹下运行生成的ptc_tool可执行文件。
+成功编译后，在`build`文件夹下运行生成的`ptc_tool`可执行文件。
 
-执行时需要添加 `雷达的IP地址` 和 `PTC通讯端口`
+执行时需要添加 **雷达的IP地址** 和 **PTC通讯端口**
 
 ```bash
 ./ptc_tool 192.168.1.201 9347
