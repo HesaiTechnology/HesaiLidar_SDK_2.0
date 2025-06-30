@@ -1,21 +1,30 @@
-/*
- * Copyright (C) 2019 Hesai Tech<http://www.hesaitech.com>
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- */
+/************************************************************************************************
+Copyright (C) 2023 Hesai Technology Co., Ltd.
+Copyright (C) 2023 Original Authors
+All rights reserved.
 
+All code in this repository is released under the terms of the following Modified BSD License. 
+Redistribution and use in source and binary forms, with or without modification, are permitted 
+provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this list of conditions and 
+  the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and 
+  the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of its contributors may be used to endorse or 
+  promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED 
+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR 
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR 
+TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************************************************************/
 /*
  * File:   ptc_client.h
  * Author: Felix Zou<zouke@hesaitech.com>
@@ -28,15 +37,11 @@
 
 #include <vector>
 #include "tcp_client.h"
-#include "tcp_ssl_client.h"
-#include "lidar_types.h"
 #include "driver_param.h"
 #include "ptc_parser.h"
-
-#define PKT_SIZE_40P (1262)
-#define PKT_SIZE_AC  (1256)
-#define PKT_SIZE_64  (1194)
-#define PKT_SIZE_20  (1270)
+#ifdef WITH_PTCS_USE
+#include "tcp_ssl_client.h"
+#endif
 
 namespace hesai
 {
@@ -57,7 +62,19 @@ const uint8_t  kPTCSetSyncAngle = 0x18;
 const uint8_t  kPTCSetStandbyMode = 0x1C;
 const uint8_t  kPTCSetSpinSpeed = 0x17;
 const uint32_t kPTCSetTemFpgaRegister = 0x00010031;
+const uint8_t  kPTCGetFpgaRegister = 0x0C;
 const uint8_t  kPTCSetFpgaRegister = 0x0D;
+const uint8_t  kPTCUpgradeLidar = 0x83;
+const uint8_t  kPTCRebootLidar = 0x10;
+const uint32_t kPTCUpgradeLidarSubCmd = 0x0000000D;
+
+typedef struct UpgradeProgress {
+    int total_packets;
+    int current_packet;
+    int status;
+    int error_code;
+} UpgradeProgress;
+typedef void *(*UpgradeProgressFunc_t)(void *);
 
 class PtcClient {
  public:
@@ -69,18 +86,19 @@ class PtcClient {
             , bool bAutoReceive = false
             , PtcMode client_mode = PtcMode::tcp
             , uint8_t ptc_version = 1
-            , const char* cert = nullptr
-            , const char* private_key = nullptr
-            , const char* ca = nullptr
+            , std::string cert = ""
+            , std::string private_key = ""
+            , std::string ca = ""
             , uint32_t u32RecvTimeoutMs = 500
-            , uint32_t u32SendTimeoutMs = 500);
+            , uint32_t u32SendTimeoutMs = 500
+            , float ptc_connect_timeout = -1);
   ~PtcClient();
 
   PtcClient(const PtcClient &orig) = delete;
   PtcClient& operator=(const PtcClient&) = delete;
 
   bool IsValidRsp(u8Array_t &byteStreamIn);
-  bool IsOpen() { return client_->IsOpened(); }
+  bool IsOpen();
 
   void TcpFlushIn();
   void TryOpen();
@@ -96,6 +114,25 @@ class PtcClient {
   int GetFiretimesInfo(u8Array_t &dataOut);
   int GetChannelConfigInfo(u8Array_t &dataOut);
   int SetSocketTimeout(uint32_t u32RecMillisecond, uint32_t u32SendMillisecond);
+
+  int UpgradeLidar(u8Array_t &dataIn);
+  int UpgradeLidar(u8Array_t &dataIn, std::string Cmd_id, int &upgradeProgress);
+  int UpgradeLidar(u8Array_t &dataIn, uint32_t cmd_id, int is_extern, int &upgrade_progress);
+  void RegisterUpgradeProcessFunc(UpgradeProgressFunc_t func);
+  bool RebootLidar();
+  void SetUpgradeProgressFunc(UpgradeProgressFunc_t func);
+
+  /**
+   * @brief upgrade lidar patch
+   * 
+   * @param file_path                   lidar patch file path
+   * @param cmd_id                      ptc command id, like 0x83, 0x0000000D
+   * @param is_extern                   Is extern command, like 0x0000000D is extern command, 0x83 is not extern command
+   * @return int                        0: success, -1: fail
+   * @param upgrade_progress            Upgrade progress
+   * @return int                        0: success, -1: fail
+   */  
+  int UpgradeLidarPatch(const std::string &file_path, uint32_t cmd_id, int is_extern);  
 
   /**
    * @brief Set the lidar net
@@ -151,6 +188,15 @@ class PtcClient {
   bool SetTmbFPGARegister(uint32_t address, uint32_t data);
 
    /**
+   * @brief Get the FPGARegister, it is worth noting that this setting is volatile
+   * 
+   * @param address                    Address of register
+   * @param data                       The data you want to wirte
+   * @return true                      Get successful
+   * @return false                     Get faild
+   */
+  bool GetFPGARegister(uint32_t address, uint32_t &data);
+   /**
    * @brief Set the FPGARegister, it is worth noting that this setting is volatile
    * 
    * @param address                    Address of register
@@ -182,28 +228,32 @@ class PtcClient {
   uint32_t CRCCalc(uint8_t *bytes, int len); 
 
  public:
-  uint32_t m_CRCTable[256];                                              
+  void SetLidarIP(std::string);
+  void SetLidarIP(uint32_t);
+  uint32_t m_CRCTable[256];       
+  bool InitOpen;                       
+  int ret_code_;                
 
  private:
   Mutex _mutex;
   static const std::string kLidarIPAddr;
   static const uint16_t kTcpPort = 9347;
   uint16_t m_u16PtcPort;
-  bool running_;
   PtcMode client_mode_;
   uint8_t ptc_version_;
   std::shared_ptr<ClientBase> client_;
   std::shared_ptr<PtcParser> ptc_parser_;
   std::thread *open_thread_ptr_;
-  bool InitOpen = true;
   std::string lidar_ip_;
   uint16_t tcp_port_;
   bool auto_receive_;
-  const char* cert_;
-  const char* private_key_;
-  const char* ca_;
+  std::string cert_;
+  std::string private_key_;
+  std::string ca_;
   uint32_t recv_timeout_ms_;
   uint32_t send_timeout_ms_;
+  float ptc_connect_timeout_;
+  UpgradeProgressFunc_t upgradeProcessFunc;
 };
 }
 }

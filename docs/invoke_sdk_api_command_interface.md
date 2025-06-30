@@ -1,22 +1,34 @@
-# Send PTC Command 
-This document shows how to send PTC(Pandar TCP Command) to lidar by SDK, to get information from lidar or set parameters of lidar.
-
+# Sending PTC Commands 
+This document describes how to send PTC commands to the LiDAR through the SDK in order to retrieve LiDAR information or configure its parameters.
 
 ## Preparation
-Open [ptc_tool.cc](../tool/ptc_tool.cc) 
+Open the file [ptc_tool.cc](../tool_ptc/ptc_tool.cc).
+
+Select the desired communication command:
+
 ```cpp
-// Network Configuration (no need to change if parameters of lidar is default)
-param.input_param.device_ip_address = "192.168.1.201"; // lidar IP
-param.input_param.ptc_port = 9347;  // TCP protocol port
-param.input_param.udp_port = 2368;  // UDP protocol port
-param.input_param.host_ip_address = "192.168.1.100";  // Host PC IP address
+// #define SET_NET
+// #define SET_DES_IP_AND_PORT
+// #define SET_RETURN_MODE
+// #define SET_SYNC_ANGLE
+// #define SET_STANDBY_MODE
+// #define SET_SPIN_SPEED
+
+#define DEFINE_YOURSELF
 ```
+1. **`SET_NET`** : Set LiDAR network configuration
+2. **`SET_DES_IP_AND_PORT`** : Set destination IP and port for point cloud data
+3. **`SET_RETURN_MODE`** : Set return mode of the LiDAR
+4. **`SET_SYNC_ANGLE`** : Set sync angle 
+5. **`SET_STANDBY_MODE`** : Set operating mode of the LiDAR
+6. **`SET_SPIN_SPEED`** : Set spin speed of the LiDAR
+7. **`DEFINE_YOURSELF`** : Custom command
 
 ## Steps
-### 1 Compile
-Navigate to the HesaiLidar_SDK_2.0 directory, open a Terminal window, and run the following commands.
+### 1 Compilation
+In the `HesaiLidar_SDK_2.0` folder, open a terminal and execute the following commands:
 ```bash
-cd HesaiLidar_SDK_2.0/tool
+cd HesaiLidar_SDK_2.0/tool_ptc
 mkdir build
 cd build
 cmake ..
@@ -24,72 +36,86 @@ make
 ```
 
 ### 2 Run
-Once compiled successfully, go to the build folder, execute the generated ptc_tool executable.
+After successful compilation, run the generated executable file `ptc_tool` inside the `build` directory.
+
+When executing, you need to provide the **LiDAR's IP address** and the **PTC communication port**:
+
 ```bash
-./ptc_tool
+./ptc_tool 192.168.1.201 9347
 ```
 
 ## Reference
-The following are some sample programs.
-#### 1. Set Lidar Destination IP
-This sample is to introduce how to set lidar destination IP and port
+
+#### 1 Setting Destination IP
+Set the destination IP address and related ports:
 ```cpp
-std::string destination_ip = "255.255.255.255";  // it can be set unicast, multicast or boardcast as needed
-uint16_t udp_port = 2368;  // set UDP port
-uint16_t gps_udp_port = 10110;  // set GPS UDP port
+std::string destination_ip = "255.255.255.255";  // Set to unicast, multicast, or broadcast
+uint16_t udp_port = 2368;  // Set UDP port
+uint16_t gps_udp_port = 10110;  // Set GPS UDP port
 ```
-After running in Terminal, the following related prints on the terminal indicate that the parameter settings have been successful.
+The following log indicates that the parameters were successfully set:
 ```log
-SetDesIpandPort successed!
-Current destination_ip: 255.255.255.255, Current udp_port: 2368, Current gps_udp_port: 10110
+SetDesIpandPort succeeded!
 ```
 
-#### 2. Set Lidar IP
-Enable the function of setting Lidar IP by setting is_set_net to 1.
+#### 2 Setting Network Configuration
+Configure IP address, subnet mask, gateway, and VLAN:
 ```cpp
- int is_set_net = 1;
+std::string net_IP = "192.168.1.201";  // Set LiDAR IP
+std::string net_mask = "255.255.255.0";  // Set subnet mask
+std::string net_getway = "192.168.1.1";  // Set gateway
+uint8_t vlan_flag = 0;  // VLAN flag, 0 means not set, 1 means set
+uint16_t vlan_ID = 0;  // Set VLAN ID
 ```
-Set net_IP, net_mask, net_getway and etc.
-```cpp
-std::string net_IP = "192.168.1.201";  // set lidar IP
-std::string net_mask = "255.255.255.0";  // set netmask
-std::string net_getway = "192.168.1.1";  // set net gateway
-uint8_t vlan_flag = 0;  // flag of setting vlan (0: disable, 1: enable)
-uint16_t vlan_ID = 0;  // set vlan ID
-```
-After running in Terminal, the following related prints on the terminal indicate that the parameter settings have been successful.
+The following log indicates that the parameters were successfully set:
 ```log
-SetNet successed!
-Current net_IP: 192.168.1.201, Current net_mask: 255.255.255.0, Current net_getway: 192.168.1.1
-Current vlan_flag: 0, Current vlan_ID: 0
+SetNet succeeded!
 ```
-**Note： The terminal will stop running ./ptc_tool while lidar IP set successful. After resetting the network configuration to the lidar IP, modify is_set_net to 0, and then continue with other setting operations**
+> Note: Running this command may terminate the program. You will need to reconfigure your network with the new LiDAR IP before proceeding with further operations.
 
-#### 3. Get Lidar Angle Correction File
-Add the following codes in [ptc_tool.cc](../tool/ptc_tool.cc), build again and run ./ptc_tool, then it will generate the correction file which get from lidar in build directory.
+#### 3 Getting Correction File
+In [ptc_tool.cc](../tool_ptc/ptc_tool.cc), use the `DEFINE_YOURSELF` macro and add saving logic. This will generate a calibration file named `correction.dat` in the `build` directory:
 ```cpp
-u8Array_t correction_data;
-if (sample.lidar_ptr_->ptc_client_->GetCorrectionInfo(correction_data) == 0) {
-    std::cout << "GetCorrectionInfo succeeded!" << std::endl;
-    std::cout << "Correction data size: " << correction_data.size() << " bytes" << std::endl;
+#ifdef DEFINE_YOURSELF
+    u8Array_t dataIn;       
+    u8Array_t dataOut;      
+    uint8_t ptc_cmd = 0x05;
 
-    // if you wanna save as file, such as saving as correction
-    FILE* fp = fopen("correction", "wb");
-    if (fp != nullptr) {
-        fwrite(correction_data.data(), 1, correction_data.size(), fp);
-        fclose(fp);
-        std::cout << "Saved correction data to correction" << std::endl;
+    int ret = -1;
+    ret = ptc_client_->QueryCommand(dataIn, dataOut, ptc_cmd);
+    if (ret == 0) {
+        LogInfo("GetCorrectionInfo succeeded!");
+        // Save to a file, e.g., correction.dat
+        FILE* fp = fopen("correction.dat", "wb");
+        if (fp != nullptr) {
+            fwrite(dataOut.data(), 1, dataOut.size(), fp);
+            fclose(fp);
+            LogInfo("Saved correction data to correction");
+        } else {
+            LogInfo("Failed to open file for writing correction data!");
+        }
     } else {
-        std::cout << "Failed to open file for writing correction data!" << std::endl;
+        LogWarning("GetCorrectionInfo failed!");
     }
-} else {
-    std::cout << "GetCorrectionInfo failed!" << std::endl;
-}
+#endif
 ```
-After running in Terminal, the following related prints on the terminal indicate that the parameter settings have been successful.
-```log
-Read correction file from lidar success
-GetCorrectionInfo succeeded!
-Correction data size: 526 bytes  // The size of the correction file varies among different lidars
-Saved correction data to correction
+
+#### 4 Adding Custom Commands Based on PTC Protocol
+In [ptc_tool.cc](../tool_ptc/ptc_tool.cc), define and use `DEFINE_YOURSELF`
+
+```cpp
+#ifdef DEFINE_YOURSELF
+    u8Array_t dataIn;       // Payload data, as defined by the PTC protocol. For extended commands, it also includes the extended command itself.
+    u8Array_t dataOut;      // Response data, excluding header information, only contains payload data.
+    uint8_t ptc_cmd = 0x05; // PTC command. For extended commands, it should be set to 0xFF uniformly.
+
+    int ret = -1;
+    ret = ptc_client_->QueryCommand(dataIn, dataOut, ptc_cmd);
+    if (ret == 0) {
+        LogInfo("Define yourself succeeded");
+    } else {
+        LogWarning("Define yourself failed! return_code: %d", ptc_client_->ret_code_); // If ret_code_ is positive, it represents an error code returned by PTC. If negative, it indicates some unexpected error. Refer to the code for details.
+    }
+#endif
+
 ```

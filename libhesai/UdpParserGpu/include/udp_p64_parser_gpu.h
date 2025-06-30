@@ -27,20 +27,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 #ifndef Udp_P64_PARSER_GPU_H_
 #define Udp_P64_PARSER_GPU_H_
-#pragma once
-#include <array>
-#include <atomic>
-#include <chrono>
-#include <functional>
-#include <cstring>
-#include <map>
-#include <memory>
-#include <mutex>
 #include "general_parser_gpu.h"
 
-#ifndef M_PI
-#define M_PI 3.1415926535898
-#endif
 namespace hesai
 {
 namespace lidar
@@ -51,21 +39,12 @@ namespace lidar
 template <typename T_Point>
 class UdpP64ParserGpu: public GeneralParserGpu<T_Point>{
  private:
-  float* channel_azimuths_cu_;
-  float* channel_elevations_cu_;
-  PointDecodeData* point_data_cu_;
-  uint64_t* sensor_timestamp_cu_;
  public:
-  UdpP64ParserGpu();
+  UdpP64ParserGpu(uint16_t maxPacket, uint16_t maxPoint);
   ~UdpP64ParserGpu();
 
   // compute xyzi of points from decoded packet， use gpu device
-  // param packet is the decoded packet; xyzi of points after computed is puted in frame  
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
-  virtual int LoadCorrectionFile(std::string correction_path);
-  virtual int LoadCorrectionString(char *correction_string);
-  bool corrections_loaded_;
-  
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);  
 };
 }
 }

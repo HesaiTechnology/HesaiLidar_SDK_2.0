@@ -35,44 +35,34 @@ namespace hesai
 {
 namespace lidar
 {
+#define P40_BLOCKNUM 10
+#define P40_LASERNUM 40
+#define PKT_SIZE_40P (1262)
+#define PKT_SIZE_AC (1256)
+#define P40_DISTANCEUNIT 0.004
 
-#ifdef _MSC_VER
-#define PACKED
 #pragma pack(push, 1)
-#else
-#define PACKED __attribute__((packed))
-#endif
 
 struct HS_LIDAR_BODY_CHN_UNIT_L40 {
   uint16_t m_u16Distance;
   uint8_t m_u8Reflectivity;
-  uint16_t GetDistance() const { return little_to_native(m_u16Distance); }
-  uint8_t GetReflectivity() const { return m_u8Reflectivity; }
-} PACKED;
+  inline uint16_t GetDistance() const { return little_to_native(m_u16Distance); }
+  inline uint8_t GetReflectivity() const { return m_u8Reflectivity; }
+};
 
 struct HS_LIDAR_BODY_AZIMUTH_L40 {
   // 0xFFEE 2bytes
   uint16_t m_u16Sob;
   uint16_t m_u16Azimuth;
 
-  uint16_t GetAzimuth() const { return little_to_native(m_u16Azimuth); }
-
-  void Print() const {
-    printf("HS_LIDAR_BODY_AZIMUTH_L64: azimuth:%u\n", GetAzimuth());
-  }
-} PACKED;
+  inline uint16_t GetAzimuth() const { return little_to_native(m_u16Azimuth); }
+};
 
 struct HS_LIDAR_TAIL_SEQ_NUM_L40 {
   uint32_t m_u32SeqNum;
 
-  uint32_t GetSeqNum() const { return little_to_native(m_u32SeqNum); }
-  static uint32_t GetSeqNumSize() { return sizeof(m_u32SeqNum); }
-
-  void Print() const {
-    printf("HS_LIDAR_TAIL_SEQ_NUM_L40:\n");
-    printf("seqNum: %u\n", GetSeqNum());
-  }
-} PACKED;
+  inline uint32_t GetSeqNum() const { return little_to_native(m_u32SeqNum); }
+};
 
 struct HS_LIDAR_TAIL_L40 {
   ReservedInfo1 m_reservedInfo1;
@@ -85,47 +75,55 @@ struct HS_LIDAR_TAIL_L40 {
   uint8_t m_u8FactoryInfo;
   uint8_t m_u8UTC[6];
 
-  uint16_t GetMotorSpeed() const { return little_to_native(m_u16MotorSpeed); }
-  uint8_t GetStatusID() const { return m_reservedInfo1.GetID(); }
-  uint16_t GetStatusData() const { return m_reservedInfo1.GetData(); }
-  uint16_t GetErrorCode() const { return little_to_native(m_u16ErrorCode); }
-  uint32_t GetTimestamp() const { return little_to_native(m_u32Timestamp); }
+  inline uint16_t GetMotorSpeed() const { return little_to_native(m_u16MotorSpeed); }
+  inline uint8_t GetStatusID() const { return m_reservedInfo1.GetID(); }
+  inline uint16_t GetStatusData() const { return m_reservedInfo1.GetData(); }
+  inline uint16_t GetErrorCode() const { return little_to_native(m_u16ErrorCode); }
+  inline uint32_t GetTimestamp() const { return little_to_native(m_u32Timestamp); }
 
-  uint8_t GetUTCData(uint8_t index) const {
-    return m_u8UTC[index < sizeof(m_u8UTC) ? index : 0];
-  }
+  uint64_t GetMicroLidarTimeU64(LastUtcTime &last_utc_time) const {
+    if (last_utc_time.last_utc[0] == m_u8UTC[0] 
+        && last_utc_time.last_utc[1] == m_u8UTC[1] 
+        && last_utc_time.last_utc[2] == m_u8UTC[2] 
+        && last_utc_time.last_utc[3] == m_u8UTC[3] 
+        && last_utc_time.last_utc[4] == m_u8UTC[4] 
+        && last_utc_time.last_utc[5] == m_u8UTC[5]) {
+      return last_utc_time.last_time + GetTimestamp();
+    }
+    last_utc_time.last_utc[0] = m_u8UTC[0];
+    last_utc_time.last_utc[1] = m_u8UTC[1];
+    last_utc_time.last_utc[2] = m_u8UTC[2];
+    last_utc_time.last_utc[3] = m_u8UTC[3];
+    last_utc_time.last_utc[4] = m_u8UTC[4];
+    last_utc_time.last_utc[5] = m_u8UTC[5];
 
-  uint64_t GetMicroLidarTimeU64() const {
-      if (m_u8UTC[0] != 0) {
-          struct tm t = {0};
-          t.tm_year = m_u8UTC[0] + 100;
-          if (t.tm_year >= 200) {
-              t.tm_year -= 100;
-          }
-          t.tm_mon = m_u8UTC[1] - 1;
-          t.tm_mday = m_u8UTC[2] + 1;
-          t.tm_hour = m_u8UTC[3];
-          t.tm_min = m_u8UTC[4];
-          t.tm_sec = m_u8UTC[5];
-          t.tm_isdst = 0;
+    struct tm t = {0};
+    t.tm_year = m_u8UTC[0];
+    if (t.tm_year < 70) {
+        t.tm_year += 100;
+    }
+    t.tm_mon = m_u8UTC[1] - 1;
+    t.tm_mday = m_u8UTC[2] + 1;
+    t.tm_hour = m_u8UTC[3];
+    t.tm_min = m_u8UTC[4];
+    t.tm_sec = m_u8UTC[5];
+    t.tm_isdst = 0;
 #ifdef _MSC_VER
-  TIME_ZONE_INFORMATION tzi;
-  GetTimeZoneInformation(&tzi);
-  long int timezone =  tzi.Bias * 60;
+    TIME_ZONE_INFORMATION tzi;
+    GetTimeZoneInformation(&tzi);
+    long int timezone =  tzi.Bias * 60;
 #endif
-          return (mktime(&t) - timezone - 86400) * 1000000 + GetTimestamp();
-      }
-      else {
-          uint32_t utc_time_big = *(uint32_t*)(&m_u8UTC[0] + 2);
-          uint64_t unix_second = big_to_native(utc_time_big);
-          return unix_second * 1000000 + GetTimestamp();
-      }
+    last_utc_time.last_time = (mktime(&t) - timezone - 86400) * 1000000;
+    return last_utc_time.last_time + GetTimestamp();
   }
-
-} PACKED;
-#ifdef _MSC_VER
+};
 #pragma pack(pop)
-#endif
+
+namespace P40 {
+  static constexpr int32_t P40_BLOCK_NS_OFFSET1 = -28580;
+  static constexpr int32_t P40_BLOCK_NS_OFFSET2 = -55560;
+}
+
 }  // namespace lidar
 }  // namespace hesai
 #endif  // INTENSITYRETEST_HSLIDARP64_H

@@ -29,6 +29,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef LIDAR_PROTOCOL_HEADER_H
 #define LIDAR_PROTOCOL_HEADER_H
 #ifdef _MSC_VER
+#define NOMINMAX
 #include <winsock2.h>
 #include <windows.h>
 #endif
@@ -36,74 +37,18 @@ namespace hesai
 {
 namespace lidar
 {
-#ifdef _MSC_VER
-#define PACKED
 #pragma pack(push, 1)
-#else
-#define PACKED __attribute__((packed))
-#endif
 
-union {
-  uint32_t i;
-  uint8_t c[4]; 
-} u = {0x01020304};
-    
-inline bool IsLittleEndian() { 
-  if (u.c[0] == 0x04)
-    return true; 
-  else return false;
-}  
-
-template<typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>  
-T reverseBytes(T value) {  
-    if (sizeof(T) == 1) return value;
-    T reversed = 0;  
-    for (size_t i = 0; i < sizeof(T); ++i) {  
-        reversed = (reversed << 8) | (static_cast<unsigned char>(value) & 0xFF);  
-        value >>= 8;  
-    }  
-    return reversed;  
-}  
-
-template <typename T>
-T little_to_native(T data) {
-  T out = 0;
-  if (IsLittleEndian()) {
-    out = data;
-  } else {
-    out = reverseBytes(data);
-  }
-  return out;
+inline int doubleToInt(double data) {
+  return static_cast<int>(data + 0.0625);
 }
 
-template <typename T>
-T big_to_native(T data) {
-  T out = 0;
-  if (!IsLittleEndian()) {
-    out = data;
-  } else {
-    out = reverseBytes(data);
-  }
-  return out;
+inline int floatToInt(float data) {
+  return static_cast<int>(data + 0.0625f);
 }
 
 struct HS_LIDAR_PRE_HEADER {
   static const uint16_t kDelimiter = 0xffee;
-  // major version
-  static const uint8_t kME = 0x01;  // mechanical lidar
-  static const uint8_t kQT = 0x03;
-  static const uint8_t kST = 0x04;
-  static const uint8_t kFT = 0x07;
-  static const uint8_t kXT = 0x06;
-
-  // minor version
-  static const uint8_t kV1 = 0x01;  // reserved
-  static const uint8_t kV2 = 0x02;  // used by P128 series / POROS
-  static const uint8_t kV3 = 0x03;  // used by P128 series
-  static const uint8_t kV4 = 0x04;  // used by P128 series
-
-  // status info version
-  static const uint8_t kStatusInfoV0 = 0;
 
   uint16_t m_u16Delimiter;
   uint8_t m_u8VersionMajor;
@@ -111,60 +56,48 @@ struct HS_LIDAR_PRE_HEADER {
   uint8_t m_u8StatusInfoVersion;
   uint8_t m_u8Reserved1;
 
-  bool IsValidDelimiter() const {
+  inline bool IsValidDelimiter() const {
     return little_to_native(m_u16Delimiter) == kDelimiter;
   }
-  uint16_t GetDelimiter() const { return little_to_native(m_u16Delimiter); }
-  uint8_t GetVersionMajor() const { return m_u8VersionMajor; }
-  uint8_t GetVersionMinor() const { return m_u8VersionMinor; }
-  uint8_t GetStatusInfoVersion() const { return m_u8StatusInfoVersion; }
-
-  void Init(uint8_t u8VerMajor, uint8_t u8VerMinor, 
-            uint8_t u8StatusInfoVer = kStatusInfoV0) {
-    m_u16Delimiter = 0xffee;
-    m_u8VersionMajor = u8VerMajor;
-    m_u8VersionMinor = u8VerMinor;
-    m_u8StatusInfoVersion = u8StatusInfoVer;
-  }
-
-  void Print() const {
-    printf("HS_LIDAR_PRE_HEADER:\n");
-    printf("Delimiter:%02x, valid:%d, Ver Major: %02x, minor: %02x, "
-           "StatusInfoVer:%02x\n",
-           GetDelimiter(), IsValidDelimiter(), GetVersionMajor(),
-           GetVersionMinor(), GetStatusInfoVersion());
-  }
-} PACKED;
+  inline uint16_t GetDelimiter() const { return little_to_native(m_u16Delimiter); }
+  inline uint8_t GetVersionMajor() const { return m_u8VersionMajor; }
+  inline uint8_t GetVersionMinor() const { return m_u8VersionMinor; }
+  inline uint8_t GetStatusInfoVersion() const { return m_u8StatusInfoVersion; }
+};
 
 struct ReservedInfo1 {
   uint16_t m_u16Sts;
   uint8_t m_u8ID;
 
-  uint8_t GetID() const { return m_u8ID; }
-  uint16_t GetData() const { return little_to_native(m_u16Sts); }
-} PACKED;
+  inline uint8_t GetID() const { return m_u8ID; }
+  inline uint16_t GetData() const { return little_to_native(m_u16Sts); }
+};
 
 struct ReservedInfo2 {
   uint16_t m_u16Sts;
   uint8_t m_u8ID;
-  uint8_t GetID() const { return m_u8ID; }
-  uint16_t GetData() const { return little_to_native(m_u16Sts); }
-
-  void Print() const {
-    printf("lowerBoard ID:%u, STS:0x%02x\n", m_u8ID, m_u16Sts);
-  }
-} PACKED;
+  inline uint8_t GetID() const { return m_u8ID; }
+  inline uint16_t GetData() const { return little_to_native(m_u16Sts); }
+};
 
 struct ReservedInfo3 {
   uint16_t m_u16Sts;
   uint8_t m_u8ID;
-  uint8_t GetID() const { return m_u8ID; }
-  uint16_t GetData() const { return little_to_native(m_u16Sts); }
-} PACKED;
+  inline uint8_t GetID() const { return m_u8ID; }
+  inline uint16_t GetData() const { return little_to_native(m_u16Sts); }
+};
 
-#ifdef _MSC_VER
+inline bool hasSeqNum(uint8_t status) { return status & 1; }
+inline bool hasImu(uint8_t status) { return status & 2; }
+inline bool hasFunctionSafety(uint8_t status) { return status & 4; }
+inline bool hasSignature(uint8_t status) { return status & 8; }
+inline bool hasConfidence(uint8_t status) { return status & 0x10; }
+inline bool hasWeightFactor(uint8_t status) { return status & 0x20; }
+inline bool hasEnvLight(uint8_t status) { return status & 0x40; }
+inline bool hasSlope(uint8_t status) { return status & 0x20; }
+inline bool hasSelfDefine(uint8_t status) { return status & 0x40; }
+
 #pragma pack(pop)
-#endif
 }  // namespace lidar
 }  // namespace hesai
 #endif

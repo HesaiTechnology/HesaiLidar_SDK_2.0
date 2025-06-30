@@ -31,11 +31,13 @@
    git --version
    ```
 
-4. 为了使能PTCS (PTC over TLS) 和雷达通讯，需要安装 **[OpenSSL 1.1.1](https://slproweb.com/products/Win32OpenSSL.html)**。
+4. 为了使能PTCS (PTC over TLS/mTLS) 和雷达通讯，需要安装 **[OpenSSL 1.1.1](https://slproweb.com/products/Win32OpenSSL.html)**。 (选配)
 
-5. 为了可视化点云数据，需要安装 **[PCL 1.12.1](https://github.com/PointCloudLibrary/pcl/releases/tag/pcl-1.12.1)**。
+   > 如果不使用PTCS，请参考 **[编译宏的启用与禁用控制](../docs/compile_macro_control_description_CN.md)** 中的操作，将宏 `WITH_PTCS_USE` 配置为失效即可。
 
-   下载AllInOne可执行程序。
+5. 为了可视化点云数据，需要安装 **[PCL 1.12.1](https://github.com/PointCloudLibrary/pcl/releases/tag/pcl-1.12.1)**。 (选配)
+
+   > 下载AllInOne可执行程序。
 
 
 ## 2 CMake配置
@@ -54,7 +56,7 @@
 
 3. 点击 **Configure** > 选择 **Visual Studio 17 2022** 作为指定生成器 > **Finish**.
 
-4. 为了使能PTCS (PTC over TLS) 和雷达通讯，需要配置 `OPENSSL_ROOT_DIR`
+4. 为了使能PTCS (PTC over TLS) 和雷达通讯，需要配置 `OPENSSL_ROOT_DIR` (选配)
 
    1. 在主CMake图形用户界面窗口的右上角勾选 **Advanced** 复选框。
    2. 向下滚动高级变量列表以找到 `OPENSSL_ROOT_DIR`
@@ -77,33 +79,26 @@
    - **Solution Configuration:** Debug
    - **Solution Platform:** x64
 
-2.  为示例项目定义 `NOMINMAX` 设置:
-   
-   打开 `HesaiLidar_SDK_2.0/CMakeLists.txt` 然后添加这行代码：
-   
-   ```cmake
-   add_compile_definitions(NOMINMAX)
-   ```
-
-3. 构建解决方案:
+2. 构建解决方案:
 
    - **完整解决方案:** 右键点击 **solution** → **Build Solution**.
    - **单个项目:** 右键点击 **sample** → **Build**.
 
-4. 验证可执行性：
+3. 验证可执行性：
 
-```powershell
-cd build/Debug
-.\sample.exe --version
-```
+   ```powershell
+   cd build/Debug
+   .\sample.exe --version
+   ```
 
-**构建成功指示**:
-```log
-- Output Window: "========== Build: 1 succeeded, 0 failed =========="
-- Executable Location: 
-  Debug: build/Debug/sample.exe
-  Release: build/Release/sample.exe
-```
+   **构建成功指示**:
+
+   ```log
+   - Output Window: "========== Build: 1 succeeded, 0 failed =========="
+   - Executable Location: 
+   Debug: build/Debug/sample.exe
+   Release: build/Release/sample.exe
+   ```
 
 ## 4 故障排查
 

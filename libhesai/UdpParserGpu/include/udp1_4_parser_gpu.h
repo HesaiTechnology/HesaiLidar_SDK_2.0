@@ -27,21 +27,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 #ifndef Udp1_4_PARSER_GPU_H_
 #define Udp1_4_PARSER_GPU_H_
-#pragma once
-#include <array>
-#include <atomic>
-#include <chrono>
-#include <functional>
-#include <cstring>
-#include <map>
-#include <memory>
-#include <mutex>
-
 #include "general_parser_gpu.h"
-
-#ifndef M_PI
-#define M_PI 3.1415926535898
-#endif
+#include "udp_protocol_v1_4.h"
 
 namespace hesai
 {
@@ -53,20 +40,17 @@ namespace lidar
 template <typename T_Point>
 class Udp1_4ParserGpu: public GeneralParserGpu<T_Point>{
  private:
-  float* channel_azimuths_cu_;
-  float* channel_elevations_cu_;
-  PointDecodeData* point_data_cu_;
-  uint64_t* sensor_timestamp_cu_;
+  pandarN::FiretimesPandarN* firetimes_cu_;
  public:
-  Udp1_4ParserGpu();
+  Udp1_4ParserGpu(std::string lidar_type, uint16_t maxPacket, uint16_t maxPoint);
   ~Udp1_4ParserGpu();
 
   // compute xyzi of points from decoded packet， use gpu device
-  // param packet is the decoded packet; xyzi of points after computed is puted in frame  
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
-  virtual int LoadCorrectionFile(std::string correction_path);
-  virtual int LoadCorrectionString(char *correction_string);
-  bool corrections_loaded_;
+  virtual void LoadFiretimesStruct(void *);
+  virtual void updateFiretimeFile();
+  const pandarN::FiretimesPandarN* pandar_firetimes_ptr_;
+  std::string lidar_type_;
 };
 }
 }

@@ -36,53 +36,33 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define UDP1_4_PARSER_H_
 
 #include "general_parser.h"
+#include "udp_protocol_v1_4.h"
 namespace hesai
 {
 namespace lidar
 {
-#define STR_PANDARN "PanadarN"
-#define STR_OT128   "OT128"
-#define STR_JT128_256 "JT128_256"
 
-struct FiretimeSectionValues {
-    struct SectionValue {
-        std::array<int, 2> firetime;
-    };
-    std::array<SectionValue, 8> section_values;
-};
 // class Udp1_4Parser
-// parsers packets and computes points for Pandar128
-// you can parser the upd or pcap packets using the DocodePacket fuction
-// you can compute xyzi of points using the ComputeXYZI fuction, which uses cpu to compute
+// parsers packets and computes points for PandarN E3X、OT128
 template<typename T_Point>
 class Udp1_4Parser : public GeneralParser<T_Point> {
  public:
   Udp1_4Parser(std::string);
   virtual ~Udp1_4Parser();
 
-  // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
-  virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket);
+  virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket, const int packet_index = -1);    
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32_t packet_index);
 
-  // compute xyzi of points from decoded packet
-  // param packet is the decoded packet; xyzi of points after computed is puted in frame      
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
-
-  // get lidar firetime correction file from local file,and pass to udp parser 
-  virtual void LoadFiretimesFile(std::string firetimes_path);
-  virtual int LoadCorrectionString(char *correction_string);
-
-  using GeneralParser<T_Point>::GetFiretimesCorrection;
+  virtual void LoadFiretimesFile(const std::string& firetimes_path);
+  virtual int LoadCorrectionString(const char *correction_string, int len);
   // compute lidar firetime correciton
   double GetFiretimesCorrection(int laserId, double speed, uint8_t optMode, uint8_t angleState, float dist);
-  
-  // determine whether frame splitting is needed
-  bool IsNeedFrameSplit(uint16_t azimuth); 
-
+  // get the pointer to the struct of the parsed correction file or firetimes file
+  virtual void* getStruct(const int type);
+  virtual void setFrameRightMemorySpace(LidarDecodedFrame<T_Point> &frame);
  private:
-  static const int kLaserNum = 128;
-  double section_distance;
-  std::string lidar_type_;
-  std::array<FiretimeSectionValues, kLaserNum> firetime_section_values;
+  int GetFiretimes(int laserId, uint8_t optMode, uint8_t angleState, float dist);
+  pandarN::FiretimesPandarN firetimes;
 };
 }  // namespace lidar
 }  // namespace hesai

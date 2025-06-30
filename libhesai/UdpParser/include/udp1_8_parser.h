@@ -36,35 +36,30 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define UDP1_8_PARSER_H_
 
 #include "general_parser.h"
+#include "udp_protocol_v1_8.h"
 namespace hesai
 {
 namespace lidar
 {
-// you can parser the upd or pcap packets using the DocodePacket fuction
-// you can compute xyzi of points using the ComputeXYZI fuction, which uses cpu to compute
+// class Udp1_8Parser
+// parsers packets and computes points for JT16
 template<typename T_Point>
 class Udp1_8Parser : public GeneralParser<T_Point> {
  public:
   Udp1_8Parser();
   virtual ~Udp1_8Parser();
 
-  // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
-  virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket);
+  virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket, const int packet_index = -1);    
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32_t packet_index);
 
-  // compute xyzi of points from decoded packet
-  // param packet is the decoded packet; xyzi of points after computed is puted in frame      
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
-
-  // determine whether frame splitting is needed
-  bool IsNeedFrameSplit(uint16_t azimuth); 
-
-  virtual void LoadCorrectionFile(std::string lidar_correction_file);
-  int LoadCorrectionCsvData(char *correction_string);
-  virtual int LoadCorrectionString(char *correction_string);
-
+  virtual void LoadFiretimesFile(const std::string& firetimes_path);
+  virtual void LoadCorrectionFile(const std::string& correction_path);
+  virtual int LoadCorrectionString(const char *correction_string, int len);
+  int LoadCorrectionCsvData(char *correction_string, int len);
+  // get the pointer to the struct of the parsed correction file or firetimes file
+  virtual void* getStruct(const int type);
+  virtual void setFrameRightMemorySpace(LidarDecodedFrame<T_Point> &frame);
  private:
-  static const int kLaserNum = 16;
-  // double section_distance;
 };
 }  // namespace lidar
 }  // namespace hesai

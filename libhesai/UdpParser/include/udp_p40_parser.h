@@ -36,31 +36,22 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define UDP_P40_PARSER_H_
 
 #include "general_parser.h"
-#define BLOCKNUM 10
-#define LASERNUM 40
+#include "udp_protocol_p40.h"
 namespace hesai
 {
 namespace lidar
 {
 // class UdpP40Parser
 // parsers packets and computes points for Pandar40
-// you can parser the upd or pcap packets using the DocodePacket fuction
-// you can compute xyzi of points using the ComputeXYZI fuction, which uses cpu to compute
 template <typename T_Point>
 class UdpP40Parser : public GeneralParser<T_Point> {
  public:
   UdpP40Parser();
   virtual ~UdpP40Parser();
   
-  // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
-  virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket);
-
-  // compute xyzi of points from decoded packet
-  // param packet is the decoded packet; xyzi of points after computed is puted in frame      
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
-
-  // determine whether frame splitting is needed
-  bool IsNeedFrameSplit(uint16_t azimuth);
+  virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket, const int packet_index = -1);    
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32_t packet_index);
+  virtual void setFrameRightMemorySpace(LidarDecodedFrame<T_Point> &frame);
  private:
 };
 }  // namespace lidar
