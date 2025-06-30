@@ -105,21 +105,6 @@ struct LidarPointXYZICWERT
     double timestamp;  
 };
 
-struct LidarPointAT4_14
-{
-    float x; 
-    float y;             
-    float z;             
-    uint8_t intensity;  
-    uint8_t confidence;
-    uint8_t peek;
-    uint16_t width;
-    uint8_t ambient;
-    uint32_t flag;
-    uint16_t ring;
-    double timestamp;
-};
-
 struct LidarPointRTHI
 {
     int theta; 

@@ -121,6 +121,22 @@ make -j$(nproc)
 
 通过配置 `device_fault_port`(故障报文源端口号) 和`device_ip_address`(故障报文源IP) 开启故障报文筛选功能，只解析该源IP+源端口号的故障报文。
 
+### 3.13 Pandar系列雷达，OT128，XT系列雷达，QT系列雷达获取每个点的具体时间戳(点云包时间戳 + 发光通道时间纠正)
+
+请使用LidarPointXYZICRTT结构体声明HesaiLidarSdk，其中uint64_t timeSecond为秒时间部分，uint32_t timeNanosecond为纳秒时间部分。例如 `HesaiLidarSdk<LidarPointXYZICRTT> sample;`
+
+### 3.14 初始化过程中，设置SDK接收点云的超时时间，设置PTC的超时时间
+
+1. 设置SDK接收点云的超时时间
+
+    请参考 **[功能参数解释](docs/parameter_introduction_CN.md)** 中的 `recv_point_cloud_timeout`，该参数默认为 `-1`，代表在初始化过程中，如果没有收到有效点云则会一直阻塞等待。当该参数配置为大于等于0时，则SDK会等待一段时间后初始化失败并退出。
+
+2. 设置PTC超时时间
+    
+    请参考 **[功能参数解释](docs/parameter_introduction_CN.md)** 中的 `ptc_connect_timeout`, 该参数默认为 `-1`，代表在初始化过程中，如果是 `DATA_FROM_LIDAR` 模式，则会一直阻塞等待PTC连接。当该参数大于等于0时，则SDK会等待一段时间后报错连接超时，并继续初始化。
+
+### 3.15 根据水平角和垂直角进行点云重排
+请参考 **[点云重排功能](docs/point_cloud_rearrangement_function_CN.md)**
 
 ## 4 功能参数解释
 请参考 **[功能参数解释](docs/parameter_introduction_CN.md)**.
