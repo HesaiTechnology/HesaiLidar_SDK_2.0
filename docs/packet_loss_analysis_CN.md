@@ -8,7 +8,7 @@
 #### 方法1：统计一段时间内的丢包率和时间戳跳变率
 进入 [packet_loss_tool.cc](../tool/packet_loss_tool.cc)
 
-解析配置参考 **[如何在线解析激光雷达数据](docs/parsing_lidar_data_online_CN.md)** 和 **[如何离线解析PCAP文件数据](docs/parsing_pcap_file_data_offline_CN.md)**
+解析配置参考 **[如何在线解析激光雷达数据](../docs/parsing_lidar_data_online_CN.md)** 和 **[如何离线解析PCAP文件数据](../docs/parsing_pcap_file_data_offline_CN.md)**
 
 可以根据需要修改代码中的统计丢包的时间
 ```cpp

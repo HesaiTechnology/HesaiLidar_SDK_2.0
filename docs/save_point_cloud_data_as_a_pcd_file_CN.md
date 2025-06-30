@@ -53,7 +53,7 @@ HesaiLidar_SDK_2.0提供了将PCAP格式文件转换为PCD格式点云的示例�
    6. **`ENABLE_ENV_LIGHT`** ： 环境光信息
 
 
-#### 3 解析配置参考 **[如何在线解析激光雷达数据](docs/parsing_lidar_data_online_CN.md)** 和 **[如何离线解析PCAP文件数据](docs/parsing_pcap_file_data_offline_CN.md)**
+#### 3 解析配置参考 **[如何在线解析激光雷达数据](../docs/parsing_lidar_data_online_CN.md)** 和 **[如何离线解析PCAP文件数据](../docs/parsing_pcap_file_data_offline_CN.md)**
 
 以PCAP解析为例
 
