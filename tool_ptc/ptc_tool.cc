@@ -1,11 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
 #include <fstream>
 #include <vector>
 #include "hs_com.h"
@@ -39,11 +34,7 @@ int main(int argc, char **argv) {
     // must add sleep to wait for the client to be ready                                          
     LogInfo("Waiting for the client to be ready");                                          
     while(ptc_client_->IsOpen() == false) {
-#ifdef _WIN32
-    Sleep(100);
-#else
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-#endif
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     LogInfo("Client is ready");   
 

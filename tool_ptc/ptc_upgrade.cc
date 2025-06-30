@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-#include <unistd.h>
 #include "hs_com.h"
 #include "logger.h"
 #include "ptc_client.h"
