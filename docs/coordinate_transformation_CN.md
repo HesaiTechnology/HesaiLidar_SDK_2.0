@@ -24,7 +24,7 @@ typedef struct TransformParam
 ## 相关配置
 该转换的默认值设置为0
 
-- `flag` 是否开启坐标转换
+- `use_flag` 是否开启坐标转换
 
 - `x,y,z` 的单位是 `meter`
 

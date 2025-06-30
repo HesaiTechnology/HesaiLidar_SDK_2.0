@@ -1,7 +1,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <unistd.h>
+#endif
 #include <fstream>
 #include <vector>
 #include "hs_com.h"
@@ -35,7 +39,11 @@ int main(int argc, char **argv) {
     // must add sleep to wait for the client to be ready                                          
     LogInfo("Waiting for the client to be ready");                                          
     while(ptc_client_->IsOpen() == false) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+#ifdef _WIN32
+    Sleep(100);
+#else
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+#endif
     }
     LogInfo("Client is ready");   
 
@@ -46,10 +54,10 @@ int main(int argc, char **argv) {
     uint8_t vlan_flag = 0;
     uint16_t vlan_ID = 0;
     if(ptc_client_->SetNet(net_IP, net_mask, net_getway, vlan_flag, vlan_ID) == false) {
-        LogError("SetNet faild! Please make sure your input is valid, return_code: %d", ptc_client_->ret_code_);
+        LogError("SetNet failed! Please make sure your input is valid, return_code: %d", ptc_client_->ret_code_);
     }
     else {
-        LogInfo("SetNet success");
+        LogInfo("SetNet succeeded");
     }
 #endif
 
@@ -58,20 +66,20 @@ int main(int argc, char **argv) {
     uint16_t udp_port = 2368;
     uint16_t gps_udp_port = 10110;
     if(ptc_client_->SetDesIpandPort(destination_ip, udp_port, gps_udp_port) == false) {
-        LogError("SetDesIpandPort faild! Please make sure your input is valid, return_code: %d", ptc_client_->ret_code_);
+        LogError("SetDesIpandPort failed! Please make sure your input is valid, return_code: %d", ptc_client_->ret_code_);
     }
     else {
-        LogInfo("SetDesIpandPort success");
+        LogInfo("SetDesIpandPort succeeded");
     }
 #endif
 
 #ifdef SET_RETURN_MODE
     uint8_t return_mode = 1;
     if(ptc_client_->SetReturnMode(return_mode) == false) {
-        LogError("SetReturnMode faild! Please make sure your input is valid, return_code: %d", ptc_client_->ret_code_);
+        LogError("SetReturnMode failed! Please make sure your input is valid, return_code: %d", ptc_client_->ret_code_);
     }
     else {
-        LogInfo("SetReturnMode success");
+        LogInfo("SetReturnMode succeeded");
     }
 #endif
 
@@ -79,30 +87,30 @@ int main(int argc, char **argv) {
     uint8_t enable_sync_angle = 1;
     uint16_t sync_angle = 20;
     if(ptc_client_->SetSyncAngle(enable_sync_angle, sync_angle) == false) {
-        LogError("SetSyncAngle faild! Please make sure your input is valid, return_code: %d", ptc_client_->ret_code_);
+        LogError("SetSyncAngle failed! Please make sure your input is valid, return_code: %d", ptc_client_->ret_code_);
     }
     else {
-        LogInfo("SetSyncAngle success");
+        LogInfo("SetSyncAngle succeeded");
     }
 #endif
 
 #ifdef SET_STANDBY_MODE
     uint32_t standby_mode = 0;
     if(ptc_client_->SetStandbyMode(standby_mode) == false) {
-        LogError("SetStandbyMode faild! Please make sure your input is valid, return_code: %d", ptc_client_->ret_code_);
+        LogError("SetStandbyMode failed! Please make sure your input is valid, return_code: %d", ptc_client_->ret_code_);
     }
     else {
-        LogInfo("SetStandbyMode success");
+        LogInfo("SetStandbyMode succeeded");
     }
 #endif
 
 #ifdef SET_SPIN_SPEED
     uint32_t speed = 1200;
     if(ptc_client_->SetSpinSpeed(speed) == false) {
-        LogError("SetSpinSpeed faild! Please make sure your input is valid, return_code: %d", ptc_client_->ret_code_);
+        LogError("SetSpinSpeed failed! Please make sure your input is valid, return_code: %d", ptc_client_->ret_code_);
     }
     else {
-        LogInfo("SetSpinSpeed success");
+        LogInfo("SetSpinSpeed succeeded");
     }
 #endif
 
@@ -114,9 +122,9 @@ int main(int argc, char **argv) {
     int ret = -1;
     ret = ptc_client_->QueryCommand(dataIn, dataOut, ptc_cmd);
     if (ret == 0) {
-        LogInfo("Define yourself success");
+        LogInfo("Define yourself succeeded");
     } else {
-        LogWarning("Define yourself fail");
+        LogWarning("Define yourself failed! return_code: %d", ptc_client_->ret_code_); // if ret_code_ is a positive number, it represents an error code returned by PTC, or if it is a negative number, it indicates some unexpected errors. Please refer to the code for details.
     }
 #endif
 

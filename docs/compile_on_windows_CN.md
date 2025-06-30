@@ -33,11 +33,11 @@
 
 4. 为了使能PTCS (PTC over TLS/mTLS) 和雷达通讯，需要安装 **[OpenSSL 1.1.1](https://slproweb.com/products/Win32OpenSSL.html)**。 (选配)
 
-   > 如果不使用PTCS，请参考 **[编译宏控制](docs/compile_macro_control_description_CN.md)** 中的操作，将宏 `WITH_PTCS_USE` 配置为失效即可。
+   > 如果不使用PTCS，请参考 **[编译宏的启用与禁用控制](../docs/compile_macro_control_description_CN.md)** 中的操作，将宏 `WITH_PTCS_USE` 配置为失效即可。
 
 5. 为了可视化点云数据，需要安装 **[PCL 1.12.1](https://github.com/PointCloudLibrary/pcl/releases/tag/pcl-1.12.1)**。 (选配)
 
-   下载AllInOne可执行程序。
+   > 下载AllInOne可执行程序。
 
 
 ## 2 CMake配置

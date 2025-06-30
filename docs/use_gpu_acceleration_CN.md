@@ -9,9 +9,10 @@
 
 #### 1 SDK配置
 
-请参考 **[编译宏控制](docs/compile_macro_control_description_CN.md)** 中的操作，将宏 `FIND_CUDA` 配置为生效即可。
+请参考 **[编译宏控制](../docs/compile_macro_control_description_CN.md)** 中的操作，将宏 `FIND_CUDA` 配置为生效，运行时添加 `cuda` 参数。
 
-#### 2 解析配置参考 **[如何在线解析激光雷达数据](docs/parsing_lidar_data_online_CN.md)** 和 **[如何离线解析PCAP文件数据](docs/parsing_pcap_file_data_offline_CN.md)**
+#### 2 解析配置
+参考 **[如何在线解析激光雷达数据](../docs/parsing_lidar_data_online_CN.md)** 和 **[如何离线解析PCAP文件数据](../docs/parsing_pcap_file_data_offline_CN.md)**
 
 ## 操作
 ### 1 编译
@@ -25,7 +26,7 @@ make
 ```
 
 ### 2 运行
-成功编译后，在build文件夹下运行生成的sample_gpu可执行文件。
+成功编译后，在build文件夹下运行生成的可执行文件。如需使用GPU解析，请添加 `cuda` 参数：
 ```bash
 ./sample cuda
 ```

@@ -10,7 +10,7 @@
 
 解析配置参考 **[如何在线解析激光雷达数据](docs/parsing_lidar_data_online_CN.md)** 和 **[如何离线解析PCAP文件数据](docs/parsing_pcap_file_data_offline_CN.md)**
 
-可以根据需要修改统计丢包的时间
+可以根据需要修改代码中的统计丢包的时间
 ```cpp
 float run_time = 15;  //统计15s
 ```
@@ -27,7 +27,7 @@ make
 ```
 
 ### 2 运行
-成功编译后，在build文件夹下运行生成的packet_loss_tool可执行文件，可添加参数指定运行时间(s)
+成功编译后，在build文件夹下运行生成的packet_loss_tool可执行文件，可添加参数指定运行时间(s)，若不指定运行时间，则默认为15s
 ```bash
 ./packet_loss_tool 15
 ```

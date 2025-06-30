@@ -55,7 +55,7 @@ uint16_t gps_udp_port = 10110;  //设置gps端口
 ```
 运行后终端有如下相关打印代表设置参数成功
 ```log
-SetDesIpandPort successed!
+SetDesIpandPort succeeded!
 ```
 
 #### 2 设置雷达IP
@@ -69,7 +69,7 @@ uint16_t vlan_ID = 0;  //设置VLAN ID
 ```
 运行后终端有如下相关打印代表设置参数成功
 ```log
-SetNet successed!
+SetNet succeeded!
 ```
 **注意：设置雷达IP后运行会终止，需要重新设置网络配置为雷达对应的IP后，再继续进行其它操作**
 
@@ -112,9 +112,9 @@ SetNet successed!
     int ret = -1;
     ret = ptc_client_->QueryCommand(dataIn, dataOut, ptc_cmd);
     if (ret == 0) {
-        LogInfo("Define yourself success");
+        LogInfo("Define yourself succeeded");
     } else {
-        LogWarning("Define yourself fail, return_code: %d", ptc_client_->ret_code_); // ret_code_如果为正数，则为PTC返回的错误码，如果为负数，则是一些意外的错误，详见代码
+        LogWarning("Define yourself failed! return_code: %d", ptc_client_->ret_code_); // ret_code_如果为正数，则为PTC返回的错误码，如果为负数，则是一些意外的错误，详见代码
     }
 #endif
 
