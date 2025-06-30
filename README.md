@@ -136,7 +136,7 @@ Please use the LidarPointXYZICRTT structure to declare HesaiLidarSdk, where uint
     Please refer to `ptc_connect_timeout` in **[Functional Parameter Reference](docs/parameter_introduction.md)**. This parameter defaults to `-1`, meaning that during initialization, if in `DATA_FROM_LIDAR` mode, it will block and wait for PTC connection indefinitely. When this parameter is >= 0, the SDK will wait for a period of time before reporting a connection timeout error and continuing initialization.
 
 ### 3.15 Point Cloud Rearrangement Based on Horizontal and Vertical Angles
-Please refer to **[Point Cloud Rearrangement Function](docs/point_cloud_rearrangement_function_CN.md)**
+Please refer to **[Point Cloud Rearrangement Function](docs/point_cloud_rearrangement_function.md)**
 
 ## 4 Functional Parameter Reference
 Please refer to **[Functional Parameter Reference](docs/parameter_introduction.md)**.

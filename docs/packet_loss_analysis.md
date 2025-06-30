@@ -15,7 +15,7 @@ You can modify the packet loss statistics time in the code as needed:
 float run_time = 15;  // Statistics for 15s
 ```
 
-## Operation
+## Steps
 ### 1 Compilation
 In the HesaiLidar_SDK_2.0 folder, open a terminal and execute the following commands:
 ```bash
@@ -26,7 +26,7 @@ cmake ..
 make
 ```
 
-### 2 Execution
+### 2 Run
 After successful compilation, run the generated packet_loss_tool executable file in the build folder. You can add parameters to specify the runtime (s). If no runtime is specified, the default is 15s:
 ```bash
 ./packet_loss_tool 15
@@ -85,7 +85,7 @@ And call this callback function:
 ```cpp
 sample.RegRecvCallback(packetLossCallback);
 ```
-Compilation and execution methods refer to Method 1.
+Compilation and execution methods refer to **Method 1**.
 
 Output example:
 ```log

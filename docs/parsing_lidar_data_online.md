@@ -57,7 +57,7 @@
 #endif
 ```
 
-## Operation
+## Steps
 ```bash
 # 1. Build executable sample program (from build folder): After successful compilation, generate executable program
 make -j$(nproc)

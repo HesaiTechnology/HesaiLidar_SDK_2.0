@@ -39,7 +39,7 @@ Using PCAP parsing as an example
 ```
 
 
-## Operation
+## Steps
 ### 1 Compilation
 In the HesaiLidar_SDK_2.0 folder, open a terminal and execute the following commands:
 ```bash
@@ -50,7 +50,7 @@ cmake ..
 make
 ```
 
-### 2 Execution
+### 2 Run
 After successful compilation, run the generated pcl_tool executable file in the build folder. The system will have a visualization window.
 ```bash
 ./pcl_tool

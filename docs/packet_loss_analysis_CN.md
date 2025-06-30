@@ -85,7 +85,7 @@ void packetLossCallback(const uint32_t& total_packets, const uint32_t& lost_pack
 ```cpp
 sample.RegRecvCallback(packetLossCallback);
 ```
-编译和运行方式参考方法1。
+编译和运行方式参考**方法1**。
 
 输出示例:
 ```log

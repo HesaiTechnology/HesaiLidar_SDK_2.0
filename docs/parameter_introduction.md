@@ -1,6 +1,6 @@
 # Functional Parameter Reference
 
-### 1 Decoder Parameters [DecoderParam](../libhesai/driver_param.h)
+### 1 [DecoderParam](../libhesai/driver_param.h)
 
 #### 1.1 Time Synchronization
 1. `pcap_play_synchronization`: Enable real-time playback simulation when parsing PCAP files
@@ -57,7 +57,7 @@
 
 ---
 
-### 2 Input Parameters (InputParam)
+### 2 [InputParam](../libhesai/driver_param.h)
 
 #### 2.1 Connection Basics
 1. `source_type`: Data source selection  
@@ -137,7 +137,7 @@
 
 ---
 
-### 3 Driver Parameters (DriverParam)
+### 3 [DriverParam](../libhesai/driver_param.h)
 
 #### 3.1 Log Configuration
 1. `log_level`: Log detail level  

@@ -14,7 +14,7 @@ Please refer to the operations in **[Compile Macro Control](../docs/compile_macr
 #### 2 Parsing Configuration
 Refer to **[How to Parse Lidar Data Online](../docs/parsing_lidar_data_online.md)** and **[How to Parse PCAP File Data Offline](../docs/parsing_pcap_file_data_offline.md)**
 
-## Operation
+## Steps
 ### 1 Compilation
 In the HesaiLidar_SDK_2.0 folder, open a terminal and execute the following commands:
 ```bash
@@ -25,7 +25,7 @@ cmake .. -DFIND_CUDA=true
 make
 ```
 
-### 2 Execution
+### 2 Run
 After successful compilation, run the generated executable file in the build folder. To use GPU parsing, please add the `cuda` parameter:
 ```bash
 ./sample cuda

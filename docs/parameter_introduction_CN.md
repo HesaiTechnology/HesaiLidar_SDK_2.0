@@ -57,7 +57,7 @@
 
 ---
 
-### 2 输入参数 (InputParam)
+### 2 输入参数 [InputParam](../libhesai/driver_param.h)
 
 #### 2.1 连接基础
 1. `source_type`: 数据源选择  
@@ -136,7 +136,7 @@
 
 ---
 
-### 3 驱动参数 (DriverParam)
+### 3 驱动参数 [DriverParam](../libhesai/driver_param.h)
 
 #### 3.1 日志配置
 1. `log_level`: 日志详细级别  
