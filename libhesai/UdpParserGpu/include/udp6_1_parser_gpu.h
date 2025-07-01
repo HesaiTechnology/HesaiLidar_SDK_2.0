@@ -27,47 +27,27 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 #ifndef Udp6_1_PARSER_GPU_H_
 #define Udp6_1_PARSER_GPU_H_
-#pragma once
-#include <array>
-#include <atomic>
-#include <chrono>
-#include <functional>
-#include <cstring>
-#include <map>
-#include <memory>
-#include <mutex>
 #include "general_parser_gpu.h"
-#ifndef M_PI
-#define M_PI 3.1415926535898
-#endif
+#include "udp_protocol_v6_1.h"
 namespace hesai
 {
 namespace lidar
 {
 // class Udp6_1ParserGpu
 // computes points for PandarXT PandarXT6 PandarXT32 PandarXTM
-// you can compute xyzi of points using the ComputeXYZI fuction, which uses gpu to compute
 template <typename T_Point>
-class Udp6_1ParserGpu: public GeneralParserGpu<T_Point>{
+class Udp6_1ParserGpu: public GeneralParserGpu<T_Point> {
  private:
-  float* channel_azimuths_cu_;
-  float* channel_elevations_cu_;
-  PointDecodeData* point_data_cu_;
-  uint64_t* sensor_timestamp_cu_;
-  float* spot_correction_angle_cu_;
  public:
-  Udp6_1ParserGpu();
+  Udp6_1ParserGpu(std::string lidar_type, uint16_t maxPacket, uint16_t maxPoint);
   ~Udp6_1ParserGpu();
 
   // compute xyzi of points from decoded packet， use gpu device
   // param packet is the decoded packet; xyzi of points after computed is puted in frame  
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
-  virtual int LoadCorrectionFile(std::string correction_path);
-  virtual int LoadCorrectionString(char *correction_string);
-  bool corrections_loaded_;
+  std::string lidar_type_;
 };
 }
 }
-
 #include "udp6_1_parser_gpu.cu"
 #endif  // Udp6_1_PARSER_GPU_H_

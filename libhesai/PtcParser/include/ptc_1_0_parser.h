@@ -34,12 +34,8 @@
 #include <iostream>
 #include <fstream>
 #include "general_ptc_parser.h"
-#ifdef _MSC_VER
-#define PACKED
+
 #pragma pack(push, 1)
-#else
-#define PACKED __attribute__((packed))
-#endif
 namespace hesai
 {
 namespace lidar
@@ -74,15 +70,35 @@ struct PTCHeader_1_0 {
   uint8_t GetCmd() const {return cmd_; }
   uint32_t GetPayloadLen() const { return ntohl(payload_len_); }
   void SetPayloadLen(uint32_t u32Len) { payload_len_ = htonl(u32Len); }
+};
 
+struct BlockHeader {
+  BlockHeader(uint32_t u32CrcValid, uint32_t u32CurrentIndex,
+              uint32_t u32TotalSize, uint32_t u32Crc) {
+  #ifdef _MSC_VER              
+    m_u32CrcValid = native_to_big(u32CrcValid);
+    m_u32CurrentIndex = native_to_big(u32CurrentIndex);
+    m_u32TotalSize = native_to_big(u32TotalSize);
+    m_u32Crc = native_to_big(u32Crc);
+  #else  
+    m_u32CrcValid = htobe32(u32CrcValid);
+    m_u32CurrentIndex = htobe32(u32CurrentIndex);
+    m_u32TotalSize = htobe32(u32TotalSize);
+    m_u32Crc = htobe32(u32Crc);
+  #endif
+  }
 
-} PACKED;
-#ifdef _MSC_VER
+ private:
+  uint32_t m_u32CrcValid;
+  uint32_t m_u32CurrentIndex;
+  uint32_t m_u32TotalSize;
+  uint32_t m_u32Crc;
+};
 #pragma pack(pop)
-#endif
 
 class Ptc_1_0_parser : public GeneralPtcParser {
 public:
+  Ptc_1_0_parser();
   ~Ptc_1_0_parser(){};
   // 字节流的打包。
   // 因为要将header和payload进行组装
@@ -93,10 +109,15 @@ public:
 
   uint8_t GetHeaderIdentifier0() { return header_.identifier0_; }
   uint8_t GetHeaderIdentifier1() { return header_.identifier1_; }
-  uint16_t GetHeaderSize() { return sizeof(PTCHeader_1_0); }
+  uint32_t GetHeaderSize() { return sizeof(PTCHeader_1_0); }
   uint8_t GetHeaderReturnCode() const { return header_.return_code_; }
   uint8_t GetHeaderCmd() const {return header_.cmd_; }
   uint32_t GetHeaderPayloadLen() const { return header_.GetPayloadLen();}
+
+  virtual bool SplitFileFrames(const u8Array_t &file, uint8_t u8Cmd, std::vector<u8Array_t>& packages);
+  void CRCInit();
+  uint32_t CRCCalc(uint8_t *bytes, int len); 
+  uint32_t m_CRCTable[256]; 
 
 private:
   PTCHeader_1_0 header_;

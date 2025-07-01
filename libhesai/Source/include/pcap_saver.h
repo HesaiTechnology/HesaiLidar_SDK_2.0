@@ -35,7 +35,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thread>
 #include <utility>
 #include <string>
-#include <string_view>
 #include <fstream>
 #include <memory>
 #include <queue>
@@ -60,7 +59,7 @@ using Duration = Clock::duration;
 struct PandarPacket {
   uint32_t size;
   uint16_t port;
-  uint8_t buffer[1500];
+  uint8_t buffer[kBufSize];
   PandarPacket(const uint8_t *data = nullptr, uint32_t sz = 0, uint16_t prt = 0)
       : size(sz), port(prt) {
     memcpy(buffer, data, size);
@@ -80,6 +79,10 @@ private:
     bool dumping_blocked_;
     // std::mutex _mutex;
     std::thread dumping_thread_;
+    uint8_t* write_buffer_;
+    size_t buffer_pos_;
+    void flush_buffer();
+    void write_to_buffer(const void* data, size_t size);
 public:
     PcapSaver();
     PcapSaver(const PcapSaver&) = delete;
@@ -94,7 +97,7 @@ public:
     int Save(const std::string &recordPath, const UdpFrameArray_t &packets,
             int port = 2368);
     void Dump(const uint8_t*, uint32_t, uint16_t port = 2368);
-    void TcpDump(const uint8_t*, uint32_t, uint32_t max_pkt_len = 1500 - sizeof(PcapTCPHeader), uint16_t port = 2368);
+    void TcpDump(const uint8_t*, uint32_t, uint32_t max_pkt_len = kBufSize - sizeof(PcapTCPHeader), uint16_t port = 2368);
     void close();
 };
 }  // namespace lidar

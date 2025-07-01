@@ -1,62 +1,45 @@
-# Use GPU Acceleration
-By transferring the point cloud parsing task to the GPU, not only can the computing resources of the CPU be released, but it can also effectively enhance the speed and efficiency of point cloud data parsing to a certain extent.
+# Using GPU Acceleration
+By migrating point cloud parsing tasks to the GPU, not only can CPU computing resources be freed up, but the speed and efficiency of point cloud data parsing can also be effectively improved to a certain extent.
 
 
 ## Preparation
-To parse point clouds using GPU, you need to install the graphics card driver and the CUDA environment.
-1. Input `nvidia-smi` command and you can see the version of GPU. If not installed, please refer to [NVIDIA-DRIVERS](https://www.nvidia.cn/drivers/).
-2. Input `nvcc -V` command and you can see the version of GPU. If not installed, please refer to [CUDA-DOWNLOADS](https://developer.nvidia.com/cuda-downloads).
+Using GPU for point cloud parsing requires proper installation of graphics drivers and CUDA environment.
+1. Enter `nvidia-smi` command in terminal to see current GPU information. If not installed, refer to: [NVIDIA-DRIVERS](https://www.nvidia.cn/drivers/)
+2. Enter `nvcc -V` command in terminal to see current CUDA version. If not installed, refer to: [CUDA-DOWNLOADS](https://developer.nvidia.com/cuda-downloads)
 
-#### SDK configuration
-Open [CMakeLists.txt](../CMakeLists.txt) in HesaiLidar_SDK_2.0 directory and make sure that the commands used for searching and configuring the NVIDIA CUDA toolkit have been released:
-```cpp
-find_package(CUDA)
-```
+#### 1 SDK Configuration
 
-#### 1 Use CUDA to parse data online
-```cpp
-  // test.cu - Network configuration
-  param.input_param.source_type = DATA_FROM_LIDAR; 
-  param.input_param.device_ip_address = "192.168.1.201"; // IP address of the lidar
-  param.input_param.ptc_port = 9347;  // TCP port
-  param.input_param.udp_port = 2368;  // UDP port
-  param.input_param.host_ip_address = ""; // Host PC IP address (Optional)
-  param.input_param.multicast_ip_address = "";  // Multicast IP (If applicable, please fill in)
-  param.decoder_param.distance_correction_lidar_flag = false;
-  param.decoder_param.socket_buffer_size = 262144000;
-  ```
-#### 2 Use CUDA to parse data offline
-```cpp
-  // test.cu - Network configuration
-  param.input_param.source_type = DATA_FROM_PCAP;
-  param.input_param.pcap_path = {"Your pcap file path"}; // the path of PCAP file
-  param.input_param.correction_file_path = {"Your correction file path"}; // the path of angle correction file（required）
-  param.input_param.firetimes_path = {"Your firetime file path"}; // the path of firetime file（optional）
-   ```
+Please refer to the operations in **[Compile Macro Control](../docs/compile_macro_control_description.md)** to configure the macro `FIND_CUDA` to take effect, and add the `cuda` parameter when running.
 
+#### 2 Parsing Configuration
+Refer to **[How to Parse Lidar Data Online](../docs/parsing_lidar_data_online.md)** and **[How to Parse PCAP File Data Offline](../docs/parsing_pcap_file_data_offline.md)**
 
 ## Steps
-### 1 Compile
-Navigate to the HesaiLidar_SDK_2.0 directory, open a Terminal window, and run the following commands.
+### 1 Compilation
+In the HesaiLidar_SDK_2.0 folder, open a terminal and execute the following commands:
 ```bash
 cd HesaiLidar_SDK_2.0
 mkdir -p build 
 cd build
-cmake ..
+cmake .. -DFIND_CUDA=true
 make
 ```
 
 ### 2 Run
-Once compiled successfully, go to the build folder, execute the generated sample_gpu executable.
+After successful compilation, run the generated executable file in the build folder. To use GPU parsing, please add the `cuda` parameter:
 ```bash
-./sample_gpu
+./sample cuda
 ```
 
 
-## Reference
-If multiple CUDA versions are installed, the CUDA version path can be specified in [CMakeLists.txt](../CMakeLists.txt):
+## Additional References
+#### 1 If multiple CUDA versions are installed, you can specify the CUDA version path in [CMakeLists.txt](../CMakeLists.txt):
 
-```cpp
+  ```cpp
    # if install different cuda version, set the cuda path, like cuda-11.4
    # set(CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda-11.4/)
    ```
+
+#### 2 Control parameter for enabling GPU parsing in code
+
+  Actually use `use_gpu` in `DriverParam` to control whether GPU parsing is enabled. In the `main` function of `test.cc`, control whether GPU parsing is enabled by assigning `param.use_gpu`

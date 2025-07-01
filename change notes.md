@@ -97,3 +97,20 @@ V2.0.9
 4. The initialization distinguishes (PandarN, OT) (XT, XTM), and the point cloud S-stratification correction of XT is controlled using a flag bit parameter (xt_spot_correction).
 5. Support ET2.5(ET25-E2X) 2.7(ET30HA2) for firetimes correction.
 6. OT128 support to get weight factor and env light fields (Need to register its template as LidarPointXYZICWERT when declaring HesaiLidarSdk).
+
+
+################################################################################
+Monday June 30rd, 2025 17:28:15
+## version
+2.0.10
+
+## modify
+1. Remove support for JT256, JT128, and ET.
+2. Add the function to obtain precise timestamps for each point for Pandar series LiDAR, OT128, XT series LiDAR, and QT series LiDAR. Note: firetimes files must be loaded, see README for details.
+3. When OT128 LiDAR encounters hash verification errors for angle calibration files, change from "error reporting + refusing to load" to only printing warnings.
+4. Add the function to rearrange point clouds by horizontal and vertical angles, enabled through RemakeConfig configuration, see README for details.
+5. Reduce the IMU transmission frequency for Pandar series LiDAR and OT128 LiDAR, modified to send only when IMU data changes.
+6. Merge CPU and GPU code in the `driver`, with the ability to control whether to enable GPU parsing through switches, disabled by default, see README for details.
+7. Add timeout exit logic for receiving point clouds and PTC connections, implemented through configuration parameters, see README for details.
+8. Reduce the number of time calculation function calls to lower CPU usage.
+9. Add compilation options to control the compilation of each module, add independent PTC examples, multi-LiDAR receiving examples, and examples for removing OpenSSL dependencies, see README for details.

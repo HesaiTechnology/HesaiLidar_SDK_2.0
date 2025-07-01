@@ -32,14 +32,10 @@
 #endif
 #include <iostream>
 #include <fstream>
-#include "lidar_types.h"
+#include "inner_com.h"
 #include "general_ptc_parser.h"
-#ifdef _MSC_VER
-#define PACKED
+
 #pragma pack(push, 1)
-#else
-#define PACKED __attribute__((packed))
-#endif
 
 namespace hesai
 {
@@ -89,10 +85,9 @@ struct PTCHeader_2_0 {
   void SetPayloadLen(uint32_t u32Len) { payload_len_ = htonl(u32Len); }
 
 
-} PACKED;
-#ifdef _MSC_VER
+};
+
 #pragma pack(pop)
-#endif
 
 class Ptc_2_0_parser : public GeneralPtcParser {
 public:
@@ -106,7 +101,7 @@ public:
 
   uint8_t GetHeaderIdentifier0() { return header_.identifier0_; }
   uint8_t GetHeaderIdentifier1() { return header_.identifier1_; }
-  uint16_t GetHeaderSize() { return sizeof(PTCHeader_2_0); }
+  uint32_t GetHeaderSize() { return sizeof(PTCHeader_2_0); }
   uint8_t GetHeaderReturnCode() const { return header_.return_code_; }
   uint8_t GetHeaderCmd() const {return header_.cmd_; }
   uint32_t GetHeaderPayloadLen() const { return header_.GetPayloadLen();}

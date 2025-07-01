@@ -26,7 +26,8 @@ TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF TH
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 #include "logger.h"  
-#include <time.h>  
+#include <ctime>  
+#include <iostream>
 #include <stdio.h>  
 #include <memory>  
 #include <stdarg.h>  
@@ -44,19 +45,36 @@ void Logger::SetFileName(const char* filename)
   
 bool Logger::Start()  
 {  
-
+    std::lock_guard<std::mutex> guard(mutex_running);  
     if (running_ == true) return true;
     if (filename_.empty())  
-    {  
-        time_t now = time(NULL);  
-        struct tm* t = localtime(&now);  
-        char timestr[64] = { 0 };  
-        sprintf(timestr, "%04d%02d%02d%02d%02d%02d.imserver.log", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);  
-        filename_ = timestr;  
+    {   
+        std::time_t t = std::time(nullptr);
+        std::tm tm;
+        char timestr[64] = { 0 };
+#ifdef _MSC_VER
+        if (localtime_s(&tm, &t) == 0)
+#else
+        if (localtime_r(&t, &tm) != nullptr)
+#endif
+        {
+            snprintf(timestr, sizeof(timestr), "%04d%02d%02d%02d%02d%02d.imserver.log", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+            filename_ = timestr;
+        }
+        else
+            filename_ = "imserver.log"; 
     }  
-    fp_ = fopen(filename_.c_str(), "wt+");  
-    if (fp_ == NULL)  
-        return false;  
+    
+    if (log_target_rule_ & HESAI_LOG_TARGET_FILE) {
+        fp_ = fopen(filename_.c_str(), "wt+");  
+        if (fp_ == NULL) {
+            LogError("Failed to open log file: %s", filename_.c_str());
+            return false;  
+        }
+        else{
+            LogInfo("Open file: %s to write log", filename_.c_str());
+        }
+    }
   
     spthread_.reset(new std::thread(std::bind(&Logger::threadfunc, this)));
     LogInfo("logger start to run");
@@ -67,6 +85,7 @@ bool Logger::Start()
   
 void Logger::Stop()  
 {   
+    std::lock_guard<std::mutex> guard(mutex_running);  
     if (running_ != true) return;
     exit_ = true;  
     cv_.notify_one();  
@@ -98,41 +117,40 @@ void Logger::AddToQueue(LOGLEVEL loglevel, const char* pszFile, int lineNo, cons
     struct tm* tmstr = localtime(&now);  
     char content[512] = { 0 };  
 	const char* logLevel;
-	if (loglevel == LOG_DEBUG){
+	if (loglevel & HESAI_LOG_DEBUG){
 		logLevel = "DEBUG";
 	}
-	else if (loglevel == LOG_INFO){
+	else if (loglevel & HESAI_LOG_INFO){
 		logLevel = "INFO";
 	}
-	else if (loglevel == LOG_WARNING){
+	else if (loglevel & HESAI_LOG_WARNING){
 		logLevel = "WARNING";
 	}
-	else if (loglevel == LOG_ERROR){
+	else if (loglevel & HESAI_LOG_ERROR){
 		logLevel = "ERROR";
 	}
-	else if (loglevel == LOG_FATAL){
+	else if (loglevel & HESAI_LOG_FATAL){
 		logLevel = "FATAL";
 	}
     else{
         logLevel = "";
     }
-    sprintf(content, "[%04d-%02d-%02d %02d:%02d:%02d][%s][0x%04x][%s:%d %s]%s\n",  
-                tmstr->tm_year + 1900,  
-                tmstr->tm_mon + 1,  
-                tmstr->tm_mday,  
-                tmstr->tm_hour,  
-                tmstr->tm_min,  
-                tmstr->tm_sec,  
-                logLevel,  
-                (unsigned int)std::hash<std::thread::id>{}(std::this_thread::get_id()),
-                pszFile,  
-                lineNo,  
-                pszFuncSig,  
-                msg);  
-  
-    
-	if (log_target_rule_ & LOG_TARGET_FILE)
+
+    if (log_target_rule_ & HESAI_LOG_TARGET_FILE)
 	{
+        snprintf(content, sizeof(content), "[%04d-%02d-%02d %02d:%02d:%02d][%s][0x%04x][%s:%d %s]%s\n",  
+                    tmstr->tm_year + 1900,  
+                    tmstr->tm_mon + 1,  
+                    tmstr->tm_mday,  
+                    tmstr->tm_hour,  
+                    tmstr->tm_min,  
+                    tmstr->tm_sec,  
+                    logLevel,  
+                    (unsigned int)std::hash<std::thread::id>{}(std::this_thread::get_id()),
+                    pszFile,  
+                    lineNo,  
+                    pszFuncSig,  
+                    msg);  
 		{  
 			std::lock_guard<std::mutex> guard(mutex_);  
 			queue_.emplace_back(content);  
@@ -140,7 +158,7 @@ void Logger::AddToQueue(LOGLEVEL loglevel, const char* pszFile, int lineNo, cons
 		
 		cv_.notify_one();  
 	}
-	if (log_target_rule_ & LOG_TARGET_CONSOLE)
+	if (log_target_rule_ & HESAI_LOG_TARGET_CONSOLE)
 	{
 		printf("[%04d-%02d-%02d %02d:%02d:%02d][%s]%s\n", 
                 tmstr->tm_year + 1900,  
@@ -153,7 +171,8 @@ void Logger::AddToQueue(LOGLEVEL loglevel, const char* pszFile, int lineNo, cons
                 msg);
 	}
 }  
-  
+
+
 void Logger::threadfunc()  
 {  
     if (fp_ == NULL)  

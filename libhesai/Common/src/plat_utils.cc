@@ -29,6 +29,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "logger.h"
 static const int kTimeStrLen = 1000;
 #ifdef _MSC_VER
+#define NOMINMAX
 #define EPOCHFILETIME (116444736000000000UL)
 #include <windows.h>
 #else
@@ -148,55 +149,9 @@ int GetAvailableCPUNum() {
   GetSystemInfo(&sysInfo);
   int numProcessors = sysInfo.dwNumberOfProcessors;
   return numProcessors;  
-  return 1;
 #else
   return sysconf(_SC_NPROCESSORS_ONLN); 
 #endif 
-}
-
-int GetAnglesFromFile(
-    const std::string& sFile,
-    std::map<int, std::pair<float, float>>& mapAngleMetaData) {
-  FILE* pFile = fopen(sFile.c_str(), "r");
-
-  if (NULL == pFile) {
-    LogError("cannot open the angle file, please check: %s", sFile.c_str());
-    return 1;
-  }
-
-  char sContent[255] = {0};
-  if (fgets(sContent, 255, pFile) == NULL) { // skip first line
-    LogError("Failed to read from file");
-    fclose(pFile);
-    return 1;
-  } 
-
-  while (!feof(pFile)) {
-    memset(sContent, 0, 255);
-    if (fgets(sContent, 255, pFile) == NULL) {
-      LogError("Failed to read from file");
-      fclose(pFile);
-      return 1;
-    }
-
-    if (strlen(sContent) < strlen(" , , ")) {
-      break;
-    }
-
-    int iChannelId;
-    float fPitch;
-    float fAzimuth;
-
-    sscanf(sContent, "%d,%f,%f", &iChannelId, &fPitch, &fAzimuth);
-
-    std::pair<float, float> pairAngleData = std::make_pair(fPitch, fAzimuth);
-    mapAngleMetaData.insert(std::map<int, std::pair<float, float>>::value_type(
-        iChannelId, pairAngleData));
-  }
-
-  fclose(pFile);
-  pFile = NULL;
-  return 0;
 }
 
 // 2004-05-03T17:30:08+08:00

@@ -286,24 +286,39 @@ int TcpClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
 
   int tick = GetMicroTickCount();
   if (ret) {
-#ifdef _MSC_VER
-  if (flags == MSG_DONTWAIT) {
-    unsigned long nonBlockingMode = 1;
-    ioctlsocket(m_tcpSock, FIONBIO, &nonBlockingMode);
-  }
-#endif
+    if (flags == 0xFF) {
+  // 设置非阻塞模式  
+#ifdef _MSC_VER  
+      u_long mode = 1; // 1为非阻塞模式  
+      ioctlsocket(m_tcpSock, FIONBIO, &mode);
+#else  
+      int flags = fcntl(m_tcpSock, F_GETFL, 0); 
+      fcntl(m_tcpSock, F_SETFL, flags | O_NONBLOCK);  
+#endif 
+    }
     len = recv(m_tcpSock, (char*)u8Buf, u32Len, flags);
     if (len == 0 || (len == -1 && errno != EINTR && errno != EAGAIN &&
                      errno != EWOULDBLOCK)) {
-      LogError("Receive, len: %d errno: %d", len, errno);
-      Close();
+      if (flags != 0xFF) {
+        LogError("Receive, len: %d errno: %d", len, errno);
+        Close();
+      }
+    }
+    if (flags == 0xFF) {
+#ifdef _MSC_VER  
+      u_long mode = 0; // 0为阻塞模式  
+      ioctlsocket(m_tcpSock, FIONBIO, &mode);  
+#else  
+      flags = fcntl(m_tcpSock, F_GETFL, 0); 
+      fcntl(m_tcpSock, F_SETFL, flags & ~O_NONBLOCK); 
+#endif 
     }
   }
 
   int delta = GetMicroTickCount() - tick;
 
   if (delta >= 1000000) {
-    LogWarning("Receive execu: %dus", delta);
+    LogDebug("Receive execu: %dus", delta);
   }
 
   return len;

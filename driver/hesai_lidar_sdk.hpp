@@ -27,12 +27,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 #pragma once
 #include "lidar.h"
-#include "fault_message.h"
-
+#ifdef USE_CUDA
+#include "udp_parser_gpu.h"
+#endif
 namespace hesai
 {
 namespace lidar
 {
+
 template <typename T_Point>
 class HesaiLidarSdk 
 {
@@ -46,37 +48,60 @@ private:
   std::function<void(const FaultMessageInfo&)> fault_message_cb_;
   std::function<void(const LidarImuData&)> imu_cb_;
   bool is_thread_runing_;
-  bool packet_loss_tool_;
-  uint32_t device_ip_address_;
-  uint16_t device_udp_port_;
-  uint16_t device_fault_port_;
+  uint32_t device_ip_address_ = 0;
+  uint16_t device_udp_port_ = 0;
+  uint16_t device_fault_port_ = 0;
+  LidarImuData last_imu_data_;
 public:
+  Lidar<T_Point> *lidar_ptr_;
+#ifdef USE_CUDA
+  UdpParserGpu<T_Point> gpu_parser_ptr_;
+#endif
+  DriverParam param_;
+  std::thread *init_thread_ptr_;
+  SourceType source_type_;
   HesaiLidarSdk() {
-    std::cout << "-------- Hesai Lidar SDK V" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_TINY << " --------" << std::endl;
+#ifdef USE_CUDA
+    std::cout << "-------- Hesai Lidar SDK Gpu V" << 2 << "." << 0 << "." << 10 << " --------" << std::endl;
+#else
+    std::cout << "-------- Hesai Lidar SDK V" << 2 << "." << 0 << "." << 10 << " --------" << std::endl;
+#endif
     runing_thread_ptr_ = nullptr;
     lidar_ptr_ = nullptr;
     init_thread_ptr_ = nullptr;
     is_thread_runing_ = false;
-    packet_loss_tool_ = false;
     source_type_ = DATA_FROM_PCAP;
   }
 
   ~HesaiLidarSdk() {
     Stop();
+    LogInfo("Hesai Lidar SDK is stopping...");
   }
-  Lidar<T_Point> *lidar_ptr_;
-  DriverParam param_;
-  std::thread *init_thread_ptr_;
-  SourceType source_type_;
 
   void Init_thread()
   {
-    packet_loss_tool_ = param_.decoder_param.enable_packet_loss_tool;
     //init lidar with param
     if (nullptr != lidar_ptr_) {
       lidar_ptr_->Init(param_);
-      lidar_ptr_->init_finish_[AllInitFinish] = true;
+      if (lidar_ptr_->GetInitFinish(FailInit)) return;
       LogDebug("finish 3: Initialisation all complete !!!");
+#ifdef USE_CUDA
+      if (lidar_ptr_->frame_.fParam.use_cuda == false) {
+        LogWarning("-------- param setup not to use GPU !!! --------");
+      }
+      std::string lidar_type_from_parser = lidar_ptr_->GetLidarType();
+      gpu_parser_ptr_.SetLidarType(lidar_type_from_parser, lidar_ptr_->frame_.maxPackerPerFrame, lidar_ptr_->frame_.maxPointPerPacket);
+      gpu_parser_ptr_.setCorrectionLoadSequenceNum(lidar_ptr_->GetGeneralParser()->getCorrectionLoadSequenceNum());
+      gpu_parser_ptr_.setFiretimeLoadSequenceNum(lidar_ptr_->GetGeneralParser()->getFiretimeLoadSequenceNum());
+      gpu_parser_ptr_.setCorrectionLoadFlag(lidar_ptr_->GetGeneralParser()->getCorrectionLoadFlag());
+      gpu_parser_ptr_.setFiretimeLoadFlag(lidar_ptr_->GetGeneralParser()->getFiretimeLoadFlag());
+      gpu_parser_ptr_.LoadCorrectionStruct(lidar_ptr_->GetGeneralParser()->getStruct(CORRECTION_STRUCT));
+      gpu_parser_ptr_.LoadFiretimesStruct(lidar_ptr_->GetGeneralParser()->getStruct(FIRETIME_STRUCT));
+#else 
+      lidar_ptr_->frame_.fParam.use_cuda = false;
+      LogWarning("cpu version, not support for gpu");
+#endif
+      lidar_ptr_->SetAllFinishReady();
     }
   }
 
@@ -92,18 +117,20 @@ public:
     source_type_ = param.input_param.source_type;
     param_ = param;
     init_thread_ptr_ = new std::thread(std::bind(&HesaiLidarSdk::Init_thread, this));
-    device_ip_address_ = inet_addr(param.input_param.device_ip_address.c_str());
-    if(param.input_param.device_fault_port >= 1024 && param.input_param.device_fault_port <= 65535 && device_ip_address_ != INADDR_NONE){
-      device_fault_port_ = param.input_param.device_fault_port;
-    }
-    else{
-      device_fault_port_ = 0;
-    }
-    if(param.input_param.device_udp_src_port >= 1024 && param.input_param.device_udp_src_port <= 65535 && device_ip_address_ != INADDR_NONE){
-      device_udp_port_ = param.input_param.device_udp_src_port;
-    }
-    else{
-      device_udp_port_ = 0;
+    if (param.input_param.device_ip_address != "") {
+      device_ip_address_ = inet_addr(param.input_param.device_ip_address.c_str());
+      if(param.input_param.device_fault_port >= 1024 && param.input_param.device_fault_port <= 65535 && device_ip_address_ != INADDR_NONE){
+        device_fault_port_ = param.input_param.device_fault_port;
+      }
+      else{
+        device_fault_port_ = 0;
+      }
+      if(param.input_param.device_udp_src_port >= 1024 && param.input_param.device_udp_src_port <= 65535 && device_ip_address_ != INADDR_NONE){
+        device_udp_port_ = param.input_param.device_udp_src_port;
+      }
+      else{
+        device_udp_port_ = 0;
+      }
     }
     /***********************************************************************************/ 
     return true;
@@ -135,13 +162,19 @@ public:
   // start process thread
   void Start() {
     while(1) {
-      if ((source_type_ == DATA_FROM_LIDAR && lidar_ptr_->init_finish_[FaultMessParse]) || lidar_ptr_->init_finish_[AllInitFinish]) {
+      if (lidar_ptr_ == nullptr) { 
+        printf("lidar_ptr_ is nullptr, start failed!!!!!!!!!\n");
+        return;
+      }
+      if ((source_type_ == DATA_FROM_LIDAR && lidar_ptr_->GetInitFinish(FaultMessParse)) || lidar_ptr_->GetInitFinish(AllInitFinish)) {
         runing_thread_ptr_ = new std::thread(std::bind(&HesaiLidarSdk::Run, this));
         break;
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      if (lidar_ptr_->GetInitFinish(FailInit)) break;
     }
   }
+
 
   // process thread
   void Run()
@@ -149,9 +182,6 @@ public:
     LogInfo("--------begin to parse udp package--------");
     is_thread_runing_ = true;
     UdpFrame_t udp_packet_frame;
-    lidar_ptr_->frame_.use_timestamp_type = lidar_ptr_->use_timestamp_type_;
-    lidar_ptr_->frame_.config.fov_start = lidar_ptr_->fov_start_;
-    lidar_ptr_->frame_.config.fov_end = lidar_ptr_->fov_end_;
     uint32_t packet_index = 0;
     // uint32_t start = GetMicroTickCount();
     UdpPacket packet;
@@ -166,7 +196,9 @@ public:
       int ret = lidar_ptr_->GetOnePacket(packet);
       if (ret == -1) continue;
       //get fault message
-      if (packet.packet_len == kFaultMessageLength) {
+      if (packet.packet_len == kFaultMessageLength 
+          || (packet.buffer[0] == 0xCD && packet.buffer[1] == 0xDC)
+          || (packet.buffer[SOMEIP_OFFSET] == 0xCD && packet.buffer[SOMEIP_OFFSET + 1] == 0xDC)) {
         if(device_fault_port_ != 0){
           if(device_ip_address_ != packet.ip || device_fault_port_ != packet.port){
             continue;
@@ -181,54 +213,71 @@ public:
       }
 
       // Wait for initialization to complete before starting to parse the point cloud
-      if(!lidar_ptr_->init_finish_[PointCloudParse]) continue;
+      if(!lidar_ptr_->GetInitFinish(AllInitFinish)) continue;
 
       if(device_udp_port_ != 0 && (packet.is_timeout == false || packet_index == 0)){
-        if(device_ip_address_ != packet.ip || device_udp_port_ != packet.port){
+        if(device_ip_address_ != packet.ip || device_udp_port_ != packet.port) {
           continue;
         }
       }
       //get distance azimuth reflection, etc.and put them into decode_packet
       ret = lidar_ptr_->DecodePacket(lidar_ptr_->frame_, packet);
-      if(ret != 0) {
-        if (ret == 1) {
-          if (imu_cb_) imu_cb_(lidar_ptr_->frame_.imu_config);
+      if (lidar_ptr_->frame_.imu_config.flag) {
+        if (imu_cb_ && !last_imu_data_.isSameImuValue(lidar_ptr_->frame_.imu_config)) {
+          imu_cb_(lidar_ptr_->frame_.imu_config);
+          last_imu_data_ = lidar_ptr_->frame_.imu_config;
         }
+      }
+      if(ret != 0) {
         continue;
       }
-      if (lidar_ptr_->frame_.imu_config.flag) {
-        if (imu_cb_) imu_cb_(lidar_ptr_->frame_.imu_config);
-      }
-
-      //do not compute xyzi of points if enable packet_loss_tool_
-      // if(packet_loss_tool_ == true) continue;
+      
 
       //one frame is receive completely, split frame
       if(lidar_ptr_->frame_.scan_complete) {
-        // If it's not a timeout split frame, it will be one more packet
-        bool last_packet_is_valid = (lidar_ptr_->frame_.packet_num != packet_index);
-        lidar_ptr_->frame_.packet_num = packet_index;
-        //waiting for parser thread compute xyzi of points in the same frame
-        while(!lidar_ptr_->ComputeXYZIComplete(packet_index)) std::this_thread::sleep_for(std::chrono::microseconds(100));
-        // uint32_t end =  GetMicroTickCount();
+        if (lidar_ptr_->frame_.fParam.use_cuda) {
+#ifdef USE_CUDA
+          if (lidar_ptr_->frame_.packet_num > 0) {
+            ret = gpu_parser_ptr_.ComputeXYZI(lidar_ptr_->frame_);  
+          }
+          else {
+            ret = -1;
+            LogError("packet_num is 0, cuda compute xyz error");
+          }
+#endif
+        } else {
+          //waiting for parser thread compute xyzi of points in the same frame
+          while(!lidar_ptr_->ComputeXYZIComplete(packet_index)) std::this_thread::sleep_for(std::chrono::microseconds(100));
+        }
+        if (lidar_ptr_->frame_.fParam.remake_config.flag) {
+          auto& rq = lidar_ptr_->frame_.fParam.remake_config;
+          lidar_ptr_->frame_.points_num = rq.max_azi_scan * rq.max_elev_scan;
+        }
+        if (lidar_ptr_->frame_.points_num == 0) {
+          uint32_t points_num = 0;
+          for (uint32_t i = 0; i < lidar_ptr_->frame_.packet_num; i++) {
+            if (points_num != i * lidar_ptr_->frame_.per_points_num) {
+              memcpy(lidar_ptr_->frame_.points + points_num, lidar_ptr_->frame_.points + 
+                      i * lidar_ptr_->frame_.per_points_num, lidar_ptr_->frame_.getPointSize() * lidar_ptr_->frame_.valid_points[i]);
+            }
+            points_num += lidar_ptr_->frame_.valid_points[i];
+          }
+          lidar_ptr_->frame_.points_num = points_num;
+        }
         //log info, display frame message
-        if (lidar_ptr_->frame_.points_num > kMinPointsOfOneFrame) {
-          // LogInfo("frame:%d   points:%u  packet:%d  time:%lf %lf",lidar_ptr_->frame_.frame_index,  lidar_ptr_->frame_.points_num, packet_index, lidar_ptr_->frame_.points[0].timestamp, lidar_ptr_->frame_.points[lidar_ptr_->frame_.points_num - 1].timestamp) ;
-
+        if (ret == 0 && lidar_ptr_->frame_.points_num > kMinPointsOfOneFrame) {
           //publish point cloud topic
           if(point_cloud_cb_) point_cloud_cb_(lidar_ptr_->frame_);
 
           //publish upd packet topic
           if(pkt_cb_) {
-            double timestamp = 0;
-            getTimestamp(lidar_ptr_->frame_.points[0], timestamp);
-            pkt_cb_(udp_packet_frame, timestamp);
+            pkt_cb_(udp_packet_frame, lidar_ptr_->frame_.frame_start_timestamp);
           }
 
           if (pkt_loss_cb_ )
           {
-            total_packet_count = lidar_ptr_->udp_parser_->GetGeneralParser()->total_packet_count_;
-            total_packet_loss_count = lidar_ptr_->udp_parser_->GetGeneralParser()->seqnum_loss_message_.total_loss_count;
+            total_packet_count = lidar_ptr_->GetGeneralParser()->seqnum_loss_message_.total_packet_count;
+            total_packet_loss_count = lidar_ptr_->GetGeneralParser()->seqnum_loss_message_.total_loss_count;
             pkt_loss_cb_(total_packet_count, total_packet_loss_count);
           }
           if (ptp_cb_ && lidar_ptr_->frame_.frame_index % 100 == 1)
@@ -250,18 +299,25 @@ public:
           {
             correction_cb_(lidar_ptr_->correction_string_);
           }
-        }
+        } 
         //reset frame variable
         lidar_ptr_->frame_.Update();
+        if (lidar_ptr_->frame_.fParam.update_function_safety_flag) {
+          lidar_ptr_->frame_.clearFuncSafety();
+        }
+        if (lidar_ptr_->frame_.fParam.remake_config.flag) {
+          memset(lidar_ptr_->frame_.points, 0, lidar_ptr_->frame_.getPointSize() * lidar_ptr_->frame_.maxPackerPerFrame * lidar_ptr_->frame_.maxPointPerPacket);
+        }
         //clear udp packet vector
         udp_packet_frame.clear();
         packet_index = 0;
 
         //if the packet which contains split frame msgs is valid, it will be the first packet of new frame
-        if(last_packet_is_valid) {
+        if(packet.is_timeout == false) {
           lidar_ptr_->DecodePacket(lidar_ptr_->frame_, packet);
-          lidar_ptr_->ComputeXYZI(packet_index);
-          lidar_ptr_->frame_.points_num += lidar_ptr_->frame_.per_points_num;
+          if (lidar_ptr_->frame_.fParam.use_cuda == false) {
+            lidar_ptr_->ComputeXYZI(packet_index);
+          }
           udp_packet_frame.emplace_back(packet);
           packet_index++;
         }
@@ -269,25 +325,64 @@ public:
       else {
         //new decoded packet of one frame, put it into decoded_packets_buffer_ and compute xyzi of points
         if(lidar_ptr_->frame_.packet_num != packet_index) {
-          lidar_ptr_->ComputeXYZI(packet_index);
-          lidar_ptr_->frame_.points_num += lidar_ptr_->frame_.per_points_num;
+          if (lidar_ptr_->frame_.fParam.use_cuda == false) {
+            lidar_ptr_->ComputeXYZI(packet_index);
+          }
           udp_packet_frame.emplace_back(packet);
           packet_index++;
         } 
 
         //update status manually if start a new frame failedly
-        if (packet_index >= kMaxPacketNumPerFrame) {
+        if (packet_index >= lidar_ptr_->frame_.maxPackerPerFrame) {
+          LogError("fail to start a new frame, packet_index: %d", packet_index);
           packet_index = 0;
           udp_packet_frame.clear();
           lidar_ptr_->ClearPacketBuffer();
           std::this_thread::sleep_for(std::chrono::microseconds(100));
           lidar_ptr_->frame_.Update();
           lidar_ptr_->GetUdpParser()->SetComputePacketNumToZero();
-          LogError("fail to start a new frame");
         }
       }
     }
   } 
+
+  bool OriginPacketIsBufferFull() {
+    if (lidar_ptr_ == nullptr) {
+      return true;
+    }
+    return lidar_ptr_->origin_packets_buffer_.full();
+  }
+
+  int PushOriginPacketBuffer(const uint8_t *data, int len, uint64_t recv_timestamp = 0) {
+    if (lidar_ptr_ == nullptr) {
+      return -1;
+    }
+    if (lidar_ptr_->origin_packets_buffer_.full()) {
+      return -2;
+    }
+    UdpPacket packet(data, len, recv_timestamp);
+    lidar_ptr_->origin_packets_buffer_.emplace_back(packet);
+    return 0;
+  }
+
+  bool ClearOriginPacketBuffer() {
+    if (lidar_ptr_ == nullptr) {
+      return false;
+    }
+    lidar_ptr_->origin_packets_buffer_.eff_clear();
+    return true;
+  }
+
+  bool PopFrontOriginPacketBuffer(int num) {
+    if (lidar_ptr_ == nullptr) {
+      return false;
+    }
+    for (int i = 0; i < num; i++) {
+      lidar_ptr_->origin_packets_buffer_.eff_pop_front();
+    }
+    return true;
+  }
+
   // assign callback fuction
   void RegRecvCallback(const std::function<void(const LidarDecodedFrame<T_Point>&)>& callback) {
     point_cloud_cb_ = callback;

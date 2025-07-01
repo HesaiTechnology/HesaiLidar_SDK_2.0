@@ -27,17 +27,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 #ifndef UDP4_3_PARSER_GPU_H_
 #define UDP4_3_PARSER_GPU_H_
-#pragma once
-#include <array>
-#include <atomic>
-#include <chrono>
-#include <functional>
-#include <cstring>
-#include <map>
-#include <memory>
-#include <mutex>
 #include "general_parser_gpu.h"
-
+#include "udp_protocol_v4_3.h"
 namespace hesai
 {
 namespace lidar
@@ -50,31 +41,20 @@ template <typename T_Point>
 class Udp4_3ParserGpu: public GeneralParserGpu<T_Point>{
 
  private:
-  // corrections
-  bool corrections_loaded_;
-  int32_t* channel_azimuths_cu_;
-  int32_t* channel_elevations_cu_;
-  int8_t* dazis_cu;
-  int8_t* deles_cu;
-  PointDecodeData* point_data_cu_;
-  uint64_t* sensor_timestamp_cu_;
-  uint32_t* mirror_azi_begins_cu;
-  uint32_t* mirror_azi_ends_cu;
-
+  AT::ATCorrectionFloat* AT_correction_cu_;
+  const AT::ATCorrections* AT_correction_ptr;
  public:
-  Udp4_3ParserGpu();
+  Udp4_3ParserGpu(uint16_t maxPacket, uint16_t maxPoint);
   ~Udp4_3ParserGpu();
 
   // compute xyzi of points from decoded packet， use gpu device
-  // param packet is the decoded packet; xyzi of points after computed is puted in frame  
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
-  virtual int LoadCorrectionFile(std::string correction_path);
-  virtual int LoadCorrectionString(char *correction_string);
-  PandarATCorrections m_PandarAT_corrections;
-
+  virtual void LoadCorrectionStruct(void *);
+  virtual void LoadFiretimesStruct(void *);
+  virtual void updateCorrectionFile();
+  virtual void updateFiretimeFile();
 };
 }
 }
-
 #include "udp4_3_parser_gpu.cu"
 #endif  // UDP4_3_PARSER_GPU_H_

@@ -34,33 +34,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef UDP3_1_PARSER_H_
 #define UDP3_1_PARSER_H_
-
 #include "general_parser.h"
-#define HS_LIDAR_QT_COORDINATE_CORRECTION_ODOG (0.0298)
-#define HS_LIDAR_QT_COORDINATE_CORRECTION_OGOT (0.0072)
+#include "udp_protocol_v3_1.h"
+
 namespace hesai
 {
 namespace lidar
 {
 // class Udp3_1Parser
 // parsers packets and computes points for PandarQT64
-// you can parser the upd or pcap packets using the DocodePacket fuction
-// you can compute xyzi of points using the ComputeXYZI fuction, which uses cpu to compute
 template<typename T_Point>
 class Udp3_1Parser : public GeneralParser<T_Point> {
  public:
   Udp3_1Parser();
   virtual ~Udp3_1Parser();
-
-  // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
-  virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket);
-
-  // compute xyzi of points from decoded packet
-  // param packet is the decoded packet; xyzi of points after computed is puted in frame   
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index);
-
-  // determine whether frame splitting is needed
-  bool IsNeedFrameSplit(uint16_t azimuth); 
+  virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket, const int packet_index = -1);    
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32_t packet_index);
+  virtual void setFrameRightMemorySpace(LidarDecodedFrame<T_Point> &frame);
  private:
 
 };

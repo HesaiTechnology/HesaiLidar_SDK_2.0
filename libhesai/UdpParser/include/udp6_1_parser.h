@@ -36,37 +36,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define UDP6_1_PARSER_H_
 
 #include "general_parser.h"
-#include "lidar_types.h"
+#include "udp_protocol_v6_1.h"
 namespace hesai
 {
 namespace lidar
 {
-#define STR_XTM1 "XTM1"
-#define STR_XTM2 "XTM2"
 // class Udp6_1Parser
 // parsers packets and computes points for PandarXT PandarXT16 PandarXT32 PandarXTM
-// you can parser the upd or pcap packets using the DocodePacket fuction
-// you can compute xyzi of points using the ComputeXYZI fuction, which uses cpu to compute
 template<typename T_Point>
 class Udp6_1Parser : public GeneralParser<T_Point> {
  public:
   Udp6_1Parser(std::string);
   virtual ~Udp6_1Parser();
-
-  // covert a origin udp packet to decoded data, and pass the decoded data to a frame struct to reduce memory copy
-  virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket);
-
-  // compute xyzi of points from decoded packet
-  // param packet is the decoded packet; xyzi of points after computed is puted in frame     
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, int packet_index); 
-
-  // determine whether frame splitting is needed
-  bool IsNeedFrameSplit(uint16_t azimuth);
-  
+  virtual int DecodePacket(LidarDecodedFrame<T_Point> &frame, const UdpPacket& udpPacket, const int packet_index = -1);    
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32_t packet_index);   
+  virtual void setFrameRightMemorySpace(LidarDecodedFrame<T_Point> &frame);
  private:
   std::string XT_type;
-  float distance_correction_b_;
-  float distance_correction_h_;
   uint32_t spot_correction_angle[8] = {3, 3, 25, 25, 20, 15, 8, 6};
 };
 }  // namespace lidar

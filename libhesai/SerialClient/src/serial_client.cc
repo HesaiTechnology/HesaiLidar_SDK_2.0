@@ -137,8 +137,24 @@ int SerialClient::QueryCommand(const uint8_t cmd, const u8Array_t &payload, u8Ar
   return 0;
 }
 
+int SerialClient::ChangeMode(uint8_t mode) {
+  u8Array_t payload, byteStreamOut;
+  payload.push_back(mode);
+  payload.push_back(0x00);
+  int ret = QueryCommand(0x03, payload, byteStreamOut, 5000);
+  if (ret != 0) {
+    return ret;
+  }
+  if (byteStreamOut.size() != 5 || byteStreamOut[1] != 0x03 || byteStreamOut[2] != mode || byteStreamOut[3] != 0x00) {
+    return kInvalidData;
+  }
+  if (byteStreamOut[4] != 0x00) {
+    return CmdErrorCode2RetCode(byteStreamOut[4]);
+  }
+  return 0;
+}
+
 int SerialClient::ChangeUpgradeMode() {
-  printf("change upgrade mode\n");
   u8Array_t payload, byteStreamOut;
   payload.push_back(0x04);
   payload.push_back(0x00);
@@ -156,10 +172,12 @@ int SerialClient::ChangeUpgradeMode() {
 }
 
 int SerialClient::GetCorrectionInfo(u8Array_t &dataOut) {
+  ChangeMode(0x01);
   u8Array_t payload, byteStreamOut;
   payload.push_back(0x07);
   payload.push_back(0x00);
   int ret = QueryCommand(0x02, payload, byteStreamOut, 5000);
+  ChangeMode(0x00);
   if (ret != 0) {
     return ret;
   }
@@ -201,10 +219,10 @@ void SerialClient::SetSerial(Source* source_send, Source* source_recv) {
 }
 
 void SerialClient::CRCInit() {
-  uint32_t i, j, k;
+  uint32_t i, j;
 
   for (i = 0; i < 256; i++) {
-    k = 0;
+    uint32_t k = 0;
     for (j = (i << 24) | 0x800000; j != 0x80000000; j <<= 1)
       k = (k << 1) ^ (((k ^ j) & 0x80000000) ? 0x04c11db7 : 0);
 

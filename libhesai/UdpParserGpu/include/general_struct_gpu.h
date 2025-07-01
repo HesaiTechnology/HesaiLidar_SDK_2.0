@@ -25,56 +25,22 @@ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT
 TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
-#ifndef Udp2_6_PARSER_GPU_H_
-#define Udp2_6_PARSER_GPU_H_
-#pragma once
-#include <array>
-#include <atomic>
-#include <chrono>
-#include <functional>
-#include <cstring>
-#include <map>
-#include <memory>
-#include <mutex>
+#ifndef GENERAL_STRUCT_GPU_H_
+#define GENERAL_STRUCT_GPU_H_
 
-#include "general_parser_gpu.h"
+#include <stdint.h>
+#include <vector>
+#include <iostream>
 
-#ifndef M_PI
-#define M_PI 3.1415926535898
-#endif
-
-namespace hesai
-{
-namespace lidar
-{
-// class Udp2_6ParserGpu
-// computes points for ET25
-// you can compute xyzi of points using the ComputeXYZI fuction, which uses gpu to compute
-template <typename T_Point>
-class Udp2_6ParserGpu: public GeneralParserGpu<T_Point>{
- private:
-  float* channel_azimuths_cu_;
-  float* channel_elevations_cu_;
-  float* channel_azimuths_adjust_cu_;
-  float* channel_elevations_adjust_cu_;
-  PointDecodeData* point_data_cu_;
-  uint64_t* sensor_timestamp_cu_;
- public:
-  Udp2_6ParserGpu();
-  ~Udp2_6ParserGpu();
-
-  // compute xyzi of points from decoded packet， use gpu device
-  // param packet is the decoded packet; xyzi of points after computed is puted in frame  
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
-  virtual int LoadCorrectionFile(std::string correction_path);
-  virtual int LoadCorrectionString(char *correction_string);
-  int LoadCorrectionDatData(char *correction_string);
-  int LoadCorrectionCsvData(char *correction_string);
-  ETCorrections corrections_;
-  bool corrections_loaded_;
-  
+struct Udp4_14_output_cuda {
+    float x;
+    float y;
+    float z;
+    float azimuthCalib;
+    float elevationCalib;
+    uint32_t flag1; //   25~32:intensity, 16~24:confidence, 8~15:peek, 0~7:ambient
+    uint32_t flag;
+    uint16_t width;
 };
-}
-}
-#include "udp2_6_parser_gpu.cu"
-#endif  // Udp2_6_PARSER_GPU_H_
+
+#endif  

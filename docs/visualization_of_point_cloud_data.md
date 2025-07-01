@@ -1,37 +1,47 @@
-# Visualization of Point Cloud
-This document shows how to visualize point clouds by using PCL.
-
+# Point Cloud Data Visualization
+This document shows how to visualize point clouds using PCL
 
 ## Preparation
-Open [pcl_tool.cc](../tool/pcl_tool.cc) 
+Navigate to [pcl_tool.cc](../tool/pcl_tool.cc) 
 
-### Enable viewer
+### 1 Enable Visualization Viewer Tool
 ```cpp
-#define ENABLE_VIEWER;  // Remove code comments
+/* ------------Select the required file format ------------ */
+// #define SAVE_PCD_FILE_ASCII
+// #define SAVE_PCD_FILE_BIN
+// #define SAVE_PCD_FILE_BIN_COMPRESSED
+// #define SAVE_PLY_FILE
+#define ENABLE_VIEWER  // Make sure this line of code is uncommented
 ```
 
-##### Visualization of online point cloud 
-```cpp
-// assign param
-param.input_param.source_type = DATA_FROM_LIDAR;  // Set the data source to real-time data
-param.input_param.ptc_port = 9347;  // TCP protocol port
-param.input_param.udp_port = 2368;  // UDP protocol port
-param.input_param.host_ip_address = "192.168.1.100";  // Host PC IP address
-param.input_param.firetimes_path = {"Your firetime file path"};   // Optional：Laser firing sequence (Firetimes file path)
-```
-##### Visualization of PCAP point cloud data
-```cpp
-// assign param
-param.input_param.source_type = DATA_FROM_PCAP; // Set the data source to PCAP data
-param.input_param.pcap_path = {"Your pcap file path"};  // PCAP file path
-param.input_param.correction_file_path = {"Your correction file path"};   // Calibration file path (Angle Correction file path)
-param.input_param.firetimes_path = {"Your firetime file path"}; // Optional：Laser firing sequence (Firetimes file path)
+### 2 Parsing Configuration Reference 
+Please refer to **[How to Parse Lidar Data Online](../docs/parsing_lidar_data_online.md)** and **[How to Parse PCAP File Data Offline](../docs/parsing_pcap_file_data_offline.md)**
+
+Using PCAP parsing as an example
+
+``` cpp
+/* -------------------Select the test mode ------------------- */
+// #define LIDAR_PARSER_TEST
+// #define SERIAL_PARSER_TEST
+#define PCAP_PARSER_TEST
+// #define EXTERNAL_INPUT_PARSER_TEST
+... ... 
+
+#ifdef PCAP_PARSER_TEST
+  param.input_param.source_type = DATA_FROM_PCAP;                       // Set data source to offline PCAP point cloud data
+  param.input_param.pcap_path = "path/to/pcap";                         // Offline PCAP point cloud data path
+  param.input_param.correction_file_path = "/path/to/correction.csv";   // Calibration file (angle correction file), recommend using the lidar's own calibration file
+  param.input_param.firetimes_path = "path/to/firetimes.csv";           // Optional: Channel firing timing (firing moment correction file)
+
+  param.decoder_param.pcap_play_synchronization = true;                 // Synchronize parsing according to point cloud timestamp, simulating actual lidar frequency
+  param.decoder_param.pcap_play_in_loop = false;                        // Loop parsing PCAP
+#endif
 ```
 
 
 ## Steps
-### 1 Compile
-Navigate to the HesaiLidar_SDK_2.0 directory, open a Terminal window, and run the following commands.
+### 1 Compilation
+In the HesaiLidar_SDK_2.0 folder, open a terminal and execute the following commands:
 ```bash
 cd HesaiLidar_SDK_2.0/tool
 mkdir build
@@ -41,7 +51,7 @@ make
 ```
 
 ### 2 Run
-Once compiled successfully, go to the build folder, execute the generated pcl_tool executable, and the system will display a visualization window.
+After successful compilation, run the generated pcl_tool executable file in the build folder. The system will have a visualization window.
 ```bash
 ./pcl_tool
 ```
