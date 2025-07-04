@@ -62,7 +62,9 @@ struct PandarPacket {
   uint8_t buffer[kBufSize];
   PandarPacket(const uint8_t *data = nullptr, uint32_t sz = 0, uint16_t prt = 0)
       : size(sz), port(prt) {
-    memcpy(buffer, data, size);
+    if (data != nullptr) {
+      memcpy(buffer, data, size);
+    }
   }
 };
 
