@@ -38,9 +38,7 @@ struct Udp4_14_output_cuda {
     float z;
     float azimuthCalib;
     float elevationCalib;
-    uint32_t flag1; //   25~32:intensity, 16~24:confidence, 8~15:peek, 0~7:ambient
-    uint32_t flag;
-    uint16_t width;
+    uint32_t flag1; //   25~32:intensity, 16~24:confidence
 };
 
 #endif  

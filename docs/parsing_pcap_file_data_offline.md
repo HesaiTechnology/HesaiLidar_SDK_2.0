@@ -28,5 +28,5 @@
 make -j$(nproc)
 
 # 2. Execute sample program: Start parsing data
-$ ./sample
+./sample
 ```

@@ -29,7 +29,7 @@
 
 #### 1.4 校准设置
 8. `distance_correction_lidar_flag`: 为机械式激光雷达启用光心修正
-   *(Pandar/QT/OT/XT系列可选)*
+   *(Pandar/QT/OT/XT/JT系列可选)*
 
 9. `xt_spot_correction`:  启用XT16/32 S形分层校正  
    *(默认: false)*

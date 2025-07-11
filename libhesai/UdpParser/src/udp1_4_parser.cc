@@ -478,8 +478,8 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     }
     if (this->lidar_type_ == STR_OT128) {
       block_ns_offset = PandarN::OT128_BLOCK_NS_OFFSET2 * int((pHeader->GetBlockNum() - blockid - 1) / (frame.return_mode < RETURN_MODE_MULTI ? 1 : 2)) * (pTail->getOperationMode() == 0 ? 1 : 2);
-
-    } else {
+    }
+    else {
       if (pHeader->GetBlockNum() == 40)
         block_ns_offset = PandarN::PandarN_BLOCK_NS_OFFSET1 + PandarN::Pandar40S_BLOCK_NS_OFFSET2 * int((pHeader->GetBlockNum() - blockid - 1) / (frame.return_mode < RETURN_MODE_MULTI ? 1 : 2));
       else 

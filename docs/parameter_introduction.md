@@ -29,7 +29,7 @@
 
 #### 1.4 Calibration Settings
 8. `distance_correction_lidar_flag`: Enable optical center correction for mechanical lidars
-   *(Optional for Pandar/QT/OT/XT series)*
+   *(Optional for Pandar/QT/OT/XT/JT series)*
 
 9. `xt_spot_correction`: Enable XT16/32 S-shaped layered correction  
    *(Default: false)*
