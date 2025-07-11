@@ -319,7 +319,6 @@ class LidarDecodedFrame
     PointT* points = nullptr;
     //special output
     LidarImuData imu_config;
-    std::vector<uint8_t> correction_data;
     // point cloud raw data
     bool frame_init_ = false;
     uint32_t point_cloud_size = 0;

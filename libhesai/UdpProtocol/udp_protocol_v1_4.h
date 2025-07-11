@@ -332,6 +332,7 @@ namespace PandarN {
   static constexpr int32_t PandarN_BLOCK_NS_OFFSET2 = -27778;
   static constexpr int32_t Pandar40S_BLOCK_NS_OFFSET2 = -55556;
   static constexpr int32_t OT128_BLOCK_NS_OFFSET2 = -27778;
+  static constexpr int32_t OTHER_BLOCK_NS_OFFSET2 = -111000;
 }
 
 }  // namespace lidar

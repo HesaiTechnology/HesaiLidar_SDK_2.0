@@ -106,10 +106,6 @@ DEFINE_MEMBER_CHECKER(timeSecond)
 DEFINE_MEMBER_CHECKER(timeNanosecond)
 DEFINE_MEMBER_CHECKER(weightFactor)
 DEFINE_MEMBER_CHECKER(envLight)
-DEFINE_MEMBER_CHECKER(peek)
-DEFINE_MEMBER_CHECKER(width)
-DEFINE_MEMBER_CHECKER(ambient)
-DEFINE_MEMBER_CHECKER(flag)
 
 DEFINE_SET_GET(x, float)  
 DEFINE_SET_GET(y, float)  
@@ -122,10 +118,6 @@ DEFINE_SET_GET(timeNanosecond, uint32_t)
 DEFINE_SET_GET(confidence, uint8_t)  
 DEFINE_SET_GET(weightFactor, uint8_t)
 DEFINE_SET_GET(envLight, uint8_t)
-DEFINE_SET_GET(peek, uint8_t)
-DEFINE_SET_GET(width, uint16_t)
-DEFINE_SET_GET(ambient, uint8_t)
-DEFINE_SET_GET(flag, uint32_t)
 
 
 

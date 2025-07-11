@@ -234,13 +234,6 @@ struct PointDecodeData {
       uint8_t confidence;
       uint16_t point_id;
     } dET;
-    struct {
-      uint8_t confidence;
-      uint8_t peek;
-      uint16_t width;
-      uint8_t ambient;
-      uint32_t flag;
-    } dAT4_14;
   } data;
   uint8_t reflectivity;
 };

@@ -63,5 +63,5 @@
 make -j$(nproc)
 
 # 2. 执行示例程序：开始解析数据
-$ ./sample
+./sample
 ```
