@@ -95,10 +95,46 @@ link_directories(./libhesai/PtcClient/lib)
 #  test/test.cc
 #)
 
+add_library(foxglove_handler STATIC)
+
+# Set include files
+target_include_directories(foxglove_handler
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/foxglove
+        ${Protobuf_INCLUDE_DIR}
+
+)
+PROTOBUF_TARGET_CPP(foxglove_handler ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/ ${protobuf_files})
+
+# Set source files
+target_sources(foxglove_handler
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/foxglove/FoxglovePointCloudHandler.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/foxglove/FoxglovePointCloudUtilities.cpp
+)
+
+target_link_libraries(foxglove_handler
+  PRIVATE
+  protobuf::libprotobuf
+)
+
+install(
+    TARGETS foxglove_handler
+    COMPONENT TARGET_COMPONENT
+    DESTINATION lib
+)
+
 add_executable(sample_eCal
   test_eCAL/pointcloud/PointCloudHandler.cpp
   test_eCAL/test.cc
 )
+
+target_include_directories(sample_eCal
+  PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/foxglove
+)
+
 PROTOBUF_TARGET_CPP(sample_eCal ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/ ${protobuf_files})
 
 
@@ -112,6 +148,7 @@ target_link_libraries(sample_eCal
   ${OPENSSL_LIBRARIES}
   eCAL::core
   protobuf::libprotobuf
+  foxglove_handler
 )
 
 # if install different cuda version, set the cuda path, like cuda-11.4

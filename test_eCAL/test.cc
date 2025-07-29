@@ -12,15 +12,16 @@
 #include "foxglove/LinePrimitive.pb.h"
 #include "foxglove/PointCloud.pb.h"
 #include "pointcloud/PointCloudHandler.h"
+#include "foxglove/FoxglovePointCloudUtilities.hpp"
 
 eCAL::protobuf::CPublisher<pcl::PointCloud2> publisher_pcl2;
-
+eCAL::protobuf::CPublisher<foxglove::PointCloud> publisher_pcl_fox;
 void init_eCAL(int argc, char** argv) {
   // Initialize eCAL
   eCAL::Initialize(argc, argv, "HesaiAT128->eCAL");
   // create publisher
-//  publisher_pcl2 = eCAL::protobuf::CPublisher<pcl::PointCloud2>("HesaiAT128");
-  publisher_pcl2 = eCAL::protobuf::CPublisher<pcl::PointCloud2>("meta_pcl");
+  publisher_pcl2 = eCAL::protobuf::CPublisher<pcl::PointCloud2>("AT128");
+  publisher_pcl_fox = eCAL::protobuf::CPublisher<foxglove::PointCloud>("AT128_fox");
   printf("Ecal publisher created\n");
   // set eCAL state to healthy (--> eCAL Monitor)
   eCAL::Process::SetState(proc_sev_healthy, proc_sev_level1, "HesaiAT128 eCAL publisher initialized");
@@ -30,10 +31,68 @@ void exit_eCAL() {
   eCAL::Finalize(); // finalize eCAL API
 }
 
-void splitDouble(const double value, float &high, float &low) {
+struct point{
+  float x;
+  float y;
+  float z;
+  float intensity;
+  float confidence;
+  float ring; // uint16_t
+  float ts_high;
+  float ts_low;
+};
+
+void splitDouble(double value, float &high, float &low) {
   high = static_cast<float>(std::floor(value)); // Integer part as float
   low = static_cast<float>(value - high);      // Fractional part as float
 }
+
+void publish_pointloud_fox(const LidarDecodedFrame<LidarPointXYZICRT> &frame, eCAL::protobuf::CPublisher<foxglove::PointCloud>& publisher_pcl_fox) {
+  // Create a protobuf message object
+
+  std::vector<point> pts;
+
+  // Reserving memory for avoiding multiple reallocations
+  pts.reserve(frame.points_num);
+4
+  float ts_high, ts_low;
+  for (uint32_t i = 0; i < frame.points_num; i++)
+  {
+    point temp;
+    temp.x = frame.points[i].x;
+    temp.y = frame.points[i].y;
+    temp.z = frame.points[i].z;
+    temp.intensity = frame.points[i].intensity;
+    temp.confidence = frame.points[i].confidence;
+    temp.ring = static_cast<float>(frame.points[i].ring); // uint16_t
+    splitDouble(frame.points[i].timestamp, ts_high, ts_low); // double to float conversion
+    temp.ts_low = ts_low;
+    temp.ts_high = ts_high;
+    pts.push_back(temp);
+
+  }
+
+  std::vector<std::pair<std::string, foxglove::PackedElementField_NumericType>> fieldsPairVector = {
+    { "x",         foxglove::PackedElementField_NumericType::PackedElementField_NumericType_FLOAT32 },
+    { "y",         foxglove::PackedElementField_NumericType::PackedElementField_NumericType_FLOAT32 },
+    { "z",         foxglove::PackedElementField_NumericType::PackedElementField_NumericType_FLOAT32 },
+    { "intensity", foxglove::PackedElementField_NumericType::PackedElementField_NumericType_FLOAT32 },
+    { "confidence",foxglove::PackedElementField_NumericType::PackedElementField_NumericType_FLOAT32 },
+    { "ring",      foxglove::PackedElementField_NumericType::PackedElementField_NumericType_FLOAT32 },
+    { "ts_high",   foxglove::PackedElementField_NumericType::PackedElementField_NumericType_FLOAT32 },
+    { "ts_low",    foxglove::PackedElementField_NumericType::PackedElementField_NumericType_FLOAT32 }
+  };
+
+  //@todo Correct the timestamp if it is not in nanoseconds
+  uint64_t timestamp_ns = frame.host_timestamp;  // your uint64_t timestamp in nanoseconds
+  uint32_t secs = static_cast<uint32_t>(timestamp_ns / 1'000'000'000);  // extract seconds
+  uint32_t nsecs = static_cast<uint32_t>(timestamp_ns % 1'000'000'000); // remaining nanoseconds
+  foxglove::PointCloud at128_pointcloud = createFoxglovePointCloudMessage<point>(pts, fieldsPairVector, secs, nsecs, "base_link");
+
+  // Send the message
+  publisher_pcl_fox.Send(at128_pointcloud);
+};
+
 void publish_pointloud2(const LidarDecodedFrame<LidarPointXYZICRT> &frame, eCAL::protobuf::CPublisher<pcl::PointCloud2>& publisher_pcl2) {
   // Create a protobuf message object
   pcl::PointCloud2 at128_pointcloud;
@@ -57,7 +116,6 @@ void publish_pointloud2(const LidarDecodedFrame<LidarPointXYZICRT> &frame, eCAL:
       ts_frame_low = ts_low;
     }
   }
-
   // fill the protobuf message object
   setPointCloud(&at128_pointcloud, { "x","y","z","intensity","confidence","ring","ts_low","ts_high" }, pts);
   at128_pointcloud.mutable_header()->mutable_stamp()->set_secs(ts_frame_high);
@@ -82,7 +140,8 @@ void lidarCallback(const LidarDecodedFrame<LidarPointXYZICRT>  &frame) {
   last_frame_time = cur_frame_time;
   printf("frame:%d points:%u packet:%u start time:%lf end time:%lf\n",frame.frame_index, frame.points_num, frame.packet_num, frame.points[0].timestamp, frame.points[frame.points_num - 1].timestamp) ;
 
-  publish_pointloud2(frame, publisher_pcl2);
+  publish_pointloud_fox(frame, publisher_pcl_fox);
+//  publish_pointloud2(frame, publisher_pcl2);
 }
 
 void faultMessageCallback(const FaultMessageInfo& fault_message_info) {
