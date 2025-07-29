@@ -91,12 +91,9 @@ include_directories(
 )
 link_directories(./libhesai/PtcClient/lib)
 
-#add_executable(sample
-#  test/test.cc
-#)
 
+# >>> foxglove >>>
 add_library(foxglove_handler STATIC)
-
 # Set include files
 target_include_directories(foxglove_handler
     PRIVATE
@@ -105,24 +102,23 @@ target_include_directories(foxglove_handler
 
 )
 PROTOBUF_TARGET_CPP(foxglove_handler ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/proto/ ${protobuf_files})
-
 # Set source files
 target_sources(foxglove_handler
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/foxglove/FoxglovePointCloudHandler.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test_eCAL/foxglove/FoxglovePointCloudUtilities.cpp
 )
-
 target_link_libraries(foxglove_handler
   PRIVATE
   protobuf::libprotobuf
 )
-
 install(
     TARGETS foxglove_handler
     COMPONENT TARGET_COMPONENT
     DESTINATION lib
 )
+# <<< foxglove <<<
+
 
 add_executable(sample_eCal
   test_eCAL/pointcloud/PointCloudHandler.cpp
