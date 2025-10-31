@@ -76,7 +76,7 @@ private:
     std::string pcap_path_;
 
     using Container = BlockingRing<PandarPacket, 32*1024>;
-    std::shared_ptr<Container> packets_cache_;
+    std::shared_ptr<Container> packets_cache_ = nullptr;
     bool dumping_;
     bool dumping_blocked_;
     // std::mutex _mutex;

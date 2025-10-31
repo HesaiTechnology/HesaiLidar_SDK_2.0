@@ -43,7 +43,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hesai::lidar;
 
-static constexpr uint32_t pcap_magic_number = 0xa1b2c3d4;
+static constexpr uint32_t pcap_magic_number_native = 0xa1b2c3d4;      // 微秒，主机字节序
+static constexpr uint32_t pcap_magic_number_swapped = 0xd4c3b2a1;     // 微秒，网络字节序
+static constexpr uint32_t pcap_magic_number_native_nsec = 0xa1b23c4d; // 纳秒，主机字节序
+static constexpr uint32_t pcap_magic_number_swapped_nsec = 0x4d3cb2a1; // 纳秒，网络字节序
 
 PcapIPHeader::PcapIPHeader(uint8_t protocol, uint16_t pkt_len)
     : ether{ {0xff,0xff,0xff,0xff,0xff,0xff}, {0x00, 0x0a, 0x35, 0x00, 0x1e, 0x53}, 0x0008 }
@@ -466,7 +469,39 @@ bool PcapSource::Open() {
             throw std::runtime_error(std::string("Fail to open .pcap file: \"") + (pcap_path_)+"\"");
         }
         _p->read(pcap_header_);
-        if (pcap_header_.magic_number != pcap_magic_number) {
+        bool valid_pcap = false;
+        switch (pcap_header_.magic_number) {
+            case pcap_magic_number_native:
+                // 微秒精度，主机字节序
+                time_precision_ = 1000000; // 微秒
+                byte_order_ = BYTE_ORDER_NATIVE;
+                valid_pcap = true;
+                break;
+            case pcap_magic_number_swapped:
+                // 微秒精度，需要字节序转换
+                time_precision_ = 1000000; // 微秒
+                byte_order_ = BYTE_ORDER_SWAPPED;
+                // 需要对后续读取的数据进行字节序转换
+                valid_pcap = true;
+                break;
+            case pcap_magic_number_native_nsec:
+                // 纳秒精度，主机字节序
+                time_precision_ = 1000000000; // 纳秒
+                byte_order_ = BYTE_ORDER_NATIVE;
+                valid_pcap = true;
+                break;
+            case pcap_magic_number_swapped_nsec:
+                // 纳秒精度，需要字节序转换
+                time_precision_ = 1000000000; // 纳秒
+                byte_order_ = BYTE_ORDER_SWAPPED;
+                // 需要对后续读取的数据进行字节序转换
+                valid_pcap = true;
+                break;
+            default:
+                valid_pcap = false;
+                break;
+        }
+        if (!valid_pcap) {
             throw std::runtime_error(std::string("Not a valid .pcap file: \"") + (pcap_path_)+"\"");
         }
         begin_pos = _p->fpos();
@@ -496,6 +531,13 @@ int PcapSource::next() {
     }
     bool ret = _p->read(pcap_record_);
     if (!ret) return -1;
+    if (byte_order_ == BYTE_ORDER_SWAPPED) {
+        pcap_record_.incl_len = convert_endian_32(pcap_record_.incl_len);
+        pcap_record_.orig_len = convert_endian_32(pcap_record_.orig_len);
+        // 时间戳也需要转换
+        pcap_record_.ts_sec = convert_endian_32(pcap_record_.ts_sec);
+        pcap_record_.ts_usec = convert_endian_32(pcap_record_.ts_usec);
+    }
     if (pcap_record_.incl_len <= kBufSize && pcap_record_.incl_len > sizeof(Ethernet)) {
         ret = _p->read(payload_.data(), pcap_record_.incl_len);
         if (!ret) return -1;
@@ -625,110 +667,110 @@ int PcapSource::next() {
             }
             break;
         default:
-            LogWarning("can not parser Ethernet data, type = %x ", ((Ethernet*)payload_.data())->ether_type);
+            // LogWarning("can not parser Ethernet data, type = %x ", ((Ethernet*)payload_.data())->ether_type);
             break;
         }
     }
-    else if (tcp_callback_ && pcap_record_.incl_len > kBufSize && pcap_record_.incl_len <= kBufSize * 4) {
-        ret = _p->read(payload_tcp_.data(), pcap_record_.incl_len);
-        if (!ret) return -1;
-        switch (((Ethernet*)payload_tcp_.data())->ether_type)
-        {
-        case 0x0008: // ipv4
-            switch (((PcapIPHeader*)payload_tcp_.data())->ip.protocol)
-            {
-            case 6:
-                if (pcap_record_.incl_len < sizeof(PcapTCPHeader)) return 1;
-                pcap_tcp_header_ = *(const TCP*)(payload_tcp_.data() + sizeof(PcapIPHeader));
-                if (tcp_callback_) {
-                    if(pcap_tcp_header_.getLenres() < sizeof(TCP)) {
-                        return 2;
-                    }
-                    int header_options_len = pcap_tcp_header_.getLenres() - sizeof(TCP);
-                    return tcp_callback_(payload_tcp_.data() + sizeof(PcapTCPHeader) + header_options_len, pcap_record_.incl_len - sizeof(PcapTCPHeader) - header_options_len);
-                }
-                else
-                    return 2;
-                break;
-            default:
-                return 2;
-                break;
-            }
-            break;
-        case 0xdd86: // ipv6 
-            switch (((PcapIPv6Header*)payload_tcp_.data())->ipv6.next_header)
-            {
-            case 6:
-                if (pcap_record_.incl_len < sizeof(PcapTCPv6Header)) return 1;
-                pcap_tcp_header_ = *(const TCP*)(payload_tcp_.data() + sizeof(PcapIPv6Header));
-                if (tcp_callback_) {
-                    if(pcap_tcp_header_.getLenres() < sizeof(TCP)) {
-                        return 2;
-                    }
-                    int header_options_len = pcap_tcp_header_.getLenres() - sizeof(TCP);
-                    return tcp_callback_(payload_tcp_.data() + sizeof(PcapTCPv6Header) + header_options_len, pcap_record_.incl_len - sizeof(PcapTCPv6Header) - header_options_len);
-                }
-                else
-                    return 2;
-                break;
-            default:
-                return 2;
-                break;
-            }
-            break;
-        case 0x0081:  // vlan tag
-        switch (*((uint16_t*)(payload_tcp_.data() + sizeof(Ethernet) + 2)))
-            {
-            case 0x0008:
-                switch (*((uint8_t*)(payload_tcp_.data() + sizeof(Ethernet) + 13)))
-                {
-                case 6:
-                    if (pcap_record_.incl_len < sizeof(PcapTCPHeader) + 4) return 1;
-                    pcap_tcp_header_ = *(const TCP*)(payload_tcp_.data() + sizeof(PcapIPHeader) + 4);
-                    if (tcp_callback_) {
-                        if(pcap_tcp_header_.getLenres() < sizeof(TCP)) {
-                            return 2;
-                        }
-                        int header_options_len = pcap_tcp_header_.getLenres() - sizeof(TCP);
-                        return tcp_callback_(payload_tcp_.data() + sizeof(PcapTCPHeader) + header_options_len, pcap_record_.incl_len - sizeof(PcapTCPHeader) - header_options_len);
-                    }
-                    else
-                        return 2;
-                    break;
-                default:
-                    return 2;
-                    break;
-                }
-                break;
-            case 0xdd86:
-                switch (*((uint8_t*)(payload_tcp_.data() + sizeof(Ethernet) + 13)))
-                {
-                case 6:
-                    if (pcap_record_.incl_len < sizeof(PcapTCPv6Header) + 4) return 1;
-                    pcap_tcp_header_ = *(const TCP*)(payload_tcp_.data() + sizeof(PcapIPv6Header) + 4);
-                    if (tcp_callback_) {
-                        if(pcap_tcp_header_.getLenres() < sizeof(TCP)) {
-                            return 2;
-                        }
-                        int header_options_len = pcap_tcp_header_.getLenres() - sizeof(TCP);
-                        return tcp_callback_(payload_tcp_.data() + sizeof(PcapTCPv6Header) + header_options_len, pcap_record_.incl_len - sizeof(PcapTCPv6Header) - header_options_len);
-                    }
-                    else
-                        return 2;
-                    break;
-                default:
-                    return 2;
-                    break;
-                }
-            default:
-                return 2;
-                break;
-            }
-            break;
-        default:
-            break;
-        }
-    }
+    // else if (tcp_callback_ && pcap_record_.incl_len > kBufSize && pcap_record_.incl_len <= kBufSize * 4) {
+    //     ret = _p->read(payload_tcp_.data(), pcap_record_.incl_len);
+    //     if (!ret) return -1;
+    //     switch (((Ethernet*)payload_tcp_.data())->ether_type)
+    //     {
+    //     case 0x0008: // ipv4
+    //         switch (((PcapIPHeader*)payload_tcp_.data())->ip.protocol)
+    //         {
+    //         case 6:
+    //             if (pcap_record_.incl_len < sizeof(PcapTCPHeader)) return 1;
+    //             pcap_tcp_header_ = *(const TCP*)(payload_tcp_.data() + sizeof(PcapIPHeader));
+    //             if (tcp_callback_) {
+    //                 if(pcap_tcp_header_.getLenres() < sizeof(TCP)) {
+    //                     return 2;
+    //                 }
+    //                 int header_options_len = pcap_tcp_header_.getLenres() - sizeof(TCP);
+    //                 return tcp_callback_(payload_tcp_.data() + sizeof(PcapTCPHeader) + header_options_len, pcap_record_.incl_len - sizeof(PcapTCPHeader) - header_options_len);
+    //             }
+    //             else
+    //                 return 2;
+    //             break;
+    //         default:
+    //             return 2;
+    //             break;
+    //         }
+    //         break;
+    //     case 0xdd86: // ipv6 
+    //         switch (((PcapIPv6Header*)payload_tcp_.data())->ipv6.next_header)
+    //         {
+    //         case 6:
+    //             if (pcap_record_.incl_len < sizeof(PcapTCPv6Header)) return 1;
+    //             pcap_tcp_header_ = *(const TCP*)(payload_tcp_.data() + sizeof(PcapIPv6Header));
+    //             if (tcp_callback_) {
+    //                 if(pcap_tcp_header_.getLenres() < sizeof(TCP)) {
+    //                     return 2;
+    //                 }
+    //                 int header_options_len = pcap_tcp_header_.getLenres() - sizeof(TCP);
+    //                 return tcp_callback_(payload_tcp_.data() + sizeof(PcapTCPv6Header) + header_options_len, pcap_record_.incl_len - sizeof(PcapTCPv6Header) - header_options_len);
+    //             }
+    //             else
+    //                 return 2;
+    //             break;
+    //         default:
+    //             return 2;
+    //             break;
+    //         }
+    //         break;
+    //     case 0x0081:  // vlan tag
+    //     switch (*((uint16_t*)(payload_tcp_.data() + sizeof(Ethernet) + 2)))
+    //         {
+    //         case 0x0008:
+    //             switch (*((uint8_t*)(payload_tcp_.data() + sizeof(Ethernet) + 13)))
+    //             {
+    //             case 6:
+    //                 if (pcap_record_.incl_len < sizeof(PcapTCPHeader) + 4) return 1;
+    //                 pcap_tcp_header_ = *(const TCP*)(payload_tcp_.data() + sizeof(PcapIPHeader) + 4);
+    //                 if (tcp_callback_) {
+    //                     if(pcap_tcp_header_.getLenres() < sizeof(TCP)) {
+    //                         return 2;
+    //                     }
+    //                     int header_options_len = pcap_tcp_header_.getLenres() - sizeof(TCP);
+    //                     return tcp_callback_(payload_tcp_.data() + sizeof(PcapTCPHeader) + header_options_len, pcap_record_.incl_len - sizeof(PcapTCPHeader) - header_options_len);
+    //                 }
+    //                 else
+    //                     return 2;
+    //                 break;
+    //             default:
+    //                 return 2;
+    //                 break;
+    //             }
+    //             break;
+    //         case 0xdd86:
+    //             switch (*((uint8_t*)(payload_tcp_.data() + sizeof(Ethernet) + 13)))
+    //             {
+    //             case 6:
+    //                 if (pcap_record_.incl_len < sizeof(PcapTCPv6Header) + 4) return 1;
+    //                 pcap_tcp_header_ = *(const TCP*)(payload_tcp_.data() + sizeof(PcapIPv6Header) + 4);
+    //                 if (tcp_callback_) {
+    //                     if(pcap_tcp_header_.getLenres() < sizeof(TCP)) {
+    //                         return 2;
+    //                     }
+    //                     int header_options_len = pcap_tcp_header_.getLenres() - sizeof(TCP);
+    //                     return tcp_callback_(payload_tcp_.data() + sizeof(PcapTCPv6Header) + header_options_len, pcap_record_.incl_len - sizeof(PcapTCPv6Header) - header_options_len);
+    //                 }
+    //                 else
+    //                     return 2;
+    //                 break;
+    //             default:
+    //                 return 2;
+    //                 break;
+    //             }
+    //         default:
+    //             return 2;
+    //             break;
+    //         }
+    //         break;
+    //     default:
+    //         break;
+    //     }
+    // }
     else {
         ret = _p->move(pcap_record_.incl_len);
         if (!ret) return -1;
@@ -752,7 +794,13 @@ bool PcapSource::IsOpened() {
 
 int PcapSource::Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags,
                        int iTimeout) {
-    
+    if (dataIndex + 581 <= dataLength) {
+        memcpy(udpPacket.buffer + 2, m_receiveBuffer, 581);
+        udpPacket.buffer[0] = 0xEE;
+        udpPacket.buffer[1] = 0xFF;
+        dataIndex += 581;
+        return 581 + 2;
+    }
     callback([&](
         const uint8_t* data,
         uint32_t len
@@ -761,6 +809,30 @@ int PcapSource::Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags,
             return len;
         }
     );
+    tcp_callback([&](
+        const uint8_t* data,
+        uint32_t len
+        ) ->int {
+            if (len % 581 != 0) return -1;
+            memcpy(m_receiveBuffer + dataLength, data, len);
+            dataLength += len;
+            if (dataIndex + 581 <= dataLength) {
+                memcpy(udpPacket.buffer + 2, m_receiveBuffer + dataIndex, 581);
+                udpPacket.buffer[0] = 0xEE;
+                udpPacket.buffer[1] = 0xFF;
+                dataIndex += 581;
+                return 581 + 2;
+            }
+            return -1;
+        }
+    );
+    if (dataLength + kBufSize * 5 > kDataMaxLength) {
+      if (dataIndex != dataLength) {
+        memcpy(m_receiveBuffer, m_receiveBuffer + dataIndex, dataLength - dataIndex);
+      }
+      dataLength = dataLength - dataIndex;
+      dataIndex = 0;
+    }
     return next();
 }
 
@@ -776,4 +848,32 @@ void PcapSource::setPcapPath(std::string path) {
 
 void PcapSource::setPacketInterval(int microsecond) {
     packet_interval_ = microsecond;
+}
+
+inline uint16_t PcapSource::convert_endian_16(uint16_t value) {
+    if (byte_order_ == BYTE_ORDER_SWAPPED) {
+        return ((value & 0xff) << 8) | ((value >> 8) & 0xff);
+    }
+    return value;
+}
+
+inline uint32_t PcapSource::convert_endian_32(uint32_t value) {
+    if (byte_order_ == BYTE_ORDER_SWAPPED) {
+        return ((value & 0xff) << 24) | 
+               (((value >> 8) & 0xff) << 16) | 
+               (((value >> 16) & 0xff) << 8) | 
+               ((value >> 24) & 0xff);
+    }
+    return value;
+}
+uint64_t PcapSource::getPacketTimestamp(const PcapRecord& record) {
+    uint64_t timestamp = record.ts_sec;
+    if (time_precision_ == 1000000) {
+        // 微秒精度
+        timestamp = timestamp * 1000000 + record.ts_usec;
+    } else {
+        // 纳秒精度
+        timestamp = timestamp * 1000000000 + record.ts_usec;
+    }
+    return timestamp;
 }

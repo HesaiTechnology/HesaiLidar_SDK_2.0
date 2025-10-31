@@ -38,12 +38,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <cstring>
 using namespace hesai::lidar;
-SocketSource::SocketSource(const uint16_t port, const std::string& multicastIp) {
+SocketSource::SocketSource(const uint16_t port, const std::string& localIp, const std::string& multicastIp) {
   client_ip_.clear();
   udp_port_ = port;
   udp_sock_ = -1;
   multicast_ip_ = multicastIp;
   is_select_ = false;
+  localIp_ = localIp;
 }
 
 SocketSource::~SocketSource() { Close(); }
@@ -51,8 +52,8 @@ SocketSource::~SocketSource() { Close(); }
 void SocketSource::Close() {
   LogInfo("SocketSource::Close()");
 
-  client_ip_.clear();
-  udp_port_ = 0;
+  // client_ip_.clear();
+  // udp_port_ = 0;
 
   if (udp_sock_ != -1) {
 #ifdef _MSC_VER
@@ -86,7 +87,8 @@ bool SocketSource::Open() {
   memset(&serverAddr, 0, sizeof(serverAddr));
 
   serverAddr.sin_family = AF_INET;
-  serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  if (localIp_ == "") serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  else serverAddr.sin_addr.s_addr = inet_addr(localIp_.c_str());
   serverAddr.sin_port = htons(udp_port_);
 
   int reuseaddr = 1;
@@ -274,78 +276,4 @@ void SocketSource::SetClientIp(std::string client_ip) {
   send_addr_.sin_family = AF_INET;
   send_addr_.sin_port = htons(udp_port_);
   send_addr_.sin_addr.s_addr = inet_addr(client_ip_.c_str());
-}
-
-bool SocketSource::sendsomeip_subscribe_ipv4(std::string someip_ip, std::string host_addr, int port, int fault_message_port) {
-  if (udp_sock_ == -1) return false;
-  sockaddr_in addr2;
-  memset(&addr2, 0, sizeof(sockaddr_in));
-  // Prepare the sockaddr_in structure
-  addr2.sin_family = AF_INET;
-  addr2.sin_addr.s_addr = inet_addr(someip_ip.c_str());
-  addr2.sin_port = htons(30490);
-  // 构造SomeIP消息
-  SomeIPMessage msg;
-  msg.header.someip_service_id = 0xffff;
-  msg.header.someip_method_id = htons(0x8100);
-  msg.header.someip_length = 0x30000000;
-  msg.header.someip_client_id = 0x0000;
-  msg.header.someip_session_id = htons(0x0001);
-  msg.header.someip_version = 0x01;
-  msg.header.someip_interface_version = 0x01;
-  msg.header.someip_message_type = 0x02;
-  msg.header.someip_return_code = 0x00;
-  uint8_t data[] = {0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x06, 0x00, 0x00, 0x10, 0xa2, 0xa0, \
-                  0x00, 0x0a, 0x01, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0c, \
-                  0x00, 0x09, 0x04, 0x00, 0x0a, 0x17, 0x01, 0x65, 0x00, 0x11, 0xb5, 0xb1};
-  {
-    data[38] = port / 256;
-    data[39] = port % 256;
-    std::istringstream ss(host_addr);
-    std::string segment;  
-    int segmentsCount = 0;  
-    while (std::getline(ss, segment, '.')) {  
-        if (segment.empty() || segmentsCount >= 4)  
-            return false;
-        data[32 + segmentsCount] = std::stoi(segment);  
-        segmentsCount++;
-    }
-  }
-  // 发送消息
-  memcpy(msg.payload, data, 40);
-  int bytes_sent = sendto(udp_sock_, reinterpret_cast<char*>(&msg), sizeof(msg), 0, reinterpret_cast<const sockaddr*>(&addr2), sizeof(sockaddr_in));
-  LogInfo("someip subscribe");
-  if (bytes_sent == SOCKET_ERROR) {
-      LogError("Error sending someip subscribe message");
-      return false;
-  }
-  if (fault_message_port != 0) {  
-    uint8_t fm_data[] = {0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x06, 0x00, 0x00, 0x10, 0xa2, 0x9e, \
-                    0x00, 0x0a, 0x01, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0c, \
-                    0x00, 0x09, 0x04, 0x00, 0x0a, 0x17, 0x01, 0x65, 0x00, 0x11, 0x9c, 0x40};
-    {
-        fm_data[38] = fault_message_port / 256;
-        fm_data[39] = fault_message_port % 256;
-        std::istringstream ss(host_addr);
-        std::string segment;  
-        int segmentsCount = 0;  
-        while (std::getline(ss, segment, '.')) {  
-            if (segment.empty() || segmentsCount >= 4)  
-                return false;
-            fm_data[32 + segmentsCount] = std::stoi(segment);  
-            segmentsCount++;
-        }
-    }
-    memcpy(msg.payload, fm_data, 40);
-    int bytes_sent_fm = sendto(udp_sock_, reinterpret_cast<char*>(&msg), sizeof(msg), 0, reinterpret_cast<const sockaddr*>(&addr2), sizeof(sockaddr_in));
-    LogInfo("someip fault message subscribe");
-    if (bytes_sent_fm == SOCKET_ERROR) {
-        LogError("Error sending someip fault message subscribe message");
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));//sleep 10毫秒
-  }
-  else {
-    LogInfo("someip fault message subscribe is not enabled");
-  }
-  return true;
 }

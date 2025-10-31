@@ -334,67 +334,100 @@ int Udp4_7Parser<T_Point>::getDisplay(bool **display) {
 
 template<typename T_Point>
 int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32_t packet_index) {
-  if ((packet_index + 1) * frame.per_points_num >= frame.maxPackerPerFrame * frame.maxPointPerPacket) {
-    LogFatal("total points exceeded memory storage limit");
+  if (packet_index >= frame.maxPacketPerFrame || frame.point_cloud_raw_data == nullptr) {
+    LogFatal("packet_index(%d) out of %d. or data ptr is nullptr", packet_index, frame.maxPacketPerFrame);
     GeneralParser<T_Point>::FrameNumAdd();
     return -1;
   }
+  uint8_t* data = frame.point_cloud_raw_data + packet_index * frame.point_cloud_size;
+
+  const HS_LIDAR_HEADER_ST_V7 *pHeader =
+      reinterpret_cast<const HS_LIDAR_HEADER_ST_V7 *>(
+          data + sizeof(HS_LIDAR_PRE_HEADER));
+  
+  const HS_LIDAR_TAIL_ST_V7 *pTail =
+      reinterpret_cast<const HS_LIDAR_TAIL_ST_V7 *>(
+          (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ST_V7) +
+          (sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7) +
+           sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7) +
+           sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V7) * pHeader->GetLaserNum()) *
+              pHeader->GetBlockNum() +
+          sizeof(HS_LIDAR_BODY_CRC_ST_V7));
+  uint8_t frameID = pTail->GetFrameID() % 2;
   int point_index = packet_index * frame.per_points_num;
   int point_num = 0;
   auto& packetData = frame.packetData[packet_index];
-  for (int i = point_index; i < point_index + static_cast<int>(frame.valid_points[packet_index]); i++) {
-    auto& pointData = frame.pointData[i];
-    float raw_azimuth = pointData.azimuth;
-    float raw_elevation = 0;
-    float distance = static_cast<float>(pointData.distance * frame.distance_unit);
-    if (this->get_firetime_file_ && frame.fParam.firetimes_flag) {
-      raw_azimuth += ((packetData.data.dATX.frame_id % 2 == 0) ? m_ATX_firetimes.floatCorr.even_firetime_correction_[pointData.channel_index] : 
-                        - m_ATX_firetimes.floatCorr.odd_firetime_correction_[pointData.channel_index]) * (abs(static_cast<int16_t>(packetData.spin_speed)) * 1E-9 / 8);
+  for (int blockid = 0; blockid < frame.block_num; blockid++) {
+    int current_block_echo_count = ((pHeader->GetEchoCount() > 0 && pHeader->GetEchoNum() > 0) ?
+            ((pHeader->GetEchoCount() - 1 + blockid) % pHeader->GetEchoNum() + 1) : 0);
+    if (frame.fParam.echo_mode_filter != 0 && current_block_echo_count != 0 && frame.fParam.echo_mode_filter != current_block_echo_count) {
+      continue;
     }
-    if (this->get_correction_file_) {
-      if (m_ATX_corrections.floatCorr.min_version == 1) {
-        raw_azimuth += m_ATX_corrections.floatCorr.azimuth[pointData.channel_index];
-      }
-      else if (m_ATX_corrections.floatCorr.min_version == 2 || m_ATX_corrections.floatCorr.min_version == 3) {
-        raw_azimuth += ((packetData.data.dATX.frame_id % 2 == 0) ? m_ATX_corrections.floatCorr.azimuth_even[pointData.channel_index] : 
-                          m_ATX_corrections.floatCorr.azimuth_odd[pointData.channel_index]);
-      }
-      if(m_ATX_corrections.floatCorr.min_version == 1 || m_ATX_corrections.floatCorr.min_version == 2) {
-        raw_elevation = m_ATX_corrections.floatCorr.elevation[pointData.channel_index];
-      } 
-      else if (m_ATX_corrections.floatCorr.min_version == 3) {
-        raw_elevation = m_ATX_corrections.floatCorr.elevation[pointData.channel_index] + m_ATX_corrections.floatCorr.ElevationAdjust(raw_azimuth);
-      }
-    }
-    int elevation = floatToInt(raw_elevation * kAllFineResolutionInt);
-    int azimuth = floatToInt(raw_azimuth * kAllFineResolutionInt);
-    this->CircleRevise(azimuth);
-    this->CircleRevise(elevation);
-    if (frame.fParam.config.fov_start != -1 && frame.fParam.config.fov_end != -1) {
-      int fov_transfer = azimuth / kAllFineResolutionInt;
-      if (fov_transfer < frame.fParam.config.fov_start || fov_transfer > frame.fParam.config.fov_end) { //不在fov范围continue
+    const HS_LIDAR_BODY_AZIMUTH_ST_V7 *pAzimuth =
+      reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_ST_V7 *>(
+          (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ST_V7) +
+          (sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7) + sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7) +
+          sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V7) * pHeader->GetLaserNum()) * blockid);
+
+    int32_t u32Azimuth = pAzimuth->GetAzimuth();
+    const HS_LIDAR_BODY_CHN_NNIT_ST_V7 * pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_NNIT_ST_V7 *>(
+        (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7) + sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7));
+    for (int channel_index = 0; channel_index < frame.laser_num; ++channel_index) {
+      if (m_ATX_corrections.display[channel_index] == false) {
+        pChnUnit++;
         continue;
       }
-    }
-    float xyDistance = distance * this->cos_all_angle_[(elevation)];
-    float x = xyDistance * this->sin_all_angle_[(azimuth)];
-    float y = xyDistance * this->cos_all_angle_[(azimuth)];
-    float z = distance * this->sin_all_angle_[(elevation)];
-    this->TransformPoint(x, y, z, frame.fParam.transform);
+      float raw_azimuth = 1.f * u32Azimuth / kFineResolutionFloat;
+      float raw_elevation = 0;
+      float distance = static_cast<float>(pChnUnit->GetDistance() * frame.distance_unit);
+      if (this->get_firetime_file_ && frame.fParam.firetimes_flag) {
+        raw_azimuth += ((frameID % 2 == 0) ? m_ATX_firetimes.floatCorr.even_firetime_correction_[channel_index] : 
+                          - m_ATX_firetimes.floatCorr.odd_firetime_correction_[channel_index]) * (abs(static_cast<int16_t>(pTail->GetMotorSpeed())) * 1E-9 / 8);
+      }
+      if (this->get_correction_file_) {
+        if (m_ATX_corrections.floatCorr.min_version == 1) {
+          raw_azimuth += m_ATX_corrections.floatCorr.azimuth[channel_index];
+        }
+        else if (m_ATX_corrections.floatCorr.min_version == 2 || m_ATX_corrections.floatCorr.min_version == 3) {
+          raw_azimuth += ((frameID % 2 == 0) ? m_ATX_corrections.floatCorr.azimuth_even[channel_index] : 
+                            m_ATX_corrections.floatCorr.azimuth_odd[channel_index]);
+        }
+        if(m_ATX_corrections.floatCorr.min_version == 1 || m_ATX_corrections.floatCorr.min_version == 2) {
+          raw_elevation = m_ATX_corrections.floatCorr.elevation[channel_index];
+        } 
+        else if (m_ATX_corrections.floatCorr.min_version == 3) {
+          raw_elevation = m_ATX_corrections.floatCorr.elevation[channel_index] + m_ATX_corrections.floatCorr.ElevationAdjust(raw_azimuth);
+        }
+      }
+      int elevation = floatToInt(raw_elevation * kAllFineResolutionInt);
+      int azimuth = floatToInt(raw_azimuth * kAllFineResolutionInt);
+      this->CircleRevise(azimuth);
+      this->CircleRevise(elevation);
+      if (this->IsChannelFovFilter(azimuth / kAllFineResolutionInt, channel_index, frame.fParam) == 1) {
+        pChnUnit++;
+        continue;
+      }
+      float xyDistance = distance * this->cos_all_angle_[(elevation)];
+      float x = xyDistance * this->sin_all_angle_[(azimuth)];
+      float y = xyDistance * this->cos_all_angle_[(azimuth)];
+      float z = distance * this->sin_all_angle_[(elevation)];
+      this->TransformPoint(x, y, z, frame.fParam.transform);
 
-    int point_index_rerank = point_index + point_num; 
-    GeneralParser<T_Point>::DoRemake(azimuth, elevation, frame.fParam.remake_config, point_index_rerank); 
-    if(point_index_rerank >= 0) { 
-      auto& ptinfo = frame.points[point_index_rerank]; 
-      set_x(ptinfo, x); 
-      set_y(ptinfo, y); 
-      set_z(ptinfo, z); 
-      set_ring(ptinfo, pointData.channel_index); 
-      set_intensity(ptinfo, pointData.reflectivity);  
-      set_timestamp(ptinfo, double(packetData.t.sensor_timestamp) / kMicrosecondToSecond);
-      set_confidence(ptinfo, pointData.data.dcfd.confidence);
+      int point_index_rerank = point_index + point_num; 
+      GeneralParser<T_Point>::DoRemake(azimuth, elevation, frame.fParam.remake_config, point_index_rerank); 
+      if(point_index_rerank >= 0) { 
+        auto& ptinfo = frame.points[point_index_rerank]; 
+        set_x(ptinfo, x); 
+        set_y(ptinfo, y); 
+        set_z(ptinfo, z); 
+        set_ring(ptinfo, channel_index); 
+        set_intensity(ptinfo, pChnUnit->GetReflectivity());  
+        set_timestamp(ptinfo, double(packetData.t.sensor_timestamp) / kMicrosecondToSecond);
+        set_confidence(ptinfo, pChnUnit->GetConfidenceLevel());
 
-      point_num++;
+        point_num++;
+      }
+      pChnUnit++;
     }
   }
   frame.valid_points[packet_index] = point_num;
@@ -410,6 +443,8 @@ int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
     LogDebug("Invalid point cloud");
     return -1;
   }
+  frame.scan_complete = false;
+
   const HS_LIDAR_HEADER_ST_V7 *pHeader =
       reinterpret_cast<const HS_LIDAR_HEADER_ST_V7 *>(
           &(udpPacket.buffer[0]) + sizeof(HS_LIDAR_PRE_HEADER));
@@ -422,6 +457,36 @@ int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
            sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V7) * pHeader->GetLaserNum()) *
               pHeader->GetBlockNum() +
           sizeof(HS_LIDAR_BODY_CRC_ST_V7));
+  
+  if (frame.frame_init_ == false) {
+    frame.block_num = pHeader->GetBlockNum();
+    frame.laser_num = pHeader->GetLaserNum();
+    frame.per_points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
+    frame.distance_unit = pHeader->GetDistUnit();
+    if (frame.per_points_num > frame.maxPointPerPacket) {
+      LogFatal("per_points_num(%u) out of %d", frame.per_points_num, frame.maxPointPerPacket);
+      return -1;
+    }
+    if (frame.laser_num > ATX::ATX_MAX_CHANNEL_NUM) {
+      LogFatal("laser_num(%u) out of %d", frame.laser_num, ATX::ATX_MAX_CHANNEL_NUM);
+      return -1;
+    }
+    frame.frame_init_ = true;
+  }
+  if (pHeader->GetBlockNum() != frame.block_num
+      || pHeader->GetLaserNum() != frame.laser_num
+      || pHeader->GetDistUnit() != frame.distance_unit) {
+    LogFatal("block_num or laser_num or distance_unit is not match");
+    return -1;
+  }
+  // 分帧标记位为该字节的最后一个bit
+  uint8_t frameID = pTail->GetFrameID() % 2;
+  if (IsNeedFrameSplit(frameID)) {
+    frame.scan_complete = true;
+  }
+  this->last_frameid_ = frameID;
+  if (frame.scan_complete)
+    return 0;
 
   if (pHeader->HasSeqNum()) {
     const HS_LIDAR_TAIL_SEQ_NUM_ST_V7 *pTailSeqNum =
@@ -444,19 +509,8 @@ int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   //               pHeader->GetBlockNum() +
   //           sizeof(HS_LIDAR_BODY_CRC_ST_V7) + sizeof(HS_LIDAR_TAIL_ST_V7)
   //           + (pHeader->HasSeqNum() ? sizeof(HS_LIDAR_TAIL_SEQ_NUM_ST_V7) : 0));
-  frame.scan_complete = false;
-  frame.block_num = pHeader->GetBlockNum();
-  frame.laser_num = pHeader->GetLaserNum();
-  frame.per_points_num = pHeader->GetBlockNum() * pHeader->GetLaserNum();
-  frame.distance_unit = pHeader->GetDistUnit();
-  if (frame.per_points_num > frame.maxPointPerPacket) {
-    LogFatal("per_points_num(%u) out of %d", frame.per_points_num, frame.maxPointPerPacket);
-    return -1;
-  }
-  if (frame.laser_num > ATX::ATX_MAX_CHANNEL_NUM) {
-    LogFatal("laser_num(%u) out of %d", frame.laser_num, ATX::ATX_MAX_CHANNEL_NUM);
-    return -1;
-  }
+
+  frame.return_mode = pTail->GetReturnMode();
 
   if (frame.fParam.use_timestamp_type == 0) {
     frame.packetData[packet_index_use].t.sensor_timestamp = pTail->GetMicroLidarTimeU64(this->last_utc_time);
@@ -465,53 +519,21 @@ int Udp4_7Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
   }   
   if (frame.frame_start_timestamp == 0) frame.frame_start_timestamp = double(frame.packetData[packet_index_use].t.sensor_timestamp) / kMicrosecondToSecond;
   frame.frame_end_timestamp = double(frame.packetData[packet_index_use].t.sensor_timestamp) / kMicrosecondToSecond;
-  if (frame.fParam.pcap_time_synchronization) frame.host_timestamp = GetMicroTickCountU64();
-  frame.return_mode = pTail->GetReturnMode();
-  frame.packetData[packet_index_use].spin_speed = pTail->GetMotorSpeed();
-
-  // 分帧标记位为该字节的最后一个bit
-  uint8_t frameID = pTail->GetFrameID() % 2;
-  frame.packetData[packet_index_use].data.dATX.frame_id = frameID;
-  if (IsNeedFrameSplit(frameID)) {
-    frame.scan_complete = true;
-  }
-  this->last_frameid_ = frameID;
-  if (frame.scan_complete)
-    return 0;
   
-  int index = packet_index_use * frame.per_points_num;
-  int point_num = 0;
-  for (int blockid = 0; blockid < pHeader->GetBlockNum(); blockid++) {
-    int current_block_echo_count = ((pHeader->GetEchoCount() > 0 && pHeader->GetEchoNum() > 0) ?
-            ((pHeader->GetEchoCount() - 1 + blockid) % pHeader->GetEchoNum() + 1) : 0);
-    if (frame.fParam.echo_mode_filter != 0 && current_block_echo_count != 0 && frame.fParam.echo_mode_filter != current_block_echo_count) {
-      continue;
-    }
-    const HS_LIDAR_BODY_AZIMUTH_ST_V7 *pAzimuth =
-      reinterpret_cast<const HS_LIDAR_BODY_AZIMUTH_ST_V7 *>(
-          (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_ST_V7) +
-          (sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7) + sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7) +
-          sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V7) * pHeader->GetLaserNum()) * blockid);
 
-    int32_t u32Azimuth = pAzimuth->GetAzimuth();
-    const HS_LIDAR_BODY_CHN_NNIT_ST_V7 * pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_NNIT_ST_V7 *>(
-        (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7) + sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7));
-    for (int i = 0; i < pHeader->GetLaserNum(); i++) {
-      if (m_ATX_corrections.display[i] == false) {
-        pChnUnit++;
-        continue;
-      }
-      frame.pointData[index].channel_index = i;
-      frame.pointData[index].azimuth = 1.f * u32Azimuth / kFineResolutionFloat;
-      frame.pointData[index].reflectivity = pChnUnit->GetReflectivity();  
-      frame.pointData[index].distance = pChnUnit->GetDistance();
-      frame.pointData[index].data.dcfd.confidence = pChnUnit->GetConfidenceLevel();
-      pChnUnit++;
-      index++;
-      point_num++;
-    }
+  auto packet_size = udpPacket.packet_len;
+  if (this->last_max_packet_num_ != frame.maxPacketPerFrame) {
+    this->last_max_packet_num_ = frame.maxPacketPerFrame;
+    if (frame.point_cloud_raw_data != nullptr) delete[] frame.point_cloud_raw_data;
+    frame.point_cloud_size = packet_size;
+    frame.point_cloud_raw_data = new uint8_t[frame.point_cloud_size * frame.maxPacketPerFrame];
+    memset(frame.point_cloud_raw_data, 0, frame.point_cloud_size * frame.maxPacketPerFrame);
   }
-  frame.valid_points[packet_index_use] = point_num;
+  if (frame.point_cloud_size != packet_size) {
+    LogFatal("point cloud size is should be %d, but is %d", frame.point_cloud_size, packet_size);
+    return -1;
+  }
+  memcpy(frame.point_cloud_raw_data + packet_index_use * frame.point_cloud_size, udpPacket.buffer, packet_size);
   frame.packet_num++;
   return 0;
 }

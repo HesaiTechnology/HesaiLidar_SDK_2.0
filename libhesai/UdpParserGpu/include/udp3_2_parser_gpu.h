@@ -28,29 +28,117 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef Udp3_2_PARSER_GPU_H_
 #define Udp3_2_PARSER_GPU_H_
 #include "general_parser_gpu.h"
-
+#include "udp_protocol_v3_2.h"
 namespace hesai
 {
 namespace lidar
 {
-// class Udp3_2ParserGpu
-// computes points for PandarQT128
+
+int compute_3_2_cuda(uint8_t* point_cloud_cu_, CudaPointXYZAER* points_cu_, uint32_t point_cloud_size, const float* correction_azi, 
+    const float* correction_ele, const QT128::FiretimesQt128* firetimes, const FrameDecodeParam* fParam, LidarOpticalCenter optical_center, 
+    uint32_t packet_num, uint16_t block_num, uint16_t channel_num);
+
 // you can compute xyzi of points using the ComputeXYZI fuction, which uses gpu to compute
 template <typename T_Point>
 class Udp3_2ParserGpu: public GeneralParserGpu<T_Point>{
  private:
   QT128::FiretimesQt128* qt128_firetimes_cu_;
+  const QT128::FiretimesQt128* firetimes_ptr_;
  public:
-  Udp3_2ParserGpu(uint16_t maxPacket, uint16_t maxPoint);
-  ~Udp3_2ParserGpu();
+  Udp3_2ParserGpu(uint16_t maxPacket, uint16_t maxPoint) 
+     : GeneralParserGpu<T_Point>(maxPacket, maxPoint) {
+    this->optical_center.setNoFlag(LidarOpticalCenter{0.0072, 0.0354, 0});
+    cudaSafeMalloc((void**)&qt128_firetimes_cu_, sizeof(QT128::FiretimesQt128));
+  }
+  ~Udp3_2ParserGpu() {
+    cudaSafeFree(qt128_firetimes_cu_);
+  }
+
+  virtual void LoadFiretimesStruct(void *_firetimes) {
+    if (this->init_suc_flag_ == false) return;
+    firetimes_ptr_ = (QT128::FiretimesQt128*)_firetimes;
+    CUDACheck(cudaMemcpy(qt128_firetimes_cu_, firetimes_ptr_, sizeof(QT128::FiretimesQt128), cudaMemcpyHostToDevice));
+  }
+  virtual void updateFiretimeFile() {
+    if (this->init_suc_flag_ == false) return;
+    if (this->firetime_load_sequence_num_cuda_use_ != *this->firetime_load_sequence_num_) {
+      this->firetime_load_sequence_num_cuda_use_ = *this->firetime_load_sequence_num_;
+      CUDACheck(cudaMemcpy(qt128_firetimes_cu_, firetimes_ptr_, sizeof(QT128::FiretimesQt128), cudaMemcpyHostToDevice));
+    }
+  }
 
   // compute xyzi of points from decoded packet， use gpu device
-  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame);
-  virtual void LoadFiretimesStruct(void *);
-  virtual void updateFiretimeFile();
-  const QT128::FiretimesQt128* firetimes_ptr_;
+  virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
+    if (!*this->get_correction_file_) return int(ReturnCode::CorrectionsUnloaded);  
+    if (!this->init_suc_flag_) return int(ReturnCode::CudaInitError);
+    this->reMalloc(frame.maxPacketPerFrame, frame.maxPointPerPacket, frame.point_cloud_size);
+    cudaSafeCall(cudaMemcpy(this->point_cloud_cu_, frame.point_cloud_raw_data,
+                            frame.point_cloud_size * frame.packet_num, 
+                            cudaMemcpyHostToDevice), ReturnCode::CudaMemcpyHostToDeviceError);
+    this->updateCorrectionFile();
+    this->updateFiretimeFile();
+    FrameDecodeParam cuda_Param = frame.fParam;
+    cuda_Param.firetimes_flag = *this->get_firetime_file_ ? cuda_Param.firetimes_flag : false;
+    int ret = compute_3_2_cuda(this->point_cloud_cu_, this->points_cu_, frame.point_cloud_size, this->correction_azi_cu_, 
+      this->correction_ele_cu_, qt128_firetimes_cu_, &cuda_Param, this->optical_center, frame.packet_num, frame.block_num, 
+      frame.laser_num);
+    if (ret != 0) return ret;
+
+    cudaSafeCall(cudaMemcpy(this->points_, this->points_cu_,
+                            frame.per_points_num * frame.packet_num * sizeof(CudaPointXYZAER), 
+                            cudaMemcpyDeviceToHost), ReturnCode::CudaMemcpyDeviceToHostError);
+    for (uint32_t i = 0; i < frame.packet_num; i++) {
+      auto &packetData = frame.packetData[i];
+      int point_index = i * frame.per_points_num;
+      int point_num = 0;
+      int32_t block_ns_offset = 0;
+      for (uint32_t blockid = 0; blockid < frame.block_num; blockid++) {
+        uint8_t echo_return = this->points_[point_index + blockid * frame.laser_num].reserved[6];
+        uint8_t echo_num = this->points_[point_index + blockid * frame.laser_num].reserved[7];
+        int current_block_echo_count = (echo_return > 0 && echo_num > 0) ? ((echo_return - 1 + blockid) % echo_num + 1) : 0;
+        if (frame.fParam.echo_mode_filter != 0 && current_block_echo_count != 0 && frame.fParam.echo_mode_filter != current_block_echo_count) {
+          continue;
+        }
+        block_ns_offset = QT128C2X::QT128C2X_BLOCK_NS_OFFSET1 + QT128C2X::PandarQT_BLOCK_NS_OFFSET2 * int(blockid / (frame.return_mode < RETURN_MODE_MULTI ? 1 : 2));
+        for (uint32_t channel_index = 0; channel_index < frame.laser_num; channel_index++) {
+          auto &point = this->points_[point_index + blockid * frame.laser_num + channel_index];
+          uint8_t loopIndex = point.reserved[4];
+          int channel_use_index = point.reserved[2] * 0x100 + point.reserved[3];
+          if(this->correction_ptr->display[channel_use_index] == false) {
+            continue;
+          }
+          if (this->IsChannelFovFilter(point.azimuthCalib, channel_use_index, frame.fParam) == 1) {
+            continue;
+          }
+          int point_index_rerank = point_index + point_num;
+          float azi_ = point.azimuthCalib; 
+          float elev_ = point.elevationCalib; 
+          GeneralParserGpu<T_Point>::DoRemake(azi_, elev_, frame.fParam.remake_config, point_index_rerank);
+          if(point_index_rerank >= 0) { 
+            uint64_t timestamp = packetData.t.sensor_timestamp * kMicrosecondToNanosecondInt;
+            if (*this->get_firetime_file_) {
+              timestamp += block_ns_offset + floatToInt(firetimes_ptr_->firetimes[loopIndex][channel_use_index] * kMicrosecondToNanosecondInt);
+            }
+            auto& ptinfo = frame.points[point_index_rerank]; 
+            set_x(ptinfo, point.x);
+            set_y(ptinfo, point.y);
+            set_z(ptinfo, point.z);
+            set_ring(ptinfo, channel_use_index);
+            set_intensity(ptinfo, point.reserved[0]);
+            set_timestamp(ptinfo, double(packetData.t.sensor_timestamp) / kMicrosecondToSecond);
+            set_timeSecond(ptinfo, timestamp / kNanosecondToSecondInt);
+            set_timeNanosecond(ptinfo, timestamp % kNanosecondToSecondInt);
+            set_confidence(ptinfo, point.reserved[1]);
+
+            point_num++;
+          }
+        }
+      }
+      frame.valid_points[i] = point_num;
+    }
+    return 0;
+  } 
 };
 }
 }
-#include "udp3_2_parser_gpu.cu"
 #endif  // Udp3_2_PARSER_GPU_H_

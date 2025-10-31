@@ -77,9 +77,9 @@ bool SerialSource::Open() {
     return false;
   }
   if (Open(dev_.c_str(), baudrate) == 0) {
-    if (receiveStype == SERIAL_POINT_CLOUD_RECV) {
-      runningRecvThreadPtr = new std::thread(std::bind(&SerialSource::ReceivedThread, this));
+    if (is_need_recv_) {
       running = true;
+      runningRecvThreadPtr = new std::thread(std::bind(&SerialSource::ReceivedThread, this));
     }
     return true;
   }
@@ -186,6 +186,14 @@ int SerialSource::Open(const char *dev, int baudrate) {
 }
 
 void SerialSource::Close() {
+  if (runningRecvThreadPtr != nullptr) {
+    running = false;
+    runningRecvThreadPtr->join();
+    delete runningRecvThreadPtr;
+    runningRecvThreadPtr = nullptr;
+    dataIndex = 0;
+    dataLength = 0;
+  }
 #ifdef _MSC_VER
   if (m_iFd != INVALID_HANDLE_VALUE) {
     CloseHandle(m_iFd);  
@@ -197,14 +205,6 @@ void SerialSource::Close() {
     m_iFd = -1;
   }
 #endif
-  if (runningRecvThreadPtr != nullptr) {
-    running = false;
-    runningRecvThreadPtr->join();
-    delete runningRecvThreadPtr;
-    runningRecvThreadPtr = nullptr;
-    dataIndex = 0;
-    dataLength = 0;
-  }
 }
 
 int SerialSource::WaitRead(int32_t timeout) {

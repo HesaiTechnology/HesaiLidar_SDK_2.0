@@ -74,7 +74,8 @@ class Source {
                       int timeout = 1000) = 0; 
   virtual void SetSocketBufferSize(uint32_t u32BufSize) = 0;      
   virtual void SetReceiveStype(int type) {}
-  virtual void SetPcapLoop(bool) {}               
+  virtual void SetPcapLoop(bool) {}  
+  virtual void setNeedRecv(bool) {}
 };
 }  // namespace lidar
 }  // namespace hesai

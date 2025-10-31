@@ -99,6 +99,11 @@ void UdpParserGpu<T_Point>::SetLidarType(std::string lidar_type, uint16_t maxPac
   else if (lidar_type == "OT128") {
     m_generalParserGpu = new Udp1_4ParserGpu<T_Point>(STR_OT128, maxPacket, maxPoint);
   }
+  /* JT128 begin */
+  else if (lidar_type == "JT128") {
+    m_generalParserGpu = new Udp1_4ParserGpu<T_Point>(STR_OTHER, maxPacket, maxPoint);
+  }
+  /* JT128 end */
   else if (lidar_type == "JT16") {
     m_generalParserGpu = new Udp1_8ParserGpu<T_Point>(maxPacket, maxPoint);
   }

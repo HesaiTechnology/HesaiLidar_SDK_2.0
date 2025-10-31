@@ -47,6 +47,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <string.h>
 #include "inner_com.h"
+#include "byte_printer.h"
 
 namespace hesai
 {
@@ -54,23 +55,13 @@ namespace lidar
 {
 
 enum ErrorCode {
-  kInvalidEquipment  = 1,
-  kInvalidData       = 2,
-  kFileNotExit       = 3,
-  kInvalidCmd        = 4,
-  kTimeout           = 5,
-  kExecutionError    = 6,
-  kSwipeError        = 7,
-  kDataError         = 8,
-  kPackCrcError      = 9,
-  kUndefine          = 10,
-  kPacketLoss        = 11,
-  kChecksumFailure   = 12,
-  kUnrecognisedFormat= 13,
-  kReadTimeout       = 14,
-  kLengthError       = 15,
-  kIdDiscontinuity   = 16,
-  kFailedCalibration = 11,
+  kInvalidEquipment  = -1,
+  kInvalidData       = -2,
+  kReadTimeout       = -3,
+  kInvalidDataHeader = -4,
+  kSerialOpenError   = -5,
+  kInPblNotUpgrade   = -6,
+  kFailedCalibration = -7,
 };
 
 enum CmdType {
@@ -113,28 +104,39 @@ struct SerialHeader {
 #pragma pack(pop)
 class SerialClient {
  public:
+  using CallbackType = std::function<void(const std::string&)>; // 函数指针 std::function
   SerialClient();
   ~SerialClient();
 
   SerialClient(const SerialClient &orig) = delete;
   int QueryCommand(const uint8_t cmd, const u8Array_t &payload, u8Array_t &byteStreamOut, uint32_t timeout);
+  int RecvSpecialAckData(uint8_t &status, uint8_t &ret_code, int timeout);
   void SetSerial(Source* source_send, Source* source_recv);
   int ChangeUpgradeMode();
-  int ChangeMode(uint8_t mode);
+  int ChangeMode(uint8_t mode, uint8_t reserved = 0x00);
   int GetCorrectionInfo(u8Array_t &dataOut);
   int GetSnInfo(u8Array_t &dataOut);
+  int GetLidarVersion(u8Array_t &dataOut, uint8_t type);
+  int GetLidarFaultState(u8Array_t &dataOut);
+  int GetPblVersionIdInPbl(u8Array_t &byteStreamOut);
+  int RequestUpgradeLargePackage(uint8_t type);
+  int OtaQueryCommand(const uint32_t all_num, const uint32_t num, const uint32_t len, const uint8_t *payload, uint8_t &status, uint8_t &ret_code, uint8_t type);
   static const uint16_t crc_begin = 7;
   uint32_t CRCCalc(const uint8_t *bytes, int len, int zeros_num);
+  void SetCallback(CallbackType callback) { this->log_message_handler_callback_ = callback; }
+  void ProduceLogMessage(const std::string& message); 
 
   uint32_t m_CRCTable[256];  
+  uint8_t m_now_mode = 0;
+  int UpgradeLidar(u8Array_t data, int mode, int &upgrade_progress);
  protected:
   void AddEndStreamEncode(u8Array_t &byteStreamOut, const CmdType type);
   void SerialStreamEncode(const CmdType type, u8Array_t &byteStream);
   bool SerialStreamDecode(const CmdType type, const u8Array_t &byteStreamIn, u8Array_t &byteStreamOut);
   void CRCInit();
   uint32_t GetRandom();
-  int CmdErrorCode2RetCode(uint8_t error_code);
 
+  CallbackType log_message_handler_callback_ = nullptr;
   Source* source_send_;  
   Source* source_recv_;  
 };

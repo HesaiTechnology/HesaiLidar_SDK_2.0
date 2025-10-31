@@ -39,6 +39,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tcp_client.h"
 #include "driver_param.h"
 #include "ptc_parser.h"
+#include "byte_printer.h"
 #ifdef WITH_PTCS_USE
 #include "tcp_ssl_client.h"
 #endif
@@ -47,26 +48,32 @@ namespace hesai
 {
 namespace lidar
 {
-
-const uint8_t  kPTCGetPTPLockOffset = 0x3a;
-const uint8_t  kPTCGetLidarStatus = 0x09;
-const uint8_t  kPTCGetPTPDiagnostics= 0x06;
 const uint8_t  kPTCGetLidarCalibration = 0x05;
+const uint8_t  kPTCGetPTPDiagnostics= 0x06;
 const uint8_t  kPTCGetInventoryInfo = 0x07;
-const uint8_t  kPTCGetLidarFiretimes = 0xA9;
-const uint8_t  kPTCGetLidarChannelConfig = 0xA8;
-const uint8_t  kPTCSetNet = 0x21;
-const uint8_t  kPTCSetDestinationIPandPort = 0x20;
-const uint8_t  kPTCSetReturnMode = 0x1E;
-const uint8_t  kPTCSetSyncAngle = 0x18;
-const uint8_t  kPTCSetStandbyMode = 0x1C;
-const uint8_t  kPTCSetSpinSpeed = 0x17;
-const uint32_t kPTCSetTemFpgaRegister = 0x00010031;
+const uint8_t  kPTCGetLidarStatus = 0x09;
 const uint8_t  kPTCGetFpgaRegister = 0x0C;
 const uint8_t  kPTCSetFpgaRegister = 0x0D;
-const uint8_t  kPTCUpgradeLidar = 0x83;
 const uint8_t  kPTCRebootLidar = 0x10;
+const uint8_t  kPTCSetSpinSpeed = 0x17;
+const uint8_t  kPTCSetSyncAngle = 0x18;
+const uint8_t  kPTCSetReturnMode = 0x1E;
+const uint8_t  kPTCSetStandbyMode = 0x1C;
+const uint8_t  kPTCSetDestinationIPandPort = 0x20;
+const uint8_t  kPTCSetNet = 0x21;
+const uint8_t  KPTCSetFov = 0x22;
+const uint8_t  KPTCGetFov = 0x23;
+const uint8_t  kPTCResetLidar = 0x25;
+const uint8_t  kPTCGetFreezeFrames = 0x30;
+const uint8_t  kPTCGetLidarOperationLog = 0x38;
+const uint8_t  kPTCGetPTPLockOffset = 0x3a;
+const uint8_t  kPTCUpgradeLidar = 0x83;
+const uint8_t  kPTCGetUpgradeLidarLog = 0x87;
+const uint8_t  kPTCGetLidarChannelConfig = 0xA8;
+const uint8_t  kPTCGetLidarFiretimes = 0xA9;
+const uint32_t kPTCSetTemFpgaRegister = 0x00010031;
 const uint32_t kPTCUpgradeLidarSubCmd = 0x0000000D;
+const uint32_t kPTCGetRetroSubCmd = 0x0000011E;
 
 typedef struct UpgradeProgress {
     int total_packets;
@@ -80,6 +87,7 @@ class PtcClient {
  public:
   using Mutex = std::mutex;
   using LockS = std::lock_guard<Mutex>;
+  using CallbackType = std::function<void(const std::string&)>; // 函数指针 std::function
  public:
   PtcClient(std::string IP = kLidarIPAddr
             , uint16_t u16TcpPort = kTcpPort
@@ -91,7 +99,8 @@ class PtcClient {
             , std::string ca = ""
             , uint32_t u32RecvTimeoutMs = 500
             , uint32_t u32SendTimeoutMs = 500
-            , float ptc_connect_timeout = -1);
+            , float ptc_connect_timeout = -1
+            , uint16_t u16HostPort = 0);
   ~PtcClient();
 
   PtcClient(const PtcClient &orig) = delete;
@@ -102,7 +111,7 @@ class PtcClient {
 
   void TcpFlushIn();
   void TryOpen();
-  int QueryCommand(u8Array_t &byteStreamIn, u8Array_t &byteStreamOut, uint8_t u8Cmd );
+  int QueryCommand(u8Array_t &byteStreamIn, u8Array_t &byteStreamOut, uint8_t u8Cmd, bool isHaveHeader = false);
   int SendCommand(u8Array_t &byteStreamIn, uint8_t u8Cmd);
   bool GetValFromOutput(uint8_t cmd, uint8_t retcode, const u8Array_t &payload, int start_pos, int length, u8Array_t &res);
 
@@ -120,8 +129,11 @@ class PtcClient {
   int UpgradeLidar(u8Array_t &dataIn, uint32_t cmd_id, int is_extern, int &upgrade_progress);
   void RegisterUpgradeProcessFunc(UpgradeProgressFunc_t func);
   bool RebootLidar();
-  void SetUpgradeProgressFunc(UpgradeProgressFunc_t func);
-
+  int GetOperationLog(int module, int type, u8Array_t &dataOut);
+  int GetFreezeFrames(u8Array_t &dataOut);
+  int GetUpgradeLidarLog(u8Array_t &dataOut);
+  int SetAllChannelFov(float fov[], int fov_num, int fov_model);
+  int GetAllChannelFov(float fov[], int& fov_num, int& fov_model);
   /**
    * @brief upgrade lidar patch
    * 
@@ -226,6 +238,8 @@ class PtcClient {
 
   void CRCInit();
   uint32_t CRCCalc(uint8_t *bytes, int len); 
+  void SetCallback(CallbackType callback) { this->log_message_handler_callback_ = callback; }
+  void ProduceLogMessage(const std::string& message); 
 
  public:
   void SetLidarIP(std::string);
@@ -246,6 +260,7 @@ class PtcClient {
   std::thread *open_thread_ptr_;
   std::string lidar_ip_;
   uint16_t tcp_port_;
+  uint16_t host_port_;
   bool auto_receive_;
   std::string cert_;
   std::string private_key_;
@@ -254,6 +269,7 @@ class PtcClient {
   uint32_t send_timeout_ms_;
   float ptc_connect_timeout_;
   UpgradeProgressFunc_t upgradeProcessFunc;
+  CallbackType log_message_handler_callback_ = nullptr;
 };
 }
 }

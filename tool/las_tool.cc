@@ -131,17 +131,15 @@ int main(int argc, char *argv[])
   param.input_param.use_someip = false;  // someip subscribe point cloud and fault message
   param.input_param.host_ip_address = ""; // point cloud destination ip, local ip
   param.input_param.fault_message_port = 9348; // fault message destination port
-#endif
 
-#ifdef SERIAL_PARSER_TEST
+#elif defined (SERIAL_PARSER_TEST)
   param.input_param.source_type = DATA_FROM_SERIAL;
   param.input_param.rs485_com = "Your serial port name for receiving point cloud";
   param.input_param.rs232_com = "Your serial port name for sending cmd";
   param.input_param.point_cloud_baudrate = 3125000;
   param.input_param.correction_file_path = "Your correction file path";
-#endif
 
-#ifdef PCAP_PARSER_TEST
+#elif defined PCAP_PARSER_TEST
   param.input_param.source_type = DATA_FROM_PCAP;
   param.input_param.pcap_path = "Your pcap file path";
   param.input_param.correction_file_path = "Your correction file path";
@@ -150,10 +148,9 @@ int main(int argc, char *argv[])
 
   param.decoder_param.pcap_play_synchronization = true;
   param.decoder_param.pcap_play_in_loop = false; // pcap palyback
-#endif
 
-#ifdef EXTERNAL_INPUT_PARSER_TEST
-  param.input_param.source_type = DATA_FROM_EXTERNAL_INPUT;
+#elif defined (EXTERNAL_INPUT_PARSER_TEST)
+  param.input_param.source_type = DATA_FROM_ROS_PACKET;
   param.input_param.correction_file_path = "Your correction file path";
   param.input_param.firetimes_path = "Your firetime file path";
 #endif

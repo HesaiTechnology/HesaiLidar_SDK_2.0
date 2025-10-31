@@ -114,3 +114,29 @@ Monday June 30rd, 2025 17:28:15
 7. Add timeout exit logic for receiving point clouds and PTC connections, implemented through configuration parameters, see README for details.
 8. Reduce the number of time calculation function calls to lower CPU usage.
 9. Add compilation options to control the compilation of each module, add independent PTC examples, multi-LiDAR receiving examples, and examples for removing OpenSSL dependencies, see README for details.
+
+################################################################################
+Wednesday November 5th, 2025 16:30:00
+## version
+2.0.11
+
+## modify
+1. Added function examples for backfilling point cloud data packets in EXTERNAL_INPUT_PARSER_TEST mode.
+2. Modified the exported PCL struct definition in pcl_tool.cc to meet Windows compilation requirements.
+3. ATX now uses the angle_division field from firetimes files to calculate firing times.
+4. Revised GPU parsing logic for all LiDARs, copying raw data packets for a frame directly to GPU for parsing and computation, reducing data copy times and improving parsing efficiency.
+5. Added support for JT128 parsing.
+6. Adjusted CPU parsing logic for all LiDARs: DecodePacket function is now responsible for frame separation, non-point-cloud information parsing, and timestamp parsing. ComputeXYZI function now handles point cloud information parsing, reordering, coordinate transformation, and other point cloud-related operations.
+7. Added tcp_source file for receiving TCP point cloud data streams.
+8. Added support for parsing PCAP files with different definitions.
+9. Adjusted memory allocation for large data blocks in PcapSaver to occur only on first use, reducing memory overhead.
+10. Added someip file for subscribing to and parsing SOME/IP-related data.
+11. Added a new serial upgrade function for JT16, named RequestUpgradeLargePackage.
+12. Removed PointDecodeData struct and the union data in PacketDecodeData struct to align with the CPU parsing logic adjustments.
+13. Added play_rate_ feature to control PCAP playback rate, with a default value of 1.0 representing 1x playback speed.
+14. Added channel_fov_filter_path feature to configure FOV files for filtering point cloud data with multiple FOVs under multiple channels.
+15. Added multi_fov_filter_ranges feature to configure FOV files for filtering point cloud data with multiple FOVs across all channels.
+16. Added frame_frequency feature to configure point cloud publishing frequency, requiring manual configuration of default_frame_frequency to the actual point cloud publishing frequency.
+17. Added host_ptc_port feature to configure the local port when connecting to PTC.
+18. Added update_function_safety_flag feature; when enabled, function safety parsing results can be obtained by accessing the funcSafety struct (supported by some mechanical LiDARs).
+19. Added echo_mode_filter feature to configure echo mode filtering, with a default value of 0 indicating no filtering.

@@ -37,7 +37,8 @@ set(WITH_LIDARBOARD ON CACHE BOOL "Build lidarboard code")
 set(WITH_UDPPARSER ON CACHE BOOL "Build udp parser code")
 set(WITH_SERIALCLIENT ON CACHE BOOL "Build serial client code")
 set(WITH_PTCCLIENT ON CACHE BOOL "Build ptcClient code")
-if (WITH_LIDARBOARD AND WITH_UDPPARSER AND WITH_SERIALCLIENT AND WITH_PTCCLIENT)
+set(WITH_SOMEIPCLIENT ON CACHE BOOL "Build someip client code")
+if (WITH_LIDARBOARD AND WITH_UDPPARSER AND WITH_SERIALCLIENT AND WITH_PTCCLIENT AND WITH_SOMEIPCLIENT)
     set(WITH_LIDARLIB ON CACHE BOOL "Build lidar code")
 endif()
 
@@ -83,11 +84,11 @@ if(WITH_UDPPARSER)
         UdpParser/src
         UdpParser
         ./
+        ../algorithm
     ) 
     if(WITH_UDPPARSERGPU)
         add_library(udpParserGpu_lib 
             UdpParserGpu/udp_parser_gpu.cu
-            UdpParserGpu/src/udp_parser_gpu_kernel.cu
             UdpParserGpu/src/general_parser_gpu.cu
             UdpParserGpu/src/udp_p40_parser_gpu.cu
             UdpParserGpu/src/udp_p64_parser_gpu.cu
@@ -142,7 +143,21 @@ endif()
             ${OPENSSL_INCLUDE_DIR})
         target_compile_definitions(ptcClient_lib PUBLIC WITH_PTCS_USE=1)
     endif(WITH_PTCS_USE)
+    
 endif(WITH_PTCCLIENT)
+
+if(WITH_SOMEIPCLIENT)
+    add_library(someipClient_lib
+        SomeIPClient/src/someip_client.cc
+        )
+    target_link_libraries(someipClient_lib
+                        platutils_lib)
+    set_target_properties(ptcClient_lib 
+        PROPERTIES CXX_STANDARD_REQUIRED TRUE CXX_STANDARD 14)
+    target_include_directories(someipClient_lib PUBLIC   
+        SomeIPClient/include
+    )
+endif(WITH_SOMEIPCLIENT)
 
 if(WITH_LIDARBOARD)
     add_library(source_lib 
@@ -151,6 +166,7 @@ if(WITH_LIDARBOARD)
         Source/src/pcap_source.cc
         Source/src/serial_source.cc
         Source/src/pcap_saver.cc
+        Source/src/tcp_source.cc
         )
     target_link_libraries(source_lib
         platutils_lib)
@@ -187,8 +203,14 @@ target_include_directories(platutils_lib PUBLIC
     Common/include
 )
 # log lib
-add_library(log_lib SHARED
-    Logger/src/logger.cc)
+if(BUILD_LOG_LIB_SHARED)
+    add_library(log_lib SHARED
+        Logger/src/logger.cc)
+    target_compile_definitions(log_lib PRIVATE LOG_LIB_API_EXPORTS=1 BUILD_LOG_LIB_SHARED=1)
+else()
+    add_library(log_lib
+        Logger/src/logger.cc)
+endif()
 target_link_libraries(log_lib
     ${CMAKE_THREAD_LIBS_INIT})
 set_target_properties(log_lib
@@ -196,7 +218,6 @@ set_target_properties(log_lib
 target_include_directories(log_lib PUBLIC   
     Logger/include
 )
-target_compile_definitions(log_lib PRIVATE LOG_LIB_API_EXPORTS)
 
 if (WITH_LIDARLIB)
     add_library(lidar_lib 
@@ -208,6 +229,7 @@ if (WITH_LIDARLIB)
         ptcClient_lib
         source_lib
         serialClient_lib
+        someipClient_lib
         ${CMAKE_THREAD_LIBS_INIT})
     if(WITH_UDPPARSERGPU)
         target_link_libraries(lidar_lib
@@ -219,6 +241,7 @@ if (WITH_LIDARLIB)
         Lidar
         ./
     )
+    
     
 endif(WITH_LIDARLIB)
 

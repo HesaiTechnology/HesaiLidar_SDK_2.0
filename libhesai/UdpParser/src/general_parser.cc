@@ -220,6 +220,21 @@ void GeneralParser<T_Point>::LoadFiretimesFile(const std::string& firetimes_path
 }
 
 template <typename T_Point>
+int GeneralParser<T_Point>::LoadDcfConfigFile(const std::string& dcf_path) {
+  (void)dcf_path;
+  LogWarning("don't support dcf config file");
+  return -1;
+}
+
+template <typename T_Point>
+int GeneralParser<T_Point>::LoadDcfConfigString(const char *dcf_string, int len) {
+  (void)len;
+  (void)dcf_string;
+  LogWarning("don't support dcf config string");
+  return -1;
+}
+
+template <typename T_Point>
 int GeneralParser<T_Point>::LoadChannelConfigFile(const std::string channel_config_path) {
   (void)channel_config_path;
   LogWarning("don't support channel config file");
@@ -307,7 +322,7 @@ bool GeneralParser<T_Point>::IsNeedFrameSplit(uint16_t azimuth, FrameDecodeParam
   } else {
     if (azimuth - this->last_azimuth_ > division)
     {
-      if (frame_start_azimuth_uint16_ <= this->last_azimuth_ || frame_start_azimuth_uint16_ > azimuth) {
+      if (frame_start_azimuth_uint16_ < this->last_azimuth_ || frame_start_azimuth_uint16_ >= azimuth) {
         return true;
       } 
       return false;
@@ -458,6 +473,35 @@ void GeneralParser<T_Point>::CalPktTimeLoss(uint64_t PacketTimestamp, FrameDecod
 }
 
 template <typename T_Point>
+int GeneralParser<T_Point>::IsChannelFovFilter(int fov, int channel_index, FrameDecodeParam &param) { 
+  // high priority, filter some fov ranges for all channels. low cpu usage
+  if (param.config.multi_fov_filter_ranges.size() > 0) {
+    for (const auto & pair : param.config.multi_fov_filter_ranges) {
+      if (fov >= pair.first && fov <= pair.second) {
+        return 1;
+      }
+    }
+  }
+  // middle priority, filter some fov ranges for some channels, a little high cpu usage
+  if (param.config.channel_fov_filter.size() > 0 && param.config.channel_fov_filter.count(channel_index) > 0) {
+    for (const auto & pair : param.config.channel_fov_filter[channel_index]) {
+      if (fov >= pair.first && fov <= pair.second) {
+        // printf("channel %d, %d\n", channel_index, fov);
+        return 1;
+      }
+    }
+  }
+  // low priority, show only [fov_start, fov_end]. low cpu usage
+  if (param.config.fov_start != -1 && param.config.fov_end != -1) {
+    if (fov < param.config.fov_start || fov > param.config.fov_end) { //不在fov范围continue
+      return 1;
+    }
+  }
+  return 0;
+}
+
+
+template <typename T_Point>
 uint32_t GeneralParser<T_Point>::CRCCalc(const uint8_t *bytes, int len, int zeros_num) {
   CRCInit();
   uint32_t i_crc = 0xffffffff;
@@ -497,17 +541,16 @@ void GeneralParser<T_Point>::setRemakeDefaultConfig(LidarDecodedFrame<T_Point> &
   if (rq.max_azi < 0) rq.max_azi = default_remake_config.max_azi;
   if (rq.ring_azi_resolution < 0) rq.ring_azi_resolution = default_remake_config.ring_azi_resolution;
   if (rq.max_azi_scan < 0) rq.max_azi_scan = default_remake_config.max_azi_scan;
-  if (rq.max_azi_scan > frame.maxPackerPerFrame) {
-    LogError("LidarDecodedFrame(%u) space is too small(%d), please expand the packet space per frame", frame.maxPackerPerFrame, rq.max_azi_scan);
-    rq.max_azi_scan = frame.maxPackerPerFrame;
-  }
+
   if (rq.min_elev < 0) rq.min_elev = default_remake_config.min_elev;
   if (rq.max_elev < 0) rq.max_elev = default_remake_config.max_elev;
   if (rq.ring_elev_resolution < 0) rq.ring_elev_resolution = default_remake_config.ring_elev_resolution;
   if (rq.max_elev_scan < 0) rq.max_elev_scan = default_remake_config.max_elev_scan;
-  if (rq.max_elev_scan > frame.maxPointPerPacket) {
-    LogError("LidarDecodedFrame(%u) space is too small(%d), please expand the packet space per frame", frame.maxPointPerPacket, rq.max_elev_scan);
-    rq.max_elev_scan = frame.maxPointPerPacket;
+
+  if (static_cast<uint32_t>(rq.max_azi_scan) > frame.maxPacketPerFrame || static_cast<uint32_t>(rq.max_elev_scan) > frame.maxPointPerPacket) {
+    int max_azi = HS_MAX(static_cast<uint32_t>(rq.max_azi_scan), frame.maxPacketPerFrame);
+    int max_elev = HS_MAX(static_cast<uint32_t>(rq.max_elev_scan), frame.maxPointPerPacket);
+    frame.resetMalloc(max_azi, max_elev);
   }
 }
 
@@ -525,4 +568,8 @@ void GeneralParser<T_Point>::DoRemake(int azi, int elev, const RemakeConfig& rq,
   }
 }
 
+template <typename T_Point>
+int GeneralParser<T_Point>::FrameProcess(LidarDecodedFrame<T_Point> &frame) {
+  return 0;
+}
 

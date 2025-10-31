@@ -39,9 +39,6 @@ namespace lidar
   {
     static constexpr int kMaxChannelQT128 = 128;
     static constexpr int Qt128LoopNum = 4;
-    struct FiretimesQt128 {
-      float firetimes[Qt128LoopNum][kMaxChannelQT128];
-    };
     struct PandarQTChannelConfig {
       uint16_t sob;
       uint8_t major_version;
@@ -51,7 +48,11 @@ namespace lidar
       uint8_t loopNum;
       int channelConfigTable[Qt128LoopNum][kMaxChannelQT128];
       std::string m_sHashValue;
-      bool isObtained;
+      bool is_obtained = false;
+    };
+    struct FiretimesQt128 {
+      float firetimes[Qt128LoopNum][kMaxChannelQT128];
+      PandarQTChannelConfig m_channelConfig;
     };
   }
 

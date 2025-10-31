@@ -84,7 +84,7 @@ void TcpClient::Close() {
   }
 }
 
-bool TcpClient::TryOpen(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
+bool TcpClient::TryOpen(uint16_t host_port, std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
           const char* cert, const char* private_key, const char* ca, uint32_t timeout) {
   (void)bAutoReceive;
   (void)cert;          
@@ -107,6 +107,7 @@ bool TcpClient::TryOpen(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
   }
 #endif  
   struct sockaddr_in serverAddr;
+  struct sockaddr_in localAddr;
 
   m_tcpSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -115,6 +116,17 @@ bool TcpClient::TryOpen(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
     WSACleanup();
 #endif
     return false;
+  }
+
+  if (host_port > 0) {
+    memset(&localAddr, 0, sizeof(localAddr));
+    localAddr.sin_family = AF_INET;
+    localAddr.sin_addr.s_addr = htonl(INADDR_ANY); 
+    localAddr.sin_port = htons(host_port);
+  
+    if (bind(m_tcpSock, (struct sockaddr*)&localAddr, sizeof(localAddr)) < 0) {
+      LogError("Failed to bind local port, system will auto assign one");
+    }
   }
 
   memset(&serverAddr, 0, sizeof(serverAddr));

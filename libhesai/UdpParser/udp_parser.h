@@ -73,6 +73,9 @@ class UdpParser {
   int LoadFiretimesString(const char *firetimes_string, int len);
   // load channel config file
   int LoadChannelConfigFile(const std::string channel_config_path);
+  // load dcf config file
+  int LoadDcfConfigFile(const std::string& dcf_path);
+  int LoadDcfConfigString(const char *dcf_string, int len);
   // get the pointer to the struct of the parsed correction file or firetimes file
   void *getStruct(const int type) { if (parser_ != nullptr) return parser_->getStruct(type); else return nullptr; }
   int getDisplay(bool **display) { if (parser_ != nullptr) return parser_->getDisplay(display); else return 0; }
@@ -98,18 +101,20 @@ class UdpParser {
   void SetPcapPlay(int source_type);
   // fet the basic lidar model
   std::string GetLidarType() {return lidar_type_decoded_;}
-
+  void SetPlayRate(float play_rate);
+  int FrameProcess(LidarDecodedFrame<T_Point> &frame) { if (parser_ != nullptr) return parser_->FrameProcess(frame); else return -1; }
 
   
  private:
+  using timePoint = std::chrono::time_point<std::chrono::steady_clock>;
   GeneralParser<T_Point> *parser_;
   std::string lidar_type_decoded_;
   bool first_packet_;
-  uint64_t last_host_timestamp_;
-  uint64_t last_sensor_timestamp_;
-  uint16_t packet_count_;
+  timePoint last_host_timestamp_;
+  timePoint last_sensor_timestamp_;
   int source_type_;
   bool printErrorBool;
+  float play_rate_ = 1.0;
 };
 }  // namespace lidar
 }  // namespace hesai

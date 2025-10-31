@@ -26,64 +26,94 @@ TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF TH
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
 
-#ifndef Udp7_2_PARSER_GPU_CU_
-#define Udp7_2_PARSER_GPU_CU_
 #include "udp7_2_parser_gpu.h"
+namespace hesai
+{
+namespace lidar
+{
 
-using namespace hesai::lidar;
-template <typename T_Point>
-Udp7_2ParserGpu<T_Point>::Udp7_2ParserGpu(uint16_t maxPacket, uint16_t maxPoint) : GeneralParserGpu<T_Point>(maxPacket, maxPoint) {
-}
-template <typename T_Point>
-Udp7_2ParserGpu<T_Point>::~Udp7_2ParserGpu() {
-}
+__global__ void compute_xyzs_7_2_impl(uint8_t* point_cloud_cu_, uint32_t point_cloud_size, const float* correction_azi, const float* correction_ele, 
+    TransformParam transform, CudaPointXYZAER* points_cu_) {
+  auto packet_index = blockIdx.x;
+  auto channel_index = threadIdx.x;
+  auto block_index = threadIdx.y;
+  auto channel_num = blockDim.x;
+  auto block_num = blockDim.y;
 
-template <typename T_Point>
-int Udp7_2ParserGpu<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame) {
-  if (!*this->get_correction_file_) return int(ReturnCode::CorrectionsUnloaded);       
-  cudaSafeCall(cudaMemcpy(this->point_data_cu_, frame.pointData,
-                          frame.per_points_num * frame.packet_num * sizeof(PointDecodeData), 
-                          cudaMemcpyHostToDevice), ReturnCode::CudaMemcpyHostToDeviceError);
-  cudaSafeCall(cudaMemcpy(this->valid_points_cu_, frame.valid_points,
-                          frame.packet_num * sizeof(uint32_t), 
-                          cudaMemcpyHostToDevice), ReturnCode::CudaMemcpyHostToDeviceError); 
-  FrameDecodeParam cuda_Param = frame.fParam;
-  cuda_Param.firetimes_flag = *this->get_firetime_file_ ? cuda_Param.firetimes_flag : false;
-  int ret = compute_7_2_cuda(this->points_cu_, this->point_data_cu_, this->valid_points_cu_, frame.distance_unit, cuda_Param,
-    frame.packet_num, frame.per_points_num);
-  if (ret != 0) return ret;
-
-  cudaSafeCall(cudaMemcpy(this->points_, this->points_cu_,
-                          frame.per_points_num * frame.packet_num * sizeof(LidarPointXYZDAE), 
-                          cudaMemcpyDeviceToHost), ReturnCode::CudaMemcpyDeviceToHostError);
-  for (uint32_t i = 0; i < frame.packet_num; i++) {
-    uint32_t point_index = i * frame.per_points_num;
-    int point_num = 0;
-    for (uint32_t j = point_index; j < point_index + frame.valid_points[i]; j++) {
-      if (frame.fParam.config.fov_start != -1 && frame.fParam.config.fov_end != -1) {
-        int fov_transfer = this->points_[j].azimuthCalib / M_PI * HALF_CIRCLE;
-        if (fov_transfer < frame.fParam.config.fov_start || fov_transfer > frame.fParam.config.fov_end) { //不在fov范围continue
-          continue;
-        }
-      }
-      PUT_POINT_IN_POINT_INFO
-        set_timestamp(ptinfo, double(packetData.t.sensor_timestamp) / kMicrosecondToSecond);
-
-        point_num++;
-      }
-    }
-    frame.valid_points[i] = point_num;
+  extern __shared__ uint8_t shared_data[];
+  int tid = block_index * channel_num + channel_index;
+  int thread_count = block_num * channel_num;
+  const uint8_t* input_data = point_cloud_cu_ + packet_index * point_cloud_size;
+  if (input_data[0] != 0xEE || input_data[1] != 0xFF) return;
+  for (int i = tid; i < point_cloud_size; i += thread_count) {
+    shared_data[i] = input_data[i];
   }
+  __syncthreads();
+  int point_index = packet_index * block_num * channel_num + block_index * channel_num + channel_index;
+  int header_offset = 6;
+  float dis_unit = shared_data[header_offset + 7] * 0.001f;
+  int unit_size = 5;
+  int uint_offset = header_offset + 19 + unit_size * channel_index;
+  float distance = (shared_data[uint_offset + 0] + shared_data[uint_offset + 1] * 0x100) * dis_unit;
+  uint8_t intensity = shared_data[uint_offset + 2];
+
+  int tail_offset = header_offset + 19 + unit_size * channel_num;
+  uint16_t column_id = shared_data[tail_offset + 7] + shared_data[tail_offset + 8] * 0x100;
+
+  float raw_azimuth = correction_azi[channel_index * FT::FT2_CORRECTION_LEN + column_id];
+  float raw_elevation = correction_ele[channel_index * FT::FT2_CORRECTION_LEN + column_id];
+  float theta = raw_azimuth / HALF_CIRCLE * M_PI;
+  float phi = raw_elevation / HALF_CIRCLE * M_PI;
+  
+  float z = distance * sin(phi);
+  auto r = distance * cosf(phi);
+  float x = r * sin(theta);
+  float y = r * cos(theta);
+
+  if (transform.use_flag) {
+    float cosa = cos(transform.roll);
+    float sina = sin(transform.roll);
+    float cosb = cos(transform.pitch);
+    float sinb = sin(transform.pitch);
+    float cosc = cos(transform.yaw);
+    float sinc = sin(transform.yaw);
+
+    float x_ = cosb * cosc * x + (sina * sinb * cosc - cosa * sinc) * y +
+                (sina * sinc + cosa * sinb * cosc) * z + transform.x;
+    float y_ = cosb * sinc * x + (cosa * cosc + sina * sinb * sinc) * y +
+                (cosa * sinb * sinc - sina * cosc) * z + transform.y;
+    float z_ = -sinb * x + sina * cosb * y + cosa * cosb * z + transform.z;
+
+    x = x_;
+    y = y_;
+    z = z_;
+  }
+
+  points_cu_[point_index].x = x;
+  points_cu_[point_index].y = y;
+  points_cu_[point_index].z = z;
+  points_cu_[point_index].azimuthCalib = theta * HALF_CIRCLE / M_PI;
+  while (points_cu_[point_index].azimuthCalib < 0) points_cu_[point_index].azimuthCalib += 360.0f;
+  while (points_cu_[point_index].azimuthCalib >= 360.0f) points_cu_[point_index].azimuthCalib -= 360.0f;
+  points_cu_[point_index].elevationCalib = phi * HALF_CIRCLE / M_PI;
+  while (points_cu_[point_index].elevationCalib < -180.0f) points_cu_[point_index].elevationCalib += 360.0f;
+  while (points_cu_[point_index].elevationCalib >= 180.0f) points_cu_[point_index].elevationCalib -= 360.0f;
+  points_cu_[point_index].reserved[0] = intensity;
+  points_cu_[point_index].reserved[1] = column_id & 0xFF;
+  points_cu_[point_index].reserved[2] = (column_id >> 8) & 0xFF;
+}
+
+int compute_7_2_cuda(uint8_t* point_cloud_cu_, CudaPointXYZAER* points_cu_, uint32_t point_cloud_size, const float* correction_azi, 
+    const float* correction_ele, const FrameDecodeParam* fParam, uint32_t packet_num, uint16_t block_num, uint16_t channel_num) {
+  dim3 grid(packet_num);
+  dim3 block(channel_num, block_num);
+  compute_xyzs_7_2_impl<<<grid, block, point_cloud_size * sizeof(uint8_t)>>>(point_cloud_cu_, point_cloud_size, correction_azi, correction_ele, 
+    fParam->transform, points_cu_);
+  cudaDeviceSynchronize();
+  cudaSafeCall(cudaGetLastError(), ReturnCode::CudaXYZComputingError);
   return 0;
 }
 
-template <typename T_Point>
-void Udp7_2ParserGpu<T_Point>::LoadCorrectionStruct(void * _correction) {
-  FT_correction_ptr = (FT::PandarFTCorrections*)_correction;
+}
 }
 
-template <typename T_Point>
-void Udp7_2ParserGpu<T_Point>::LoadFiretimesStruct(void *) {
-  LogWarning("FT(GPU) not support for loading firetimes file");
-}
-#endif
