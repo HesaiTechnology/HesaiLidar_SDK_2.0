@@ -146,3 +146,23 @@ writer.writeASCII(file_name1, *pcl_pointcloud, precision);
 - 进入文件 [general_parser.h](../libhesai/UdpParser/include/general_parser.h) 中，搜索 `DEFINE_MEMBER_CHECKER`，在下方同步添加 `DEFINE_MEMBER_CHECKER(addFlag)` 和 `DEFINE_SET_GET(addFlag, uint8_t)`
 
 - 进入文件 [udp1_4_parser.cc](../libhesai/UdpParser/src/udp1_4_parser.cc) 中，搜索 `ComputeXYZI` 函数，在其中调用`set_addFlag` 函数实现对 `frame.points[point_index_rerank]` 的赋值
+
+#### 5 使用ENABLE_VIEWER可视化时，出现闪退问题
+
+- 现象
+
+   ```
+   当开启ENABLE_VIEWER时，可视化点云数据时，出现一些VTK相关警告，且程序直接出现core dumped错误，导致程序直接退出。
+
+   一般出现在ubuntu22.04及其以上系统。
+   ```
+
+- 解决方法
+
+   ```
+   该问题原因为VTK版本与PCL版本不兼容导致的，请使用匹配的版本进行编译。
+
+   以下为一些匹配版本的例子：
+      vtk7.1 + pcl1.10.0
+      vtk9.1 + pcl1.14.1
+   ```
