@@ -6,6 +6,8 @@ PROJECT(Template)
 set(WITH_PTCS_USE ON CACHE BOOL "Use Ptcs")
 # set(FIND_CUDA ON CACHE BOOL "Find CUDA")
 
+
+
 if(FIND_CUDA)
     find_package(CUDA )
 if(${CUDA_FOUND})
@@ -44,14 +46,22 @@ set_target_properties(hesai_sdk_lib
 target_include_directories(hesai_sdk_lib PUBLIC   
     ${OTHER_INCLUDE_DIRS}
 	driver
+	algorithm
 	./
 ) 
+
+
 if(FIND_CUDA)
 if(${CUDA_FOUND})
 	target_compile_definitions(hesai_sdk_lib PUBLIC USE_CUDA=1)
 endif(${CUDA_FOUND})
 endif()
 
+
+
+if(BUILD_LOG_LIB_SHARED)
+	target_compile_definitions(hesai_sdk_lib PUBLIC BUILD_LOG_LIB_SHARED=1)
+endif(BUILD_LOG_LIB_SHARED)
 
 if(DISENABLE_TEST_CC)
 

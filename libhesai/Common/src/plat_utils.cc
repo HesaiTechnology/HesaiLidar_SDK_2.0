@@ -43,25 +43,25 @@ static const int kTimeStrLen = 1000;
 #ifdef _MSC_VER
 void SetThreadPriorityWin(int priority) {
   auto handle = GetCurrentThread();
-  LogInfo("set thread %lu, priority %d",std::this_thread::get_id(),
-        priority);
+  // LogInfo("set thread %lu, priority %d",std::this_thread::get_id(),
+  //       priority);
   SetThreadPriority(handle, priority);
   int prior = GetThreadPriority(handle);
-  LogInfo("get thead %lu, priority %d", std::this_thread::get_id(),
-        prior);
+  // LogInfo("get thead %lu, priority %d", std::this_thread::get_id(),
+  //       prior);
 }
 #else
 void SetThreadPriority(int policy, int priority) {
-  LogInfo("set thread %lu, tid %ld, policy %d and priority %d", pthread_self(),
-         gettid(), policy, priority);
+  // LogInfo("set thread %lu, tid %ld, policy %d and priority %d", pthread_self(),
+  //        gettid(), policy, priority);
   sched_param param;
   param.sched_priority = priority;
   pthread_setschedparam(pthread_self(), policy, &param);
 
   int ret_policy;
   pthread_getschedparam(pthread_self(), &ret_policy, &param);
-  LogInfo("get thead %lu, tid %ld, policy %d and priority %d", pthread_self(),
-         gettid(), ret_policy, param.sched_priority);
+  // LogInfo("get thead %lu, tid %ld, policy %d and priority %d", pthread_self(),
+  //        gettid(), ret_policy, param.sched_priority);
 }
 #endif
 

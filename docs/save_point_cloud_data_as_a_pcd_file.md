@@ -145,3 +145,23 @@ Taking the addition of member variable `addFlag` with data type `uint8_t` as an 
 - Navigate to file [general_parser.h](../libhesai/UdpParser/include/general_parser.h), search for `DEFINE_MEMBER_CHECKER`, and add `DEFINE_MEMBER_CHECKER(addFlag)` and `DEFINE_SET_GET(addFlag, uint8_t)` below
 
 - Navigate to file [udp1_4_parser.cc](../libhesai/UdpParser/src/udp1_4_parser.cc), search for the `ComputeXYZI` function, and call the `set_addFlag` function within it to implement assignment to `frame.points[point_index_rerank]` 
+
+#### 5 When using ENABLE_VIEWER for visualization, the program crashes
+
+- Phenomenon
+
+   ```
+   When ENABLE_VIEWER is enabled, while visualizing point cloud data, some VTK-related warnings appear, and the program directly encounters a core dumped error, causing the program to exit immediately.
+
+   This issue usually occurs on Ubuntu 22.04 and above systems.
+   ```
+
+- Solution
+
+   ```
+   This issue is caused by incompatibility between VTK and PCL versions. Please compile using compatible versions.
+
+   Below are some examples of compatible versions:
+      vtk7.1 + pcl1.10.0
+      vtk9.1 + pcl1.14.1
+   ```

@@ -122,6 +122,10 @@ int SerialClient::QueryCommand(const uint8_t cmd, const u8Array_t &payload, u8Ar
   sendCommand.resize(payload.size() + sizeof(SerialHeader) + 2);
   memcpy(sendCommand.data() + sizeof(SerialHeader) + 2, payload.data(), payload.size());
   SerialStreamEncode(kCmd, sendCommand);
+
+  std::string sendMsg = BytePrinter::getInstance().printByteArrayToString(sendCommand);
+  ProduceLogMessage("SEND: " + sendMsg);
+
   source_recv_->SetReceiveStype(SERIAL_CLEAR_RECV_BUF);
   if (source_send_->Send(sendCommand.data(), sendCommand.size(), 0) < 0) {
     return kInvalidEquipment;
@@ -132,24 +136,47 @@ int SerialClient::QueryCommand(const uint8_t cmd, const u8Array_t &payload, u8Ar
   u8Array_t recvData;
   recvData.resize(size);
   memcpy(recvData.data(), udp_packet.buffer, size);
+
+  std::string recvMsg = BytePrinter::getInstance().printByteArrayToString(recvData);
+  ProduceLogMessage("RECV: " + recvMsg);
+
   bool ret = SerialStreamDecode(kCmd, recvData, byteStreamOut);
   if (ret == false) return kInvalidData;
   return 0;
 }
 
-int SerialClient::ChangeMode(uint8_t mode) {
+int SerialClient::RecvSpecialAckData(uint8_t &status, uint8_t &ret_code, int timeout) {
+  if (source_recv_ == nullptr || source_recv_->IsOpened() == false) return kInvalidEquipment;
+  UdpPacket udp_packet;
+  int size = source_recv_->Receive(udp_packet, kBufSize, 1, timeout);
+  if (size < 0) return kReadTimeout; 
+  u8Array_t recvData, byteStreamOut;
+  recvData.resize(size);
+  memcpy(recvData.data(), udp_packet.buffer, size);
+
+  std::string recvMsg = BytePrinter::getInstance().printByteArrayToString(recvData);
+  ProduceLogMessage("RECV: " + recvMsg);
+
+  bool ret = SerialStreamDecode(kOta, recvData, byteStreamOut);
+  if (ret == false || byteStreamOut.size() == 0 || byteStreamOut[0] + 2 != int(byteStreamOut.size())) return kInvalidData;
+  status = byteStreamOut[1];
+  ret_code = byteStreamOut[byteStreamOut.size() - 1];
+  return 0;
+}
+
+int SerialClient::ChangeMode(uint8_t mode, uint8_t reserved) {
   u8Array_t payload, byteStreamOut;
   payload.push_back(mode);
-  payload.push_back(0x00);
-  int ret = QueryCommand(0x03, payload, byteStreamOut, 5000);
+  payload.push_back(reserved);
+  int ret = QueryCommand(0x03, payload, byteStreamOut, 3000);
   if (ret != 0) {
     return ret;
   }
-  if (byteStreamOut.size() != 5 || byteStreamOut[1] != 0x03 || byteStreamOut[2] != mode || byteStreamOut[3] != 0x00) {
+  if (byteStreamOut.size() != 5 || byteStreamOut[1] != 0x03 || byteStreamOut[2] != mode) {
     return kInvalidData;
   }
   if (byteStreamOut[4] != 0x00) {
-    return CmdErrorCode2RetCode(byteStreamOut[4]);
+    return (byteStreamOut[4]);
   }
   return 0;
 }
@@ -162,11 +189,11 @@ int SerialClient::ChangeUpgradeMode() {
   if (ret != 0) {
     return ret;
   }
-  if (byteStreamOut.size() != 5 || byteStreamOut[1] != 0x03 || byteStreamOut[2] != 0x04 || byteStreamOut[3] != 0x00) {
+  if (byteStreamOut.size() != 5 || byteStreamOut[1] != 0x03 || byteStreamOut[2] != 0x04) {
     return kInvalidData;
   }
   if (byteStreamOut[4] != 0x00) {
-    return CmdErrorCode2RetCode(byteStreamOut[4]);
+    return (byteStreamOut[4]);
   }
   return 0;
 }
@@ -177,7 +204,7 @@ int SerialClient::GetCorrectionInfo(u8Array_t &dataOut) {
   payload.push_back(0x07);
   payload.push_back(0x00);
   int ret = QueryCommand(0x02, payload, byteStreamOut, 5000);
-  ChangeMode(0x00);
+  ChangeMode(m_now_mode);
   if (ret != 0) {
     return ret;
   }
@@ -186,7 +213,7 @@ int SerialClient::GetCorrectionInfo(u8Array_t &dataOut) {
     return kInvalidData;
   }
   if (byteStreamOut[byteStreamOut.size() - 1] != 0x00) {
-    return CmdErrorCode2RetCode(byteStreamOut[byteStreamOut.size() - 1]);
+    return (byteStreamOut[byteStreamOut.size() - 1]);
   }
   dataOut.resize(byteStreamOut[4]);
   std::copy_n(byteStreamOut.begin() + 5, byteStreamOut[4], dataOut.begin());
@@ -194,11 +221,13 @@ int SerialClient::GetCorrectionInfo(u8Array_t &dataOut) {
 }
 
 int SerialClient::GetSnInfo(u8Array_t &dataOut) {
+  ChangeMode(0x01);
   u8Array_t payload, byteStreamOut;
   payload.push_back(0x0A);
   payload.push_back(0x01);
   payload.resize(38);
   int ret = QueryCommand(0x02, payload, byteStreamOut, 5000);
+  ChangeMode(m_now_mode);
   if (ret != 0) {
     return ret;
   }
@@ -206,10 +235,87 @@ int SerialClient::GetSnInfo(u8Array_t &dataOut) {
     return kInvalidData;
   }
   if (byteStreamOut[byteStreamOut.size() - 1] != 0x00) {
-    return CmdErrorCode2RetCode(byteStreamOut[byteStreamOut.size() - 1]);
+    return (byteStreamOut[byteStreamOut.size() - 1]);
   }
   dataOut.resize(36);
   std::copy_n(byteStreamOut.begin() + 4, 36, dataOut.begin());
+  return 0;
+}
+
+int SerialClient::GetLidarVersion(u8Array_t &dataOut, uint8_t type) {
+  ChangeMode(0x01);
+  u8Array_t payload, byteStreamOut;
+  payload.push_back(0x0F);
+  payload.push_back(type);
+  payload.resize(27);
+  int ret = QueryCommand(0x02, payload, byteStreamOut, 1000);
+  ChangeMode(m_now_mode);
+  if (ret != 0) {
+    return ret;
+  }
+  if (byteStreamOut.size() != 30 || byteStreamOut[1] != 0x02 || byteStreamOut[2] != 0x0F) {
+    return kInvalidDataHeader;
+  }
+  if (byteStreamOut[byteStreamOut.size() - 1] != 0x00) {
+    return (byteStreamOut[byteStreamOut.size() - 1]);
+  }
+  dataOut.resize(24);
+  std::copy_n(byteStreamOut.begin() + 4, 24, dataOut.begin());
+  return 0;
+}
+
+int SerialClient::GetLidarFaultState(u8Array_t &dataOut) {
+  ChangeMode(0x01);
+  u8Array_t payload, byteStreamOut;
+  payload.push_back(0x08);
+  payload.push_back(0x21);
+  int ret = QueryCommand(0x02, payload, byteStreamOut, 5000);
+  ChangeMode(m_now_mode);
+  if (ret != 0) {
+    return ret;
+  }
+  if (byteStreamOut[1] != 0x02 || byteStreamOut[2] != 0x08 || byteStreamOut[3] != 0xA1) {
+    return kInvalidDataHeader;
+  }
+  if (byteStreamOut[byteStreamOut.size() - 1] != 0x00) {
+    return (byteStreamOut[byteStreamOut.size() - 1]);
+  }
+  dataOut.resize(byteStreamOut.size() - 5);
+  std::copy_n(byteStreamOut.begin() + 4, byteStreamOut.size() - 5, dataOut.begin());
+  return 0;
+}
+
+int SerialClient::OtaQueryCommand(const uint32_t all_num, const uint32_t num, const uint32_t len, const uint8_t *payload, uint8_t &status, uint8_t &ret_code, uint8_t type) {
+  if (source_recv_ == nullptr || source_recv_->IsOpened() == false) return kInvalidEquipment;
+  u8Array_t sendCommand;
+  sendCommand.resize(sizeof(SerialHeader));
+  sendCommand.push_back(0x00);
+  sendCommand.push_back(0x00);
+  sendCommand.push_back(0x00);
+  sendCommand.push_back(type);
+  sendCommand.push_back(static_cast<uint8_t>(all_num >> 24));
+  sendCommand.push_back(static_cast<uint8_t>(all_num >> 16));
+  sendCommand.push_back(static_cast<uint8_t>(all_num >> 8));
+  sendCommand.push_back(static_cast<uint8_t>(all_num >> 0));
+  sendCommand.push_back(static_cast<uint8_t>(num >> 24));
+  sendCommand.push_back(static_cast<uint8_t>(num >> 16));
+  sendCommand.push_back(static_cast<uint8_t>(num >> 8));
+  sendCommand.push_back(static_cast<uint8_t>(num >> 0));
+  sendCommand.push_back(static_cast<uint8_t>(len >> 24));
+  sendCommand.push_back(static_cast<uint8_t>(len >> 16));
+  sendCommand.push_back(static_cast<uint8_t>(len >> 8));
+  sendCommand.push_back(static_cast<uint8_t>(len >> 0));
+  sendCommand.resize(sendCommand.size() + len);
+  memcpy(sendCommand.data() + sizeof(SerialHeader) + 16, payload, len);
+  SerialStreamEncode(kOta, sendCommand);
+  source_recv_->SetReceiveStype(SERIAL_CLEAR_RECV_BUF);
+  if (source_recv_->Send(sendCommand.data(), sendCommand.size(), 0) < 0) {
+    return kInvalidEquipment;
+  }
+  int ret = RecvSpecialAckData(status, ret_code, 30000);
+  if (ret != 0) {
+    return ret;
+  }
   return 0;
 }
 
@@ -247,33 +353,190 @@ uint32_t SerialClient::GetRandom() {
   return distribution(generator);
 }
 
-int SerialClient::CmdErrorCode2RetCode(uint8_t error_code) {
-  int ret = 0;
-  switch(error_code) 
-  {
-    case 0x01:
-    case 0x02:
-      ret = kInvalidCmd;
-      break;
-    case 0x03:
-    case 0x04:
-      ret = kExecutionError;
-      break;
-    case 0x31:
-      ret = kPacketLoss;
-      break;
-    case 0x32:
-      ret = kChecksumFailure;
-      break;
-    case 0x33:
-      ret = kUnrecognisedFormat;
-      break;
-    case 0x05:
-      ret = kTimeout;
-      break;
-    default:
-      ret = kUndefine;
-      break;
+void SerialClient::ProduceLogMessage(const std::string& message) {
+  if (log_message_handler_callback_) {
+    log_message_handler_callback_(message);
   }
+}
+
+int SerialClient::RequestUpgradeLargePackage(uint8_t type) {
+  if (source_send_ == nullptr || source_recv_ == nullptr || source_send_->IsOpened() == false || source_recv_->IsOpened() == false) return kInvalidEquipment;
+  u8Array_t payload, byteStreamOut;
+  payload.push_back(0x05);
+  payload.push_back(type);
+  int ret = QueryCommand(0x02, payload, byteStreamOut, 5000);
+  if (ret != 0) {
+    return ret;
+  }
+  if (byteStreamOut.size() != 5 || byteStreamOut[1] != 0x02 || byteStreamOut[2] != 0x05 || byteStreamOut[3] != type) {
+    return kInvalidData;
+  }
+  if (byteStreamOut[4] != 0x00) {
+    return int(byteStreamOut[4]) * -1;
+  }
+  source_recv_->Close();
+  source_recv_->SetReceiveStype(SERIAL_COMMAND_RECV);
+  source_recv_->Open();
+  ProduceLogMessage("wait recv ready ack\n");
+  uint8_t status, ret_code;
+  ret = RecvSpecialAckData(status, ret_code, 4000);
+  if (ret != 0) {
+    return ret;
+  }
+  if (status != 0x55) {
+    return kFailedCalibration;
+  }
+  return 0;
+}
+
+int SerialClient::GetPblVersionIdInPbl(u8Array_t &byteStreamOut) {
+  if (source_recv_ == nullptr || source_recv_->IsOpened() == false) return kInvalidEquipment;
+  u8Array_t sendCommand;
+  uint32_t all_num = 1, num = 0, len = 1024;
+  sendCommand.resize(sizeof(SerialHeader));
+  sendCommand.push_back(0x00);
+  sendCommand.push_back(0x00);
+  sendCommand.push_back(0x00);
+  sendCommand.push_back(0x05);
+  sendCommand.push_back(static_cast<uint8_t>(all_num >> 24));
+  sendCommand.push_back(static_cast<uint8_t>(all_num >> 16));
+  sendCommand.push_back(static_cast<uint8_t>(all_num >> 8));
+  sendCommand.push_back(static_cast<uint8_t>(all_num >> 0));
+  sendCommand.push_back(static_cast<uint8_t>(num >> 24));
+  sendCommand.push_back(static_cast<uint8_t>(num >> 16));
+  sendCommand.push_back(static_cast<uint8_t>(num >> 8));
+  sendCommand.push_back(static_cast<uint8_t>(num >> 0));
+  sendCommand.push_back(static_cast<uint8_t>(len >> 24));
+  sendCommand.push_back(static_cast<uint8_t>(len >> 16));
+  sendCommand.push_back(static_cast<uint8_t>(len >> 8));
+  sendCommand.push_back(static_cast<uint8_t>(len >> 0));
+  sendCommand.resize(sendCommand.size() + len, 0xFF);
+  SerialStreamEncode(kOta, sendCommand);
+
+  std::string sendMsg = BytePrinter::getInstance().printByteArrayToString(sendCommand);
+  ProduceLogMessage("SEND: " + sendMsg);
+
+  if (source_recv_->Send(sendCommand.data(), sendCommand.size(), 0) < 0) {
+    return kInvalidEquipment;
+  }
+
+  UdpPacket udp_packet;
+  int size = source_recv_->Receive(udp_packet, kBufSize, 1, 2000);
+  if (size < 0) return kReadTimeout; 
+  u8Array_t recvData;
+  recvData.resize(size);
+  memcpy(recvData.data(), udp_packet.buffer, size);
+
+  std::string recvMsg = BytePrinter::getInstance().printByteArrayToString(recvData);
+  ProduceLogMessage("RECV: " + recvMsg);
+
+  byteStreamOut.resize(size - 13);
+  memcpy(byteStreamOut.data(), udp_packet.buffer + 7, size - 13);
+  return 0;
+}
+
+int SerialClient::UpgradeLidar(u8Array_t data, int mode, int &upgrade_progress) {
+  if (mode == 0) ProduceLogMessage("begin to upgrade APP+FPGA");
+  else ProduceLogMessage("begin to upgrade PBL");
+  int ret = 0;
+  do {
+    source_recv_->Close();
+    source_send_->Close();
+    source_recv_->SetReceiveStype(SERIAL_COMMAND_RECV);
+    if (source_recv_->Open() == false) {
+      ret = kSerialOpenError;
+      break;
+    }
+    u8Array_t byteStreamOut;
+    ret = GetPblVersionIdInPbl(byteStreamOut);
+    if (ret == kReadTimeout) {
+      ProduceLogMessage("Currently may be located in app, begin to upgrade");
+      ret = 0;
+    } else if (ret != 0) {
+      break;
+    } else if (byteStreamOut.size() < 8 + 10) {
+      ProduceLogMessage("Returned data is minimal. Currently may be located in app, begin to upgrade PBL");
+      ret = 0; 
+    } else {
+      if (mode == 0) {
+        ProduceLogMessage("now in PBL, begin to upgrade APP");
+        ret = kInPblNotUpgrade;
+      }
+      else {
+        ProduceLogMessage("now in PBL, can't upgrade PBL");
+        ret = kInPblNotUpgrade;
+        break;
+      }
+    }
+    source_recv_->Close();
+    
+    source_recv_->SetReceiveStype(SERIAL_POINT_CLOUD_RECV);
+    if (source_recv_->Open() == false) {
+      ret = kSerialOpenError;
+      break;
+    }
+    if (source_send_->Open() == false) {
+      ret = kSerialOpenError;
+      break;
+    }
+    if (source_recv_->IsOpened() == false || source_send_->IsOpened() == false) {
+      ret = kSerialOpenError;
+      break;
+    }
+    if (ret == 0) {
+      ret = ChangeMode(0x04);
+      if (ret == kReadTimeout) {
+        ProduceLogMessage("ChangeMode to 0x04 timeout");
+      }
+      else if (ret != 0) break;
+      ret = RequestUpgradeLargePackage(mode == 0 ? 0x04 : 0x02);
+      if (ret != 0) {
+        if (ret == kReadTimeout) {
+          ProduceLogMessage("request upgrade large package timeout");
+          ret = 0;
+        }
+        else {
+          break;
+        }
+      }
+    } else {
+      source_recv_->Close();
+      source_recv_->SetReceiveStype(SERIAL_COMMAND_RECV);
+      source_recv_->Open();
+    }
+    ret = 0;
+    ProduceLogMessage("begin to send ota data");
+    int fileSize = data.size();
+    int i = 0, send_len = 1024;
+    int send_num = (fileSize - 1) / send_len + 1;
+    uint8_t status, ret_code;
+    for (i = 0; i < send_num - 1; i++) {
+      ProduceLogMessage("ota send" + std::to_string(i + 1) + " / " + std::to_string(send_num));
+      ret = OtaQueryCommand(send_num, i, send_len, (uint8_t *)data.data() + i * send_len, status, ret_code, mode == 0 ? 0x04 : 0x02);
+      if (ret != 0) {
+        break;
+      }
+      if (status != 0x05) {
+        ret = (ret_code);
+        break;
+      }
+      upgrade_progress = i + 1;
+    }
+    if (ret != 0) break;
+    ProduceLogMessage("ota send" + std::to_string(i + 1) + " / " + std::to_string(send_num));
+    ret = OtaQueryCommand(send_num, i, fileSize - i * send_len, (uint8_t *)data.data() + i * send_len, status, ret_code, mode == 0 ? 0x04 : 0x02);
+    if (ret != 0) {
+      break;
+    }
+    if (status != 0x05) {
+      ret = (ret_code);
+      break;
+    }
+    upgrade_progress = i + 1;
+    ret = 0;
+  } while(0);
+
+  source_recv_->Close();
+  source_send_->Close();
   return ret;
 }

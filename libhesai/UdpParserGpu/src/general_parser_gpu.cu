@@ -32,63 +32,65 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace hesai::lidar;
 template <typename T_Point>
 GeneralParserGpu<T_Point>::GeneralParserGpu(uint16_t maxPacket, uint16_t maxPoint) {
-  cudaSafeMalloc(correction_azi_cu_, sizeof(double) * DEFAULT_MAX_LASER_NUM);
-  cudaSafeMalloc(correction_ele_cu_, sizeof(double) * DEFAULT_MAX_LASER_NUM);
-  cudaSafeMalloc(firetimes_cu_, sizeof(double) * DEFAULT_MAX_LASER_NUM);
-  if (maxPacket > 0 && maxPoint > 0) {
-    cudaSafeMalloc(point_data_cu_, sizeof(PointDecodeData) * maxPacket * maxPoint);
-    cudaSafeMalloc(packet_data_cu_, sizeof(PacketDecodeData) * maxPacket);
-    cudaSafeMalloc(points_cu_, sizeof(LidarPointXYZDAE) * maxPacket * maxPoint);
-    cudaSafeMalloc(valid_points_cu_, sizeof(uint32_t) * maxPacket);
-    points_ = new LidarPointXYZDAE[maxPacket * maxPoint];
-  } else {
-    point_data_cu_ = nullptr;
-    packet_data_cu_ = nullptr;
-    points_cu_ = nullptr;
-    valid_points_cu_ = nullptr;
-    points_ = nullptr;
-  }
+  cudaSafeMalloc((void**)&correction_azi_cu_, sizeof(float) * DEFAULT_MAX_LASER_NUM);
+  cudaSafeMalloc((void**)&correction_ele_cu_, sizeof(float) * DEFAULT_MAX_LASER_NUM);
+  cudaSafeMalloc((void**)&firetimes_cu_, sizeof(float) * DEFAULT_MAX_LASER_NUM);
+  points_ = nullptr;
+  points_cu_ = nullptr;
+  point_cloud_cu_ = nullptr;
+  correction_ptr = nullptr;
+  firetimes_ptr = nullptr;
+  if (correction_azi_cu_ == nullptr || correction_ele_cu_ == nullptr || firetimes_cu_ == nullptr) {
+    init_suc_flag_ = false;
+  } 
 }
 template <typename T_Point>
 GeneralParserGpu<T_Point>::~GeneralParserGpu() {
   cudaSafeFree(correction_azi_cu_);
   cudaSafeFree(correction_ele_cu_);
   cudaSafeFree(firetimes_cu_);
-  if (point_data_cu_ != nullptr) cudaSafeFree(point_data_cu_);
-  if (packet_data_cu_ != nullptr) cudaSafeFree(packet_data_cu_);
-  if (points_cu_ != nullptr) cudaSafeFree(points_cu_);
-  if (valid_points_cu_ != nullptr) cudaSafeFree(valid_points_cu_);
   if (points_ != nullptr) delete[] points_;
+  if (points_cu_ != nullptr) cudaSafeFree(points_cu_);  
   if (point_cloud_cu_ != nullptr) cudaSafeFree(point_cloud_cu_);
 }
 
 template <typename T_Point>
 void GeneralParserGpu<T_Point>::LoadCorrectionStruct(void* _correction) {
+  if (init_suc_flag_ == false) return;
   correction_ptr = (CorrectionData*)_correction;
-  CUDACheck(cudaMemcpy(correction_azi_cu_, correction_ptr->azimuth, sizeof(double) * DEFAULT_MAX_LASER_NUM, cudaMemcpyHostToDevice));
-  CUDACheck(cudaMemcpy(correction_ele_cu_, correction_ptr->elevation, sizeof(double) * DEFAULT_MAX_LASER_NUM, cudaMemcpyHostToDevice));
+  int ret = 0;
+  ret |= CUDACheck(cudaMemcpy(correction_azi_cu_, correction_ptr->azimuth, sizeof(float) * DEFAULT_MAX_LASER_NUM, cudaMemcpyHostToDevice));
+  ret |= CUDACheck(cudaMemcpy(correction_ele_cu_, correction_ptr->elevation, sizeof(float) * DEFAULT_MAX_LASER_NUM, cudaMemcpyHostToDevice));
+  if (ret != 0) init_suc_flag_ = false;
 }
 
 template <typename T_Point>
 void GeneralParserGpu<T_Point>::LoadFiretimesStruct(void* _firetimes) {
+  if (init_suc_flag_ == false) return;
   firetimes_ptr = (float*)_firetimes;
-  CUDACheck(cudaMemcpy(firetimes_cu_, firetimes_ptr, sizeof(double) * DEFAULT_MAX_LASER_NUM, cudaMemcpyHostToDevice));
+  int ret = CUDACheck(cudaMemcpy(firetimes_cu_, firetimes_ptr, sizeof(float) * DEFAULT_MAX_LASER_NUM, cudaMemcpyHostToDevice));
+  if (ret != 0) init_suc_flag_ = false;
 }
 
 template <typename T_Point>
 void GeneralParserGpu<T_Point>::updateCorrectionFile() {
+  if (init_suc_flag_ == false) return;
   if (*get_correction_file_ && correction_load_sequence_num_cuda_use_ != *correction_load_sequence_num_) {
     correction_load_sequence_num_cuda_use_ = *correction_load_sequence_num_;
-    CUDACheck(cudaMemcpy(correction_azi_cu_, correction_ptr->azimuth, sizeof(double) * DEFAULT_MAX_LASER_NUM, cudaMemcpyHostToDevice));
-    CUDACheck(cudaMemcpy(correction_ele_cu_, correction_ptr->elevation, sizeof(double) * DEFAULT_MAX_LASER_NUM, cudaMemcpyHostToDevice));
+    int ret = 0;
+    ret |= CUDACheck(cudaMemcpy(correction_azi_cu_, correction_ptr->azimuth, sizeof(float) * DEFAULT_MAX_LASER_NUM, cudaMemcpyHostToDevice));
+    ret |= CUDACheck(cudaMemcpy(correction_ele_cu_, correction_ptr->elevation, sizeof(float) * DEFAULT_MAX_LASER_NUM, cudaMemcpyHostToDevice));
+    if (ret != 0) init_suc_flag_ = false;
   }
 }
 
 template <typename T_Point>
 void GeneralParserGpu<T_Point>::updateFiretimeFile() {
+  if (init_suc_flag_ == false) return;
   if (*get_firetime_file_ && firetime_load_sequence_num_cuda_use_ != *firetime_load_sequence_num_) {
     firetime_load_sequence_num_cuda_use_ = *firetime_load_sequence_num_;
-    CUDACheck(cudaMemcpy(firetimes_cu_, firetimes_ptr, sizeof(double) * DEFAULT_MAX_LASER_NUM, cudaMemcpyHostToDevice));
+    int ret = CUDACheck(cudaMemcpy(firetimes_cu_, firetimes_ptr, sizeof(float) * DEFAULT_MAX_LASER_NUM, cudaMemcpyHostToDevice));
+    if (ret != 0) init_suc_flag_ = false;
   }
 }
 
@@ -102,6 +104,53 @@ void GeneralParserGpu<T_Point>::DoRemake(float azi_, float elev_, const RemakeCo
   if (new_azi_iscan >= 0 && new_azi_iscan < remake_config.max_azi_scan && new_elev_iscan >= 0 && new_elev_iscan < remake_config.max_elev_scan) {
     point_idx = new_azi_iscan * remake_config.max_elev_scan + new_elev_iscan;
   }
+}
+
+template <typename T_Point>
+void GeneralParserGpu<T_Point>::reMalloc(uint32_t maxPackets, uint32_t maxPoints, uint32_t point_cloud_size) {
+  if (maxPackets != maxPackets_cu_ || maxPoints != maxPoints_cu_ || point_cloud_size != point_cloud_size_cu_) {
+    maxPackets_cu_ = maxPackets;
+    maxPoints_cu_ = maxPoints;
+    point_cloud_size_cu_ = point_cloud_size;
+    if (points_cu_ != nullptr) cudaSafeFree(points_cu_);
+    if (points_ != nullptr) delete[] points_;
+    if (point_cloud_cu_ != nullptr) cudaSafeFree(point_cloud_cu_);
+    
+    cudaSafeMalloc((void**)&points_cu_, maxPackets * maxPoints * sizeof(CudaPointXYZAER));
+    points_ = new CudaPointXYZAER[maxPackets * maxPoints];
+    cudaSafeMalloc((void**)&point_cloud_cu_, point_cloud_size * maxPackets * sizeof(uint8_t));
+    if (points_cu_ == nullptr || point_cloud_cu_ == nullptr || points_ == nullptr) {
+      init_suc_flag_ = false;
+    }
+  }
+}
+
+template <typename T_Point>
+int GeneralParserGpu<T_Point>::IsChannelFovFilter(int fov, int channel_index, FrameDecodeParam &param) { 
+  // high priority, filter some fov ranges for all channels. low cpu usage
+  if (param.config.multi_fov_filter_ranges.size() > 0) {
+    for (const auto & pair : param.config.multi_fov_filter_ranges) {
+      if (fov >= pair.first && fov <= pair.second) {
+        return 1;
+      }
+    }
+  }
+  // middle priority, filter some fov ranges for some channels, a little high cpu usage
+  if (param.config.channel_fov_filter.size() > 0 && param.config.channel_fov_filter.count(channel_index) > 0) {
+    for (const auto & pair : param.config.channel_fov_filter[channel_index]) {
+      if (fov >= pair.first && fov <= pair.second) {
+        // printf("channel %d, %d\n", channel_index, fov);
+        return 1;
+      }
+    }
+  }
+  // low priority, show only [fov_start, fov_end]. low cpu usage
+  if (param.config.fov_start != -1 && param.config.fov_end != -1) {
+    if (fov < param.config.fov_start || fov > param.config.fov_end) { //不在fov范围continue
+      return 1;
+    }
+  }
+  return 0;
 }
 
 

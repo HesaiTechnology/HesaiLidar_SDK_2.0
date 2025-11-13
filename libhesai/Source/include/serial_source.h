@@ -107,6 +107,7 @@ public:
    * @return true for valid
    */
   virtual void SetReceiveStype(int type);
+  virtual void setNeedRecv(bool is_need_recv) { is_need_recv_ = is_need_recv; }
 
 private:
   void ReceivedThread();
@@ -129,6 +130,7 @@ private:
   uint32_t dataIndex;
   uint32_t dataLength;
   int receiveStype = SERIAL_POINT_CLOUD_RECV;
+  int is_need_recv_ = true;
 
 private:
   int WaitRead(int32_t timeout);

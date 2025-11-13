@@ -29,6 +29,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define Lidar_CC
 #include "lidar.h"
 #include <inttypes.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <chrono>
 using namespace hesai::lidar;
@@ -111,41 +112,42 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     Logger::GetInstance().Start(); 
     /**********************************************************************************/
     /***************************Init source****************************************/
-    if (param.input_param.source_type == DATA_FROM_LIDAR && param.input_param.use_someip) {
-      auto source_tmp = std::make_shared<SocketSource>(SOMEIP_PORT);
-      source_tmp->Open();
-      auto ret = source_tmp->sendsomeip_subscribe_ipv4(param.input_param.device_ip_address, param.input_param.host_ip_address, param.input_param.udp_port, param.input_param.fault_message_port);
-      if (ret == false) {
-        LogFatal("send someip subscribe error");
-        init_finish_[FailInit] = true;
-        return -1;
-      }
-    }
     udp_port_ = param.input_param.udp_port;
     fault_message_port_ = param.input_param.fault_message_port;
     device_ip_address_ = param.input_param.device_ip_address;
+    host_ip_address_ = param.input_param.host_ip_address;
     if (param.input_param.source_type == DATA_FROM_PCAP) {
       int packet_interval = 10;
       source_ = std::make_shared<PcapSource>(param.input_param.pcap_path, packet_interval);
       if(source_->Open() == false) {
-        LogFatal("open pcap file error");
+        LogFatal("open pcap file failed");
         init_finish_[FailInit] = true;
         return -1;
       }
       source_->SetPcapLoop(param.decoder_param.pcap_play_in_loop);
     }
     else if(param.input_param.source_type == DATA_FROM_LIDAR) {
-      source_ = std::make_shared<SocketSource>(param.input_param.udp_port, param.input_param.multicast_ip_address);
-      source_->Open();
-      if (param.input_param.fault_message_port > 0 && param.input_param.fault_message_port != param.input_param.udp_port) {
-        source_fault_message_ = std::make_shared<SocketSource>(param.input_param.fault_message_port, param.input_param.multicast_ip_address);
-        source_fault_message_->Open();
+      {
+        source_ = std::make_shared<SocketSource>(param.input_param.udp_port, param.input_param.host_ip_address, param.input_param.multicast_ip_address);
+        if (param.input_param.fault_message_port > 0 && param.input_param.fault_message_port != param.input_param.udp_port) {
+          source_fault_message_ = std::make_shared<SocketSource>(param.input_param.fault_message_port, param.input_param.multicast_ip_address);
+        }
       }
+      if(source_->Open() == false) {
+        LogFatal("open udp source failed");
+        init_finish_[FailInit] = true;
+        return -1;
+      }
+      if(source_fault_message_ != nullptr && source_fault_message_->Open() == false) {
+        LogError("open fault message source failed");
+      }
+
     }
     else if(param.input_param.source_type == DATA_FROM_SERIAL) {
       source_ = std::make_shared<SerialSource>(param.input_param.rs485_com, param.input_param.rs485_baudrate, param.input_param.point_cloud_baudrate);
       source_rs232_ = std::make_shared<SerialSource>(param.input_param.rs232_com, param.input_param.rs232_baudrate);
       source_->SetReceiveStype(SERIAL_POINT_CLOUD_RECV);
+      source_->setNeedRecv(true);
       source_->Open();
       if (!source_->IsOpened()) {
         LogFatal("recv point cloud serial open error");
@@ -153,14 +155,23 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
         return -1;
       }
       source_rs232_->SetReceiveStype(SERIAL_COMMAND_RECV);
+      source_rs232_->setNeedRecv(false);
       source_rs232_->Open();
       if (!source_rs232_->IsOpened()) LogError("send cmd serial open error");
       serial_client_ = std::make_shared<SerialClient>();
       serial_client_->SetSerial(source_rs232_.get(), source_.get());
     }
+    else if (param.input_param.source_type == DATA_FROM_LIDAR_TCP) {
+      source_ = std::make_shared<TcpSource>(param.input_param.device_ip_address, param.input_param.device_tcp_src_port, param.input_param.recv_point_cloud_timeout);
+      if(source_->Open() == false) {
+        LogFatal("open tcp source failed");
+        init_finish_[FailInit] = true;
+        return -1;
+      }
+    }
     parser_thread_running_ = param.decoder_param.enable_parser_thread;
     udp_thread_running_ = param.decoder_param.enable_udp_thread;
-    if (param.input_param.source_type == DATA_FROM_EXTERNAL_INPUT) {
+    if (param.input_param.source_type == DATA_FROM_ROS_PACKET) {
       udp_thread_running_ = false;
     }
     if (param.decoder_param.socket_buffer_size > 0 && source_ != nullptr) {
@@ -172,7 +183,7 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     SetThreadNum(param.decoder_param.thread_num);
     /********************************************************************************/
     if (param.input_param.use_ptc_connected) { 
-      if (param.input_param.source_type == DATA_FROM_LIDAR) {
+      if (param.input_param.source_type == DATA_FROM_LIDAR || param.input_param.source_type == DATA_FROM_LIDAR_TCP) {
         ptc_client_ = std::make_shared<PtcClient>(param.input_param.device_ip_address
                                                     , param.input_param.ptc_port
                                                     , false
@@ -181,9 +192,10 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
                                                     , param.input_param.certFile
                                                     , param.input_param.privateKeyFile
                                                     , param.input_param.caFile
-                                                    , 2000
-                                                    , 2000
-                                                    , param.input_param.ptc_connect_timeout);
+                                                    , 3000
+                                                    , 3000
+                                                    , param.input_param.ptc_connect_timeout
+                                                    , param.input_param.host_ptc_port);
         init_set_ptc_ptr_ = std::make_shared<std::thread>(std::bind(&Lidar::InitSetPtc, this, param));
       }
     }
@@ -219,9 +231,11 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
     /***************************Init decoder****************************************/   
     udp_parser_->SetPcapPlay(param.input_param.source_type);
     udp_parser_->SetFrameAzimuth(param.decoder_param.frame_start_azimuth);
+    udp_parser_->SetPlayRate(param.decoder_param.play_rate_);
     switch (param.input_param.source_type)
     {
     case DATA_FROM_LIDAR: 
+    case DATA_FROM_LIDAR_TCP:
     {
       if (param.input_param.use_ptc_connected) { 
         auto ptc_start_time = std::chrono::high_resolution_clock::now();
@@ -239,7 +253,8 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
           LogError("---Failed to obtain correction file from lidar!---");
           LoadCorrectionFile(param.input_param.correction_file_path);
         }
-        if (udp_parser_->GetLidarType() == "ATX") {
+        if (udp_parser_->GetLidarType() == "ATX" 
+            ) {
           if (LoadFiretimesForUdpParser() == -1) {
             LogWarning("---Failed to obtain firetimes file from lidar!---");
             LoadFiretimesFile(param.input_param.firetimes_path);
@@ -268,9 +283,6 @@ int Lidar<T_Point>::Init(const DriverParam& param) {
         LoadCorrectionFile(param.input_param.correction_file_path);
       }
       break;
-    case DATA_FROM_EXTERNAL_INPUT:
-      LoadCorrectionFile(param.input_param.correction_file_path);
-      LoadFiretimesFile(param.input_param.firetimes_path);
     default:
       break;
     }
@@ -289,9 +301,6 @@ void Lidar<T_Point>::InitSetPtc(const DriverParam param) {
     if (!ptc_client_ || !ptc_client_->IsOpen()) continue;
     init_finish_[PtcInitFinish] = true;
     LogDebug("finish 1: ptc connection successfully");
-    if (param.input_param.use_someip) {
-      ptc_client_->GetCorrectionInfo();
-    }
     if (param.input_param.standby_mode != -1) {
       if (ptc_client_->SetStandbyMode(param.input_param.standby_mode)) {
         LogInfo("set standby mode successed!");
@@ -783,7 +792,5 @@ template <typename T_Point>
 std::string Lidar<T_Point>::GetLidarType() {
   return udp_parser_->GetLidarType();
 }
-
-
 
 #endif

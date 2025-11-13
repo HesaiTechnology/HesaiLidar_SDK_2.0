@@ -1,4 +1,3 @@
-#include <bits/stdint-uintn.h>
 #define NOMINMAX
 #include "hesai_lidar_sdk.hpp"
 #define PCL_NO_PRECOMPILE
@@ -27,7 +26,39 @@
 // #define SERIAL_PARSER_TEST
 #define PCAP_PARSER_TEST
 // #define EXTERNAL_INPUT_PARSER_TEST
+// #define LIDAR_PARSER_TCP_TEST
 
+
+#ifdef ENABLE_TIMESTAMP
+  #define TIMESTAMP_PCL_STR  (double, timestamp, timestamp)
+#else
+  #define TIMESTAMP_PCL_STR
+#endif
+#ifdef ENABLE_RING
+  #define RING_PCL_STR  (std::uint16_t, ring, ring)
+#else
+  #define RING_PCL_STR
+#endif
+#ifdef ENABLE_INTENSITY
+  #define INTENSITY_PCL_STR  (std::uint8_t, intensity, intensity)
+#else
+  #define INTENSITY_PCL_STR
+#endif
+#ifdef ENABLE_CONFIDENCE
+  #define CONFIDENCE_PCL_STR  (std::uint8_t, confidence, confidence)
+#else
+  #define CONFIDENCE_PCL_STR
+#endif
+#ifdef ENABLE_WEIGHT_FACTOR
+  #define WEIGHT_FACTOR_PCL_STR  (std::uint8_t, weightFactor, weightFactor)
+#else
+  #define WEIGHT_FACTOR_PCL_STR
+#endif
+#ifdef ENABLE_ENV_LIGHT
+  #define ENV_LIGHT_PCL_STR  (std::uint8_t, envLight, envLight)
+#else
+  #define ENV_LIGHT_PCL_STR
+#endif
 struct PointXYZIT {
   PCL_ADD_POINT4D   
 #ifdef ENABLE_TIMESTAMP
@@ -54,24 +85,12 @@ struct PointXYZIT {
 POINT_CLOUD_REGISTER_POINT_STRUCT(
     PointXYZIT,
     (float, x, x)(float, y, y)(float, z, z)
-#ifdef ENABLE_TIMESTAMP
-    (double, timestamp, timestamp)
-#endif
-#ifdef ENABLE_RING
-    (std::uint16_t, ring, ring)
-#endif
-#ifdef ENABLE_INTENSITY
-    (std::uint8_t, intensity, intensity)
-#endif
-#ifdef ENABLE_CONFIDENCE
-    (std::uint8_t, confidence, confidence)
-#endif
-#ifdef ENABLE_WEIGHT_FACTOR
-    (std::uint8_t, weightFactor, weightFactor)
-#endif
-#ifdef ENABLE_ENV_LIGHT
-    (std::uint8_t, envLight, envLight)
-#endif
+    TIMESTAMP_PCL_STR
+    RING_PCL_STR
+    INTENSITY_PCL_STR
+    CONFIDENCE_PCL_STR
+    WEIGHT_FACTOR_PCL_STR
+    ENV_LIGHT_PCL_STR
 )
 
 using namespace pcl::visualization;
@@ -162,20 +181,17 @@ int main(int argc, char *argv[])
   param.input_param.correction_file_path = "Your correction file path";
   param.input_param.firetimes_path = "Your firetime file path";
 
-  param.input_param.use_someip = false;  // someip subscribe point cloud and fault message
   param.input_param.host_ip_address = ""; // point cloud destination ip, local ip
   param.input_param.fault_message_port = 9348; // fault message destination port
-#endif
 
-#ifdef SERIAL_PARSER_TEST
+#elif defined (SERIAL_PARSER_TEST)
   param.input_param.source_type = DATA_FROM_SERIAL;
   param.input_param.rs485_com = "Your serial port name for receiving point cloud";
   param.input_param.rs232_com = "Your serial port name for sending cmd";
   param.input_param.point_cloud_baudrate = 3125000;
   param.input_param.correction_file_path = "Your correction file path";
-#endif
 
-#ifdef PCAP_PARSER_TEST
+#elif defined (PCAP_PARSER_TEST)
   param.input_param.source_type = DATA_FROM_PCAP;
   param.input_param.pcap_path = "Your pcap file path";
   param.input_param.correction_file_path = "Your correction file path";
@@ -184,10 +200,18 @@ int main(int argc, char *argv[])
 
   param.decoder_param.pcap_play_synchronization = true;
   param.decoder_param.pcap_play_in_loop = false; // pcap palyback
-#endif
 
-#ifdef EXTERNAL_INPUT_PARSER_TEST
-  param.input_param.source_type = DATA_FROM_EXTERNAL_INPUT;
+#elif defined (EXTERNAL_INPUT_PARSER_TEST)
+  param.input_param.source_type = DATA_FROM_ROS_PACKET;
+  param.input_param.correction_file_path = "Your correction file path";
+  param.input_param.firetimes_path = "Your firetime file path";
+
+#elif defined (LIDAR_PARSER_TCP_TEST)
+  param.input_param.source_type = DATA_FROM_LIDAR_TCP;
+  param.input_param.device_ip_address = "192.168.1.201";  // lidar ip
+  param.input_param.device_tcp_src_port = 5121; // lidar pointcloud tcp port
+  param.input_param.ptc_port = 9347; // lidar ptc port
+  param.input_param.use_ptc_connected = true;  // true: use PTC connected, false: recv correction from local file
   param.input_param.correction_file_path = "Your correction file path";
   param.input_param.firetimes_path = "Your firetime file path";
 #endif

@@ -25,16 +25,24 @@ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT
 TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************************************************************/
+
 /*
- * File:   client_base.h
- * Author: zhang xu<int_zhangxu@hesaitech.com>
+ * File:   tcp_client.h
+ * Author: Felix Zou<zouke@hesaitech.com>
  *
- * Created on Jul 9, 2023, 20:03 PM
+ * Created on Sep 5, 2019, 10:46 AM
  */
 
-#ifndef CLIENT_BASE_H
-#define CLIENT_BASE_H
+#ifndef TCPSOURCE_H
+#define TCPSOURCE_H
 
+#ifdef _MSC_VER
+#include <winsock2.h>
+#include <ws2tcpip.h> 
+#else
+typedef unsigned int SOCKET;
+#endif
+#include "source.h"
 #include <stdint.h>
 #include <string.h>
 #include <atomic>
@@ -42,37 +50,33 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 #include <string>
 #include <thread>
-#include <memory>
 #include <vector>
-#include "logger.h"
-
-#ifdef _MSC_VER
-#include <WinSock2.h>
-#else
-#include <arpa/inet.h>
-#endif
+#include "blocking_ring.h"
 namespace hesai
 {
 namespace lidar
 {
-class ClientBase {
+class TcpSource : public Source {
  public:
-  explicit ClientBase(){}
-  virtual ~ClientBase(){}
-  virtual bool Open(std::string IPAddr, uint16_t port, bool bAutoReceive = false, 
-                    const char* cert  = nullptr, const char* private_key = nullptr, const char* ca = nullptr) = 0;
-  virtual bool TryOpen(uint16_t host_port, std::string IPAddr, uint16_t port, bool bAutoReceive = false, 
-                    const char* cert  = nullptr, const char* private_key = nullptr, const char* ca = nullptr, uint32_t timeout = 1) = 0;
-  virtual void Close() = 0;
-  virtual bool IsOpened() = 0;
-  virtual int Send(uint8_t *u8Buf, uint16_t u16Len, int flags = 0) = 0;
-  virtual int Receive(uint8_t *u8Buf, uint32_t u16Len, int flags = 0) = 0;
+  TcpSource(std::string IPAddr, uint16_t port, float timeout);
+  virtual ~TcpSource();
+
+  TcpSource(const TcpSource &orig) = delete;
+
+  virtual bool Open();
+  virtual void Close();
+  virtual bool IsOpened();
+  bool IsOpened(bool bExpectation);
+  virtual int Send(uint8_t *u8Buf, uint16_t u16Len, int flags = 0);
+  virtual int Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags = 0,
+                      int timeout = 1000);
+
   /**
    * @brief 设置接收超时
    * @param u32Timeout 超时时间/ms
    * @return
    */
-  virtual bool SetReceiveTimeout(uint32_t u32Timeout) = 0;
+  bool SetReceiveTimeout(uint32_t u32Timeout);
 
   /**
    * @brief 设置收发超时
@@ -80,16 +84,42 @@ class ClientBase {
    * @param u32SendMillisecond 发送超时/ms
    * @return
    */
-  virtual int SetTimeout(uint32_t u32RecMillisecond, uint32_t u32SendMillisecond) = 0;
+  int SetTimeout(uint32_t u32RecMillisecond, uint32_t u32SendMillisecond);
 
   /**
    * @brief 设置自动接收模式下Buff的大小
    * @param size
    */
-  virtual void SetReceiveBufferSize(const uint32_t &size) = 0;
+  virtual void SetSocketBufferSize(uint32_t u32BufSize);
+
+ private:
+  /**
+   * monitor file descriptor and wait for I/O operation
+   */
+  int WaitFor(const int &socketfd, uint32_t timeoutSeconds = 1);
+
+ protected:
+  static const int kDataMaxLength = kBufSize * 100;
+  void ReceivedThread();
+  bool running = false;
+  std::thread* runningRecvThreadPtr;
+  static const uint32_t kDefaultTimeout = 500;
+  uint8_t m_receiveBuffer[kDataMaxLength]; 
+  int is_hav_recv_len = -1;
+  BlockingRing<UdpPacket, kPacketBufferSize> pointCloudRecvBuf;
+  int dataIndex;
+  int dataLength;
+
+  std::string m_sServerIP;
+  uint16_t ptc_port_;
+  SOCKET m_tcpSock;
+  bool m_bLidarConnected;
+  uint32_t m_u32ReceiveBufferSize;
+  // 收发超时/ms
+  uint32_t m_u32RecTimeout = kDefaultTimeout;
+  uint32_t m_u32SendTimeout = kDefaultTimeout;
+  float timeout_ = 3;
 };
-
 }
 }
-
-#endif
+#endif /* TCPSOURCE_H */

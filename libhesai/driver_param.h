@@ -43,7 +43,7 @@ enum SourceType
   DATA_FROM_PCAP = 2,
   DATA_FROM_ROS_PACKET = 3,
   DATA_FROM_SERIAL = 4,
-  DATA_FROM_EXTERNAL_INPUT = 5,
+  DATA_FROM_LIDAR_TCP = 5,
 };
 
 enum PtcMode
@@ -67,6 +67,7 @@ typedef struct DecoderParam
   bool enable_udp_thread = true;
   bool enable_parser_thread = true;
   bool pcap_play_synchronization = true;
+  float play_rate_ = 1.0;
   bool pcap_play_in_loop = false;
   //start a new frame when lidar azimuth greater than frame_start_azimuth
   //range:[0-360), set frame_start_azimuth less than 0 if you do want to use it
@@ -83,8 +84,15 @@ typedef struct DecoderParam
   int fov_end = -1;
   bool distance_correction_flag = false;
   bool xt_spot_correction = false;
+  bool et_blooming_filter_flag = false;
   RemakeConfig remake_config;
   uint32_t socket_buffer_size = 0;
+  std::string channel_fov_filter_path = "";  // correction/config/channel_fov_filter.txt
+  std::string multi_fov_filter_ranges = "";  // multiple fov filter ranges, for all channels
+  float frame_frequency = 0;
+  float default_frame_frequency = DEFAULT_MAX_MULTI_FRAME_NUM;
+  bool update_function_safety_flag = false;
+  uint16_t echo_mode_filter = 0;
 } DecoderParam;
 
 ///< The LiDAR input parameter
@@ -93,13 +101,14 @@ typedef struct InputParam
   // PTC mode
   PtcMode ptc_mode = PtcMode::tcp;
   SourceType source_type = DATA_FROM_PCAP;
-  bool use_someip = false;
   // Ip of Lidar
   std::string device_ip_address = "";   
+  // tcp port
+  uint16_t device_tcp_src_port = 5120;
   ///< Address of multicast
   std::string multicast_ip_address = "";  
   ///< Address of host
-  std::string host_ip_address = "Your host ip"; 
+  std::string host_ip_address = ""; 
   ///< port filter
   uint16_t device_udp_src_port = 0;
   uint16_t device_fault_port = 0;
@@ -107,7 +116,8 @@ typedef struct InputParam
   uint16_t udp_port = 2368;   
   uint16_t fault_message_port = 0;
   ///< ptc packet port number     
-  bool use_ptc_connected = true;           
+  bool use_ptc_connected = true;         
+  uint16_t host_ptc_port = 0;  // 0 is not used
   uint16_t ptc_port = 9347;
   ///< serial port and baudrate
   std::string rs485_com = "/dev/ttyUSB0";
@@ -118,6 +128,7 @@ typedef struct InputParam
   std::string pcap_path = "Your pcap file path";  ///< Absolute path of pcap file
   std::string correction_file_path = "Your correction file path";   ///< Path of angle calibration files(angle.csv).Only used for internal debugging.
   std::string firetimes_path = "Your firetime file path";  ///< Path of firetime files(angle.csv).
+  std::string dcf_file_path = "Your dcf file path";
   std::string correction_save_path = "";
   /// certFile          Represents the path of the user's certificate
   std::string certFile = "";

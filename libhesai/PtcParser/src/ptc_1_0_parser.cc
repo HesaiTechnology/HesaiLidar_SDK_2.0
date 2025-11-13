@@ -62,10 +62,12 @@ bool Ptc_1_0_parser::PtcStreamDecode(uint8_t cmd, uint8_t retcode, const u8Array
   //   std::cout << "Ptc_1_0_parser::PtcStreamDecode failed! header is not a 1.0 version!" << std::endl;
   //   return false;
   // }
-  std::cout << length << " " << payload.size() << std::endl;
+  if (int(payload.size()) < start_pos + length) {
+    return false;
+  }
   res = u8Array_t(payload.begin() + start_pos, payload.begin() + start_pos + length);
 
-  std::cout << std::endl << "Ptc_1_0_parser::PtcStreamDecode success!" << std::endl;
+  // std::cout << std::endl << "Ptc_1_0_parser::PtcStreamDecode success!" << std::endl;
   return true;
 }
 

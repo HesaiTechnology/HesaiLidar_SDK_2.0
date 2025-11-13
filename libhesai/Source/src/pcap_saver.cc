@@ -39,7 +39,6 @@ PcapSaver::PcapSaver()
     : tcp_dumped_(false)
     , ofs_()
     , pcap_path_("")
-    , packets_cache_(new Container)
     , dumping_(false)
     , dumping_blocked_(false)
     , buffer_pos_(0)
@@ -98,8 +97,8 @@ int PcapSaver::Save() {
         dumping_ = true;
         dumping_thread_ = std::thread([this]() {
             using namespace std::chrono_literals;
-            while (dumping_ || packets_cache_->not_empty()) {
-                while (!dumping_blocked_ && packets_cache_->not_empty()) {
+            while (dumping_ || (packets_cache_ != nullptr && packets_cache_->not_empty())) {
+                while (!dumping_blocked_ && (packets_cache_ != nullptr && packets_cache_->not_empty())) {
                     auto pkt = packets_cache_->pop_front();
                     auto& len = pkt.size;
                     std::array<uint8_t, kBufSize> data_with_fake_header;
@@ -117,7 +116,7 @@ int PcapSaver::Save() {
                     write_to_buffer(data_with_fake_header.data(), pcap_record.incl_len);
                 }
                 // 如果缓冲区接近满，或者没有更多数据，就刷新缓冲区
-                if (buffer_pos_ > BUFFER_SIZE * 0.9 || packets_cache_->empty()) {
+                if (buffer_pos_ > BUFFER_SIZE * 0.9 || (packets_cache_ != nullptr && packets_cache_->not_empty())) {
                     flush_buffer();
                 }
                 std::this_thread::sleep_for(1ms);
@@ -135,6 +134,9 @@ int PcapSaver::Save() {
 }
 
 void PcapSaver::Dump(const uint8_t* data, uint32_t len, uint16_t port) {
+    if (packets_cache_ == nullptr) {
+        packets_cache_ = std::make_unique<Container>();
+    }
     packets_cache_->push_back(PandarPacket(data, len, port));
 }
 void PcapSaver::TcpDump(const uint8_t* data, uint32_t data_len, uint32_t max_pkt_len, uint16_t port) {

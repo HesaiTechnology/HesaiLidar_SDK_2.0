@@ -106,12 +106,10 @@ int main(int argc, char *argv[]) {
     config1.driver_param.input_param.correction_file_path = "Your correction file path";
     config1.driver_param.input_param.firetimes_path = "Your firetime file path";
 
-    config1.driver_param.input_param.use_someip = false;  // someip subscribe point cloud and fault message
     config1.driver_param.input_param.host_ip_address = ""; // point cloud destination ip, local ip
     config1.driver_param.input_param.fault_message_port = 9348; // fault message destination port
-#endif
 
-#ifdef SERIAL_PARSER_TEST
+#elif defined (SERIAL_PARSER_TEST)
     config1.driver_param.input_param.source_type = DATA_FROM_SERIAL;
     config1.driver_param.input_param.rs485_com = "Your serial port name for receiving point cloud";
     config1.driver_param.input_param.rs232_com = "Your serial port name for sending cmd";
@@ -141,12 +139,10 @@ int main(int argc, char *argv[]) {
     config2.driver_param.input_param.correction_file_path = "Your correction file path";
     config2.driver_param.input_param.firetimes_path = "Your firetime file path";
 
-    config2.driver_param.input_param.use_someip = false;  // someip subscribe point cloud and fault message
     config2.driver_param.input_param.host_ip_address = ""; // point cloud destination ip, local ip
     config2.driver_param.input_param.fault_message_port = 9348; // fault message destination port
-#endif
 
-#ifdef SERIAL_PARSER_TEST
+#elif defined (SERIAL_PARSER_TEST)
     config2.driver_param.input_param.source_type = DATA_FROM_SERIAL;
     config2.driver_param.input_param.rs485_com = "Your serial port name for receiving point cloud";
     config2.driver_param.input_param.rs232_com = "Your serial port name for sending cmd";

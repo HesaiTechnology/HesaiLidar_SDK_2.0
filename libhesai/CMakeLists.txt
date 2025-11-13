@@ -83,11 +83,11 @@ if(WITH_UDPPARSER)
         UdpParser/src
         UdpParser
         ./
+        ../algorithm
     ) 
     if(WITH_UDPPARSERGPU)
         add_library(udpParserGpu_lib 
             UdpParserGpu/udp_parser_gpu.cu
-            UdpParserGpu/src/udp_parser_gpu_kernel.cu
             UdpParserGpu/src/general_parser_gpu.cu
             UdpParserGpu/src/udp_p40_parser_gpu.cu
             UdpParserGpu/src/udp_p64_parser_gpu.cu
@@ -142,6 +142,7 @@ endif()
             ${OPENSSL_INCLUDE_DIR})
         target_compile_definitions(ptcClient_lib PUBLIC WITH_PTCS_USE=1)
     endif(WITH_PTCS_USE)
+    
 endif(WITH_PTCCLIENT)
 
 if(WITH_LIDARBOARD)
@@ -151,6 +152,7 @@ if(WITH_LIDARBOARD)
         Source/src/pcap_source.cc
         Source/src/serial_source.cc
         Source/src/pcap_saver.cc
+        Source/src/tcp_source.cc
         )
     target_link_libraries(source_lib
         platutils_lib)
@@ -187,8 +189,14 @@ target_include_directories(platutils_lib PUBLIC
     Common/include
 )
 # log lib
-add_library(log_lib SHARED
-    Logger/src/logger.cc)
+if(BUILD_LOG_LIB_SHARED)
+    add_library(log_lib SHARED
+        Logger/src/logger.cc)
+    target_compile_definitions(log_lib PRIVATE LOG_LIB_API_EXPORTS=1 BUILD_LOG_LIB_SHARED=1)
+else()
+    add_library(log_lib
+        Logger/src/logger.cc)
+endif()
 target_link_libraries(log_lib
     ${CMAKE_THREAD_LIBS_INIT})
 set_target_properties(log_lib
@@ -196,7 +204,6 @@ set_target_properties(log_lib
 target_include_directories(log_lib PUBLIC   
     Logger/include
 )
-target_compile_definitions(log_lib PRIVATE LOG_LIB_API_EXPORTS)
 
 if (WITH_LIDARLIB)
     add_library(lidar_lib 
@@ -219,6 +226,7 @@ if (WITH_LIDARLIB)
         Lidar
         ./
     )
+    
     
 endif(WITH_LIDARLIB)
 

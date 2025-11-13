@@ -33,53 +33,28 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   {                                                                         \
     auto err = expr;                                                        \
     if (cudaSuccess != err) {                                               \
-      LogError("Error: %s\tfile(%s):%d\n", cudaGetErrorString(err), __FILE__, \
+      LogError("Error: %s\t %d", cudaGetErrorString(err), \
              __LINE__);                                                     \
       return int(return_code);                                              \
     }                                                                       \
   }
-#define cudaSafeMalloc(gpu, size, ...)                    \
-  if (cudaMalloc(&gpu, size) != cudaError::cudaSuccess) { \
-    LogError("%s cudaMalloc failed", #gpu);                 \
-    return __VA_ARGS__;                                   \
+  
+inline void cudaSafeMalloc(void** gpu, size_t size) {        
+  cudaError_t err = cudaMalloc(gpu, size);
+  if (err != cudaSuccess) { 
+    LogError("cudaMalloc failed, error code (%s)!", 
+            cudaGetErrorString(err));                   
+    gpu = nullptr;                                        
   }
+}
 
 #define cudaSafeFree(gpu) if (gpu) cudaFree(gpu);
 
-#define CUDACheck(func)                                                \
-  {                                                                    \
-    cudaError_t err = func;                                            \
-    if (err != cudaSuccess) {                                          \
-      LogError("[%s:%d] CudaCheck Failed, error code (%s)!\n", __FILE__, \
-             __LINE__, cudaGetErrorString(err));                       \
-      exit(EXIT_FAILURE);                                              \
-    }                                                                  \
-  }
-
-#define CUDAFreeWithLog(ptr)                                            \
-  {                                                                     \
-    cudaError_t err = cudaFree(ptr);                                    \
-    if (err != cudaSuccess) {                                           \
-      LogError("[%s:%d]%s CudaFree Failed, error code (%s)!\n", __FILE__, \
-             __LINE__, #ptr, cudaGetErrorString(err));                  \
-      exit(EXIT_FAILURE);                                               \
-    }                                                                   \
-  }
-
-namespace hesai {
-inline void CudaInit() {
-  // check the compute capability of the device
-  int num_devices = 0;
-  CUDACheck(cudaGetDeviceCount(&num_devices));
-  LogError("%d CUDA Device found\n", num_devices);
+inline int CUDACheck(cudaError_t err)                                                
+{                                                                    
+  if (err != cudaSuccess) {                                          
+    LogError("CudaCheck Failed, error code (%s)!", 
+            cudaGetErrorString(err));                       
+  }                                                                  
+  return int(err);                                                  
 }
-
-inline void CudaSyncWithCheck(const char* msg) {
-  {
-    cudaError_t err = cudaDeviceSynchronize();
-    if (err != cudaSuccess) {
-      LogError("%s %s \n", msg, cudaGetErrorString(err));
-    }
-  }
-}
-}  // namespace hesai

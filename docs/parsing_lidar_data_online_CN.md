@@ -25,7 +25,6 @@
   param.input_param.correction_file_path = "/path/to/correction.csv";   // 角度修正文件（建议使用雷达自身的角度修正文件）
   param.input_param.firetimes_path = "path/to/firetimes.csv";           // 可选项：通道发光时序（发光时刻修正文件）
 
-  param.input_param.use_someip = false;                     // 忽略
   param.input_param.host_ip_address = "";                   // 雷达ip地址，如果与点云源IP相同，则忽略
   param.input_param.fault_message_port = 0;                 // fault message目的端口，如果与udp_port相同，则忽略
 

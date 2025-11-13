@@ -55,30 +55,46 @@ private:
 public:
   Lidar<T_Point> *lidar_ptr_;
 #ifdef USE_CUDA
-  UdpParserGpu<T_Point> gpu_parser_ptr_;
+  UdpParserGpu<T_Point> *gpu_parser_ptr_;
 #endif
   DriverParam param_;
   std::thread *init_thread_ptr_;
   SourceType source_type_;
+  int multi_send_rate_count_ = 0;
   HesaiLidarSdk() {
 #ifdef USE_CUDA
-    std::cout << "-------- Hesai Lidar SDK Gpu V" << 2 << "." << 0 << "." << 10 << " --------" << std::endl;
+    std::cout << "-------- Hesai Lidar SDK Gpu V" << 2 << "." << 0 << "." << 11 << " --------" << std::endl;
+    gpu_parser_ptr_ = nullptr;
 #else
-    std::cout << "-------- Hesai Lidar SDK V" << 2 << "." << 0 << "." << 10 << " --------" << std::endl;
+    std::cout << "-------- Hesai Lidar SDK V" << 2 << "." << 0 << "." << 11 << " --------" << std::endl;
 #endif
     runing_thread_ptr_ = nullptr;
     lidar_ptr_ = nullptr;
     init_thread_ptr_ = nullptr;
     is_thread_runing_ = false;
     source_type_ = DATA_FROM_PCAP;
+    multi_send_rate_count_ = 0;
   }
 
   ~HesaiLidarSdk() {
     Stop();
     LogInfo("Hesai Lidar SDK is stopping...");
   }
-
-  void Init_thread()
+#ifdef USE_CUDA
+  void InitCuda() {
+    if (gpu_parser_ptr_ != nullptr) return;
+    gpu_parser_ptr_ = new UdpParserGpu<T_Point>();
+    std::string lidar_type_from_parser = lidar_ptr_->GetLidarType();
+    gpu_parser_ptr_->SetLidarType(lidar_type_from_parser, lidar_ptr_->frame_.maxPacketPerFrame, lidar_ptr_->frame_.maxPointPerPacket);
+    gpu_parser_ptr_->setCorrectionLoadSequenceNum(lidar_ptr_->GetGeneralParser()->getCorrectionLoadSequenceNum());
+    gpu_parser_ptr_->setFiretimeLoadSequenceNum(lidar_ptr_->GetGeneralParser()->getFiretimeLoadSequenceNum());
+    gpu_parser_ptr_->setCorrectionLoadFlag(lidar_ptr_->GetGeneralParser()->getCorrectionLoadFlag());
+    gpu_parser_ptr_->setFiretimeLoadFlag(lidar_ptr_->GetGeneralParser()->getFiretimeLoadFlag());
+    gpu_parser_ptr_->LoadCorrectionStruct(lidar_ptr_->GetGeneralParser()->getStruct(CORRECTION_STRUCT));
+    gpu_parser_ptr_->LoadFiretimesStruct(lidar_ptr_->GetGeneralParser()->getStruct(FIRETIME_STRUCT));
+  }
+#endif
+  void InitThread()
   {
     //init lidar with param
     if (nullptr != lidar_ptr_) {
@@ -89,20 +105,44 @@ public:
       if (lidar_ptr_->frame_.fParam.use_cuda == false) {
         LogWarning("-------- param setup not to use GPU !!! --------");
       }
-      std::string lidar_type_from_parser = lidar_ptr_->GetLidarType();
-      gpu_parser_ptr_.SetLidarType(lidar_type_from_parser, lidar_ptr_->frame_.maxPackerPerFrame, lidar_ptr_->frame_.maxPointPerPacket);
-      gpu_parser_ptr_.setCorrectionLoadSequenceNum(lidar_ptr_->GetGeneralParser()->getCorrectionLoadSequenceNum());
-      gpu_parser_ptr_.setFiretimeLoadSequenceNum(lidar_ptr_->GetGeneralParser()->getFiretimeLoadSequenceNum());
-      gpu_parser_ptr_.setCorrectionLoadFlag(lidar_ptr_->GetGeneralParser()->getCorrectionLoadFlag());
-      gpu_parser_ptr_.setFiretimeLoadFlag(lidar_ptr_->GetGeneralParser()->getFiretimeLoadFlag());
-      gpu_parser_ptr_.LoadCorrectionStruct(lidar_ptr_->GetGeneralParser()->getStruct(CORRECTION_STRUCT));
-      gpu_parser_ptr_.LoadFiretimesStruct(lidar_ptr_->GetGeneralParser()->getStruct(FIRETIME_STRUCT));
 #else 
       lidar_ptr_->frame_.fParam.use_cuda = false;
       LogWarning("cpu version, not support for gpu");
 #endif
       lidar_ptr_->SetAllFinishReady();
     }
+  }
+  void MultiSend()
+  {
+    if (lidar_ptr_->frame_.fParam.IsMultiFrameFrequency() == 0) {
+      if(point_cloud_cb_) point_cloud_cb_(lidar_ptr_->frame_);
+    } else {
+      int per_multi_frame_index = (++multi_send_rate_count_) % lidar_ptr_->frame_.multi_rate;
+      memcpy(lidar_ptr_->frame_.multi_frame_buffer + lidar_ptr_->frame_.multi_points_num * sizeof(T_Point), lidar_ptr_->frame_.points, lidar_ptr_->frame_.points_num * sizeof(T_Point));
+      lidar_ptr_->frame_.multi_packet_num += lidar_ptr_->frame_.packet_num;
+      lidar_ptr_->frame_.multi_points_num += lidar_ptr_->frame_.points_num;
+      if (lidar_ptr_->frame_.multi_frame_start_timestamp <= 0) {
+        lidar_ptr_->frame_.multi_frame_start_timestamp = lidar_ptr_->frame_.frame_start_timestamp;
+      }
+      if (per_multi_frame_index == 0) {
+        lidar_ptr_->frame_.multi_frame_end_timestamp = lidar_ptr_->frame_.frame_end_timestamp;
+        if(point_cloud_cb_) point_cloud_cb_(lidar_ptr_->frame_);
+        lidar_ptr_->frame_.MultiFrameUpdate();
+      }
+      if (lidar_ptr_->frame_.fParam.default_frame_frequency != DEFAULT_MAX_MULTI_FRAME_NUM) {
+        float real_fre = 1.0 / (lidar_ptr_->frame_.frame_end_timestamp - lidar_ptr_->frame_.frame_start_timestamp);
+        float config_fre = lidar_ptr_->frame_.fParam.default_frame_frequency;
+        if (abs(real_fre - config_fre) >= config_fre * 0.1) {
+          LogWarning("default frame frequency mismatch, real_fre: %f hz, config_fre: %f hz", real_fre, config_fre);
+        }
+      }
+    }
+  }
+
+  void resetFrame(uint32_t &packetIndex, UdpFrame_t &frame)
+  {
+      packetIndex = 0;
+      frame.clear();
   }
 
   //init lidar with param. init logger, udp parser, source, ptc client, start receive/parser thread
@@ -116,7 +156,7 @@ public:
     }
     source_type_ = param.input_param.source_type;
     param_ = param;
-    init_thread_ptr_ = new std::thread(std::bind(&HesaiLidarSdk::Init_thread, this));
+    init_thread_ptr_ = new std::thread(std::bind(&HesaiLidarSdk::InitThread, this));
     if (param.input_param.device_ip_address != "") {
       device_ip_address_ = inet_addr(param.input_param.device_ip_address.c_str());
       if(param.input_param.device_fault_port >= 1024 && param.input_param.device_fault_port <= 65535 && device_ip_address_ != INADDR_NONE){
@@ -155,6 +195,12 @@ public:
       delete init_thread_ptr_;
       init_thread_ptr_ = nullptr;
     } 
+#ifdef USE_CUDA
+    if (nullptr != gpu_parser_ptr_) {
+      delete gpu_parser_ptr_;
+      gpu_parser_ptr_ = nullptr;
+    }
+#endif
   }
 
   void onRelease() { is_thread_runing_ = false; }
@@ -185,7 +231,7 @@ public:
     uint32_t packet_index = 0;
     // uint32_t start = GetMicroTickCount();
     UdpPacket packet;
-    FaultMessageInfo fault_message_info;
+    FaultMessageInfo* fault_message_info = new FaultMessageInfo;
 
     uint32_t total_packet_count = 0;
     uint32_t total_packet_loss_count = 0;
@@ -204,10 +250,10 @@ public:
             continue;
           }
         }
-        ret = lidar_ptr_->ParserFaultMessage(packet, fault_message_info);
+        ret = lidar_ptr_->ParserFaultMessage(packet, *fault_message_info);
         if (ret == 0) {
           if (fault_message_cb_)
-            fault_message_cb_(fault_message_info);
+            fault_message_cb_(*fault_message_info);
         }
         continue;
       }
@@ -238,11 +284,12 @@ public:
         if (lidar_ptr_->frame_.fParam.use_cuda) {
 #ifdef USE_CUDA
           if (lidar_ptr_->frame_.packet_num > 0) {
-            ret = gpu_parser_ptr_.ComputeXYZI(lidar_ptr_->frame_);  
+            if (gpu_parser_ptr_ == nullptr) InitCuda();
+            ret = gpu_parser_ptr_->ComputeXYZI(lidar_ptr_->frame_);  
           }
           else {
-            ret = -1;
             LogError("packet_num is 0, cuda compute xyz error");
+            continue;
           }
 #endif
         } else {
@@ -266,8 +313,8 @@ public:
         }
         //log info, display frame message
         if (ret == 0 && lidar_ptr_->frame_.points_num > kMinPointsOfOneFrame) {
-          //publish point cloud topic
-          if(point_cloud_cb_) point_cloud_cb_(lidar_ptr_->frame_);
+          lidar_ptr_->GetGeneralParser()->FrameProcess(lidar_ptr_->frame_);
+          MultiSend();
 
           //publish upd packet topic
           if(pkt_cb_) {
@@ -305,12 +352,11 @@ public:
         if (lidar_ptr_->frame_.fParam.update_function_safety_flag) {
           lidar_ptr_->frame_.clearFuncSafety();
         }
-        if (lidar_ptr_->frame_.fParam.remake_config.flag) {
-          memset(lidar_ptr_->frame_.points, 0, lidar_ptr_->frame_.getPointSize() * lidar_ptr_->frame_.maxPackerPerFrame * lidar_ptr_->frame_.maxPointPerPacket);
+        if (lidar_ptr_->frame_.fParam.remake_config.flag || lidar_ptr_->frame_.clear_every_frame) {
+          std::fill_n(lidar_ptr_->frame_.points, lidar_ptr_->frame_.maxPacketPerFrame * lidar_ptr_->frame_.maxPointPerPacket, T_Point{});
         }
         //clear udp packet vector
-        udp_packet_frame.clear();
-        packet_index = 0;
+        resetFrame(packet_index, udp_packet_frame);
 
         //if the packet which contains split frame msgs is valid, it will be the first packet of new frame
         if(packet.is_timeout == false) {
@@ -333,10 +379,9 @@ public:
         } 
 
         //update status manually if start a new frame failedly
-        if (packet_index >= lidar_ptr_->frame_.maxPackerPerFrame) {
+        if (packet_index >= lidar_ptr_->frame_.maxPacketPerFrame) {
           LogError("fail to start a new frame, packet_index: %d", packet_index);
-          packet_index = 0;
-          udp_packet_frame.clear();
+          resetFrame(packet_index, udp_packet_frame);
           lidar_ptr_->ClearPacketBuffer();
           std::this_thread::sleep_for(std::chrono::microseconds(100));
           lidar_ptr_->frame_.Update();
@@ -344,6 +389,8 @@ public:
         }
       }
     }
+    
+    delete fault_message_info;
   } 
 
   bool OriginPacketIsBufferFull() {

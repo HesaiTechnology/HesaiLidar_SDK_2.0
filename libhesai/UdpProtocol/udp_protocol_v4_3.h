@@ -41,6 +41,7 @@ namespace lidar
     static constexpr int AT_MAX_CHANNEL_NUM = 1024;
     static constexpr int AT_MAX_ADJUST_NUM = 512 * 360;
     static constexpr int AT_MARGINAL_ANGLE = 7625;     // 76.25
+    static constexpr int AT_REVERSE_MARGINAL_ANGLE = 1375;     // 13.75
     static constexpr int AT_ACCEPTANCE_ANGLE = 200;    // 2.0
     static constexpr int AT_AZIMUTH_TOLERANCE = 1000;  // 10.0
     struct ATCorrections_Header {
@@ -51,6 +52,7 @@ namespace lidar
     struct ATCorrectionFloat {
       uint8_t min_version;
       uint8_t adjust_interval;
+      uint8_t frame_number;
       uint32_t start_frame[AT_MAX_MIRROR_NUM];  // not float, * 25600
       uint32_t end_frame[AT_MAX_MIRROR_NUM];
       uint8_t channel_laser_map[AT_MAX_CHANNEL_NUM];
@@ -109,6 +111,7 @@ namespace lidar
         }
         floatCorr.min_version = header.min_version;
         floatCorr.adjust_interval = 2;
+        floatCorr.frame_number = frame_number;
         return true;
       }
       bool setToFloatUseAngleDivisionV6UpV9() {
@@ -127,6 +130,7 @@ namespace lidar
         }
         floatCorr.min_version = header.min_version;
         floatCorr.adjust_interval = adjust_interval;
+        floatCorr.frame_number = frame_number;
         return true;
       }
 
@@ -160,19 +164,6 @@ namespace lidar
         return ((1 - k) * floatCorr.f_elevation_adjust[laser_index * 360 / floatCorr.adjust_interval + i] +  
                   k * floatCorr.f_elevation_adjust[laser_index * 360 / floatCorr.adjust_interval + i + 1]);
       }
-    };
-
-    struct PandarAT512ChannelConfig {
-      bool get_channel_config = false;
-      uint16_t delimiter;
-      uint8_t major_version;
-      uint8_t min_version;
-      uint16_t sub_laser_num;
-      uint8_t sub_block_num;
-      uint8_t loop_num;
-
-      std::vector<std::vector<int>> channel_config_table;
-      std::string hash_value;
     };
   }
 

@@ -58,34 +58,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/file.h>
 #endif
 
-#pragma pack(push, 1)
-struct SomeIPHeader {
-    uint16_t someip_service_id;
-    uint16_t someip_method_id;
-    uint32_t someip_length;
-    uint16_t someip_client_id;
-    uint16_t someip_session_id;
-    uint8_t someip_version;
-    uint8_t someip_interface_version;
-    uint8_t someip_message_type;
-    uint8_t someip_return_code;
-};
-static_assert(sizeof(SomeIPHeader) == 16);
-struct SomeIPMessage {
-    SomeIPHeader header;
-    char payload[40];
-};
-#pragma pack(pop)
-
 namespace hesai
 {
 namespace lidar
 {
-#define SOMEIP_PORT 30490
 
 class SocketSource : public Source{
  public:
-  SocketSource(const uint16_t port = kUdpPort, const std::string& multicastIp = "");
+  SocketSource(const uint16_t port = kUdpPort, const std::string& localIp = "", const std::string& multicastIp = "");
   virtual ~SocketSource();
 
   virtual bool Open();
@@ -95,7 +75,6 @@ class SocketSource : public Source{
   virtual int Receive(UdpPacket& udpPacket, uint16_t u16Len, int flags = 0,
                       int timeout = 1000);
   virtual void SetSocketBufferSize(uint32_t u32BufSize);
-  bool sendsomeip_subscribe_ipv4(std::string someip_ip, std::string host_addr, int port, int fault_message_port);
   void SetClientIp(std::string client_ip);
 private:
   uint16_t udp_port_;
@@ -106,6 +85,7 @@ private:
   std::string multicast_ip_;
   std::string client_ip_;
   sockaddr_in send_addr_;
+  std::string localIp_;
 };
 }  // namespace lidar
 }  // namespace hesai

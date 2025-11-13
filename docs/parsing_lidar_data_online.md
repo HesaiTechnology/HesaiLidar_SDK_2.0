@@ -25,7 +25,6 @@
   param.input_param.correction_file_path = "/path/to/correction.csv";   // Angle correction file (recommend using the lidar's own angle correction file)
   param.input_param.firetimes_path = "path/to/firetimes.csv";           // Optional: Channel firing timing (firing moment correction file)
 
-  param.input_param.use_someip = false;                     // Ignore
   param.input_param.host_ip_address = "";                   // Lidar IP address, ignore if same as point cloud source IP
   param.input_param.fault_message_port = 0;                 // Fault message destination port, ignore if same as udp_port
 

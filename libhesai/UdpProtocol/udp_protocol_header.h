@@ -65,6 +65,14 @@ struct HS_LIDAR_PRE_HEADER {
   inline uint8_t GetStatusInfoVersion() const { return m_u8StatusInfoVersion; }
 };
 
+struct ReservedInfoV2 {
+  uint16_t m_u16Sts;
+  uint16_t m_u8ID;
+
+  inline uint16_t GetID() const { return little_to_native(m_u8ID); }
+  inline uint16_t GetData() const { return little_to_native(m_u16Sts); }
+};
+
 struct ReservedInfo1 {
   uint16_t m_u16Sts;
   uint8_t m_u8ID;

@@ -4,8 +4,8 @@
 #include <array>
 #include <string>
 #include <string.h>
+#include <map>
 #include "hs_com.h"
-
 namespace hesai
 {
 namespace lidar
@@ -32,20 +32,17 @@ static constexpr float kAllFineResolutionFloat = kResolutionFloat * kFineResolut
 //laser fine azimuth resolution, 1 LSB represents 0.01 / 256 degree, int type
 static constexpr int kFineResolutionInt = 256;
 static constexpr int kAllFineResolutionInt = kResolutionInt * kFineResolutionInt;
-//synchronize host time with sensor time per kPcapPlaySynchronizationCount packets
-static constexpr int kPcapPlaySynchronizationCount = 50;
 //length of fault message packet
 static constexpr int kFaultMessageLength = 99;
 //default udp data max lenth
-static const uint16_t kBufSize = 3000;
-static const uint16_t kPacketBufferSize = 36000;
+static const uint16_t kBufSize = 1500;
+static const uint16_t kPacketBufferSize = 8000;
 //min points of one frame for displaying frame message
 static constexpr int kMinPointsOfOneFrame = 1000;
 //max time interval between two frame
 static constexpr int kMaxTimeInterval = 250000;
-
-#define HS_MIN(x, y) ((x) > (y) ? (y) : (x))
-#define HS_MAX(x, y) ((x) > (y) ? (x) : (y))
+// min tcp packet len
+static constexpr int kMinTcpPacketLen = 100;
 
 #pragma pack(push, 1)
 union {
@@ -60,16 +57,19 @@ inline bool IsLittleEndian() {
   else return false;
 }  
 
-template<typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>  
+template<typename T, std::enable_if_t<std::is_standard_layout<T>::value, int> = 0>  
 inline T reverseBytes(T value) {  
-    if (sizeof(T) == 1) return value;
-    T reversed = 0;  
-    for (size_t i = 0; i < sizeof(T); ++i) {  
-        reversed = (reversed << 8) | (static_cast<unsigned char>(value) & 0xFF);  
-        value >>= 8;  
-    }  
-    return reversed;  
-}  
+  if (sizeof(T) == 1) return value;
+  
+  T reversed = 0;  
+  unsigned char* reversed_ptr = reinterpret_cast<unsigned char*>(&reversed);
+  unsigned char* value_ptr = reinterpret_cast<unsigned char*>(&value);
+  
+  for (size_t i = 0; i < sizeof(T); ++i) {  
+      reversed_ptr[i] = value_ptr[sizeof(T) - 1 - i];
+  }  
+  return reversed;  
+}
 
 template <typename T>
 T little_to_native(T data) {
@@ -112,13 +112,11 @@ struct LidarPointXYZDAE
     float x; 
     float y;             
     float z;             
-    float distance;            
-    float azimuth;
-    float elevation;
-    uint8_t reserved[8];           
+    float distance;                    
     float azimuthCalib;             
     float elevationCalib;  
 };
+
 
 struct UdpPacket {
   uint8_t buffer[kBufSize];
@@ -190,54 +188,6 @@ struct FunctionSafety {
   uint16_t getFaultCode() const { return fault_code; }
 };
 
-struct PointDecodeData {
-  float azimuth;
-  float elevation;
-  uint16_t distance;
-  uint16_t channel_index;
-  union {
-    struct {
-      int32_t ns_offset;
-    } dnsOff;
-    struct {
-      uint8_t confidence;
-      uint8_t weightFactor;
-      uint8_t envLight;
-      uint8_t angleState;
-      int32_t ns_offset;
-    } d1_4;
-    struct {
-      uint8_t dirtyDegree;
-    } d1_8;
-    struct {
-      uint8_t confidence;
-      uint8_t loopIndex;
-      int32_t ns_offset;
-    } dQT;
-    struct {
-      uint8_t confidence;
-      uint8_t field;
-      float azimuth_offset;
-      uint8_t glare_in_d;
-    } dAT;
-    struct
-    {
-      uint8_t confidence;
-    } dcfd;
-    struct 
-    {
-      uint8_t confidence;
-      int32_t ns_offset;
-    } dXT;
-    struct
-    {
-      uint8_t confidence;
-      uint16_t point_id;
-    } dET;
-  } data;
-  uint8_t reflectivity;
-};
-
 struct PacketDecodeData {
   union {
     uint64_t sensor_timestamp;
@@ -246,34 +196,14 @@ struct PacketDecodeData {
       uint32_t ns;
     } s_ns;
   } t;
-  
-  uint16_t spin_speed; 
-  union {
-    struct {
-      uint8_t optMode;
-    } d1_4;
-    struct {
-      uint8_t mirror_index;
-    } dET;
-    struct {
-      uint8_t frame_id;
-    } dATX;
-    struct {
-      uint16_t ns; // [0,1000)
-    } dNs;
-    struct {
-      uint8_t column_id;
-    } dFT;
-  } data;
-  uint8_t echo_count;
-  uint8_t echo_num;
 };
 #pragma pack(pop)
 
 struct LidarDecodeConfig {
     int fov_start;
     int fov_end;
-
+    std::map<int, std::vector<std::pair<int, int>>> channel_fov_filter;
+    std::vector<std::pair<int, int>> multi_fov_filter_ranges;
     LidarDecodeConfig() {
       fov_start = -1;
       fov_end = -1;

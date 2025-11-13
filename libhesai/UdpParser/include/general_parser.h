@@ -43,6 +43,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef M_PI
 #define M_PI (3.14159265358979323846)
 #endif
+#define M_PI_DIVIDE_180 (0.01745329251994329575)
+#define _180_DIVIDE_M_PI (57.29577951308232087721)
 
 #ifndef _MSC_VER
 #include <semaphore.h>
@@ -62,42 +64,6 @@ namespace hesai
 namespace lidar
 {  
 
-#define DEFINE_MEMBER_CHECKER(member)                                                                                  \
-  template <typename T, typename V = bool>                                                                             \
-  struct has_##member : std::false_type                                                                                \
-  {                                                                                                                    \
-  };                                                                                                                   \
-  template <typename T>                                                                                                \
-  struct has_##member<                                                                                                 \
-      T, typename std::enable_if<!std::is_same<decltype(std::declval<T>().member), void>::value, bool>::type>          \
-      : std::true_type                                                                                                 \
-  {                                                                                                                    \
-  };
-#define PANDAR_HAS_MEMBER(C, member) has_##member<C>::value
-
-#define DEFINE_SET_GET(member, Type)                                                                                   \
-  template <typename T_Point>                                                                                          \
-  inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, member)>::type set_##member(T_Point& point, const Type& value) \
-  {                                                                                                                    \
-  }                                                                                                                    \
-  template <typename T_Point>                                                                                          \
-  inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, member)>::type set_##member(T_Point& point, const Type& value) \
-  {                                                                                                                    \
-      point.member = value;                                                                                            \
-  }                                                                                                                    \
-  template <typename T_Point>                                                                                          \
-  inline typename std::enable_if<!PANDAR_HAS_MEMBER(T_Point, member)>::type get_##member(T_Point& point, Type& value)  \
-  {                                                                                                                    \
-  }                                                                                                                    \
-  template <typename T_Point>                                                                                          \
-  inline typename std::enable_if<PANDAR_HAS_MEMBER(T_Point, member)>::type get_##member(T_Point& point, Type& value)  \
-  {                                                                                                                    \
-      value = point.member;                                                                                            \
-  }  
-
-DEFINE_MEMBER_CHECKER(x)
-DEFINE_MEMBER_CHECKER(y)
-DEFINE_MEMBER_CHECKER(z)
 DEFINE_MEMBER_CHECKER(intensity)
 DEFINE_MEMBER_CHECKER(ring)
 DEFINE_MEMBER_CHECKER(timestamp)
@@ -107,9 +73,6 @@ DEFINE_MEMBER_CHECKER(timeNanosecond)
 DEFINE_MEMBER_CHECKER(weightFactor)
 DEFINE_MEMBER_CHECKER(envLight)
 
-DEFINE_SET_GET(x, float)  
-DEFINE_SET_GET(y, float)  
-DEFINE_SET_GET(z, float)  
 DEFINE_SET_GET(intensity, uint8_t)  
 DEFINE_SET_GET(ring, uint16_t)  
 DEFINE_SET_GET(timestamp, double)  
@@ -178,7 +141,7 @@ struct PacketTimeLossMessage {
 
 enum StructType {
   CORRECTION_STRUCT = 1,
-  FIRETIME_STRUCT = 2
+  FIRETIME_STRUCT = 2,
 };
 
 struct CorrectionData {
@@ -228,6 +191,9 @@ class GeneralParser {
   virtual int LoadFiretimesString(const char *firetimes_string, int len);
   // load channel config file
   virtual int LoadChannelConfigFile(const std::string channel_config_path);  
+  // load dcf config file
+  virtual int LoadDcfConfigFile(const std::string& dcf_path);
+  virtual int LoadDcfConfigString(const char *dcf_string, int len);
   // get the pointer to the struct of the parsed correction file or firetimes file
   virtual void* getStruct(const int type);
   // get display 
@@ -263,6 +229,7 @@ class GeneralParser {
   // Statistical packet loss data
   void CalPktLoss(uint32_t PacketSeqnum, FrameDecodeParam param);
   void CalPktTimeLoss(uint64_t PacketTimestamp, FrameDecodeParam param);
+  int IsChannelFovFilter(int fov, int channel_index, FrameDecodeParam &param);
   // crc
   void CRCInit();
   uint32_t CRCCalc(const uint8_t *bytes, int len, int zeros_num);
@@ -274,10 +241,14 @@ class GeneralParser {
   // used for updating cuda correction and firetime by itself
   uint32_t* getCorrectionLoadSequenceNum() { return &correction_load_sequence_num_; }
   uint32_t* getFiretimeLoadSequenceNum() { return &firetime_load_sequence_num_; }
+  uint32_t* getDcfLoadSequenceNum() { return &dcf_load_sequence_num_; }
   bool* getCorrectionLoadFlag() { return &get_correction_file_; }
   bool* getFiretimeLoadFlag() { return &get_firetime_file_; }
+  bool* getDcfLoadFlag() { return &get_dcf_file_; }
   void loadCorrectionSuccess() { get_correction_file_ = true; correction_load_sequence_num_++; }
   void loadFiretimeSuccess() { get_firetime_file_ = true; firetime_load_sequence_num_++; }
+  void loadDcfSuccess() { get_dcf_file_ = true; dcf_load_sequence_num_++; }
+  virtual int FrameProcess(LidarDecodedFrame<T_Point> &frame);
 
 
 
@@ -291,8 +262,10 @@ class GeneralParser {
   float firetime_correction_[DEFAULT_MAX_LASER_NUM];
   bool get_correction_file_ = false;
   bool get_firetime_file_ = false;
+  bool get_dcf_file_ = false;
   uint32_t correction_load_sequence_num_ = 0;
   uint32_t firetime_load_sequence_num_ = 0;
+  uint32_t dcf_load_sequence_num_ = 0;
   int32_t last_azimuth_;
   int32_t last_last_azimuth_;
   std::atomic<uint32_t> compute_packet_num;
@@ -304,6 +277,7 @@ class GeneralParser {
   uint32_t m_CRCTable[256];
   bool crc_initialized;
   LastUtcTime last_utc_time;
+  uint32_t last_max_packet_num_ = 0;
 };
 }
 }

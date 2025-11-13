@@ -48,7 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "plat_utils.h"
 #include "general_parser.h"
 #include "logger.h"
-#include "udp_parser_gpu_kernel.h"
 #include "general_struct_gpu.h"
 
 #include <cuda_runtime.h>
@@ -98,10 +97,12 @@ class GeneralParserGpu {
   void setFiretimeLoadSequenceNum(uint32_t* num) { firetime_load_sequence_num_ = num; firetime_load_sequence_num_cuda_use_ = *num; }
   virtual void updateCorrectionFile();
   virtual void updateFiretimeFile();
+  virtual void reMalloc(uint32_t, uint32_t, uint32_t);
   // compute xyzi of points from decoded packet， use gpu device
   // param packet is the decoded packet; xyzi of points after computed is puted in frame  
   virtual int ComputeXYZI(LidarDecodedFrame<T_Point> &frame) = 0;
   void DoRemake(float azi_, float elev_, const RemakeConfig &remake_config, int &point_idx);
+  int IsChannelFovFilter(int fov, int channel_index, FrameDecodeParam &param);
  protected:
   bool* get_correction_file_;
   bool* get_firetime_file_;
@@ -109,22 +110,20 @@ class GeneralParserGpu {
   uint32_t* firetime_load_sequence_num_;
   uint32_t correction_load_sequence_num_cuda_use_ = 0;
   uint32_t firetime_load_sequence_num_cuda_use_ = 0;
+  uint32_t maxPackets_cu_ = 0;
+  uint32_t maxPoints_cu_ = 0;
+  uint32_t point_cloud_size_cu_ = 0;
 
   float* correction_azi_cu_;
   float* correction_ele_cu_;
   float* firetimes_cu_;
-  PointDecodeData* point_data_cu_;
-  PacketDecodeData* packet_data_cu_;
-  LidarPointXYZDAE* points_;
-  LidarPointXYZDAE* points_cu_;
-  uint32_t* valid_points_cu_;
+  CudaPointXYZAER* points_;
+  CudaPointXYZAER* points_cu_;
   const CorrectionData* correction_ptr;
   const float* firetimes_ptr;
   LidarOpticalCenter optical_center;
-  uint8_t* point_cloud_cu_ = nullptr;
-  // new cuda param
-  uint8_t* input_data_cuda_ = nullptr;
-  uint32_t point_cloud_size_ = 0;
+  uint8_t* point_cloud_cu_;
+  bool init_suc_flag_ = true;
 };
 }
 }

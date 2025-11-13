@@ -31,7 +31,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Author: Felix Zou<zouke@hesaitech.com>
  */
 
-#include "tcp_client.h"
+#include "tcp_source.h"
 #ifdef _MSC_VER
 #include <winsock2.h>
 #include <ws2tcpip.h> 
@@ -55,19 +55,26 @@ typedef int socklen_t;
 #include <algorithm>
 #include <iostream>
 using namespace hesai::lidar;
-TcpClient::TcpClient() {
-  m_sServerIP.clear();
-  ptc_port_ = 0;
+TcpSource::TcpSource(std::string IPAddr, uint16_t port, float timeout) {
   m_tcpSock = (SOCKET)(-1);
   m_bLidarConnected = false;
   m_u32ReceiveBufferSize = 4096;
+  m_sServerIP = IPAddr;
+  ptc_port_ = port;
+  timeout_ = timeout;
 }
 
-TcpClient::~TcpClient() {
+TcpSource::~TcpSource() {
+  if (runningRecvThreadPtr != nullptr) {
+    running = false;
+    runningRecvThreadPtr->join();
+    delete runningRecvThreadPtr;
+    runningRecvThreadPtr = nullptr;
+  }
   Close();
 }
 
-void TcpClient::Close() {
+void TcpSource::Close() {
 
   // m_sServerIP.clear();
   // ptc_port_ = 0;
@@ -84,138 +91,8 @@ void TcpClient::Close() {
   }
 }
 
-bool TcpClient::TryOpen(uint16_t host_port, std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
-          const char* cert, const char* private_key, const char* ca, uint32_t timeout) {
-  (void)bAutoReceive;
-  (void)cert;          
-  (void)private_key;
-  (void)ca;
-  if (IsOpened(true) && m_sServerIP == IPAddr && u16Port == ptc_port_) {
-    return true;
-  }
-  if (IsOpened()) Close();
-  m_sServerIP = IPAddr;
-  ptc_port_ = u16Port;
-  
-#ifdef _MSC_VER
-  WSADATA wsaData;
-  WORD version = MAKEWORD(2, 2);
-  int res = WSAStartup(version, &wsaData);  // win sock start up
-  if (res) {
-      LogError("Initilize winsock error !");
-      return false;
-  }
-#endif  
-  struct sockaddr_in serverAddr;
-  struct sockaddr_in localAddr;
-
-  m_tcpSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  if ((int)m_tcpSock == -1) { 
-#ifdef _MSC_VER
-    WSACleanup();
-#endif
-    return false;
-  }
-
-  if (host_port > 0) {
-    memset(&localAddr, 0, sizeof(localAddr));
-    localAddr.sin_family = AF_INET;
-    localAddr.sin_addr.s_addr = htonl(INADDR_ANY); 
-    localAddr.sin_port = htons(host_port);
-  
-    if (bind(m_tcpSock, (struct sockaddr*)&localAddr, sizeof(localAddr)) < 0) {
-      LogError("Failed to bind local port, system will auto assign one");
-    }
-  }
-
-  memset(&serverAddr, 0, sizeof(serverAddr));
-  serverAddr.sin_family = AF_INET;
-  serverAddr.sin_port = htons(ptc_port_);
-  if (inet_pton(AF_INET, m_sServerIP.c_str(), &serverAddr.sin_addr) <= 0) {
-    Close();
-    LogError("TryOpen inet_pton error:%s", m_sServerIP.c_str());
-    return false;
-  }
-
-  // 设置非阻塞模式  
-#ifdef _MSC_VER  
-  u_long mode = 1; // 1为非阻塞模式  
-  ioctlsocket(m_tcpSock, FIONBIO, &mode);
-#else  
-  int flags = fcntl(m_tcpSock, F_GETFL, 0); 
-  fcntl(m_tcpSock, F_SETFL, flags | O_NONBLOCK);  
-#endif 
-
-  int result = connect(m_tcpSock, (sockaddr*)&serverAddr, sizeof(serverAddr));  
-  if (result < 0) {  
-#ifdef _MSC_VER  
-    if (WSAGetLastError() != WSAEWOULDBLOCK) 
-#else  
-    if (errno != EINPROGRESS)  
-#endif  
-    {
-      LogError("socket Connection error.");  
-      Close();
-      return false;  
-    }  
-  }
-
-  fd_set writefds;  
-  FD_ZERO(&writefds);  
-  FD_SET(m_tcpSock, &writefds);  
-  struct timeval tv;  
-  tv.tv_sec = timeout; // 超时1秒  
-  tv.tv_usec = 0;   
-  result = select((int)m_tcpSock + 1, nullptr, &writefds, nullptr, &tv);  
-  if (result <= 0) {  
-    Close();
-    return false;  
-  } else {
-    int slen = sizeof(int);
-    int error = -1;
-    getsockopt(m_tcpSock, SOL_SOCKET, SO_ERROR, (char *)&error, (socklen_t *)&slen);
-    if (error != 0) {
-      Close();
-      return false;
-    }
-  }
-  LogInfo("TryOpen succeed, IP %s port %u", m_sServerIP.c_str(), ptc_port_);
-  
-#ifdef _MSC_VER  
-  mode = 0; // 0为阻塞模式  
-  ioctlsocket(m_tcpSock, FIONBIO, &mode);  
-#else  
-  flags = fcntl(m_tcpSock, F_GETFL, 0); 
-  fcntl(m_tcpSock, F_SETFL, flags & ~O_NONBLOCK); 
-#endif  
-
-  m_bLidarConnected = true;
-  return true;
-}
-
-bool TcpClient::Open(std::string IPAddr, uint16_t u16Port, bool bAutoReceive,
-          const char* cert, const char* private_key, const char* ca) {
-  (void)bAutoReceive;
-  (void)cert; 
-  (void)private_key;
-  (void)ca;
-  if (IsOpened(true) && m_sServerIP == IPAddr && u16Port == ptc_port_) {
-    return true;
-  }
-#ifdef _MSC_VER
-  LogInfo("Open() IP %s port %u", IPAddr.c_str(), u16Port);
-#else
-  LogInfo("Open() IP %s port %u", IPAddr.c_str(), u16Port);
-#endif
-  Close();
-
-  m_sServerIP = IPAddr;
-  ptc_port_ = u16Port;
-  return Open();
-}
-
-bool TcpClient::Open() {
+bool TcpSource::Open() {
+  LogInfo("TcpSource open IP %s port %u", m_sServerIP.c_str(), ptc_port_);
 #ifdef _MSC_VER
   WSADATA wsaData;
   WORD version = MAKEWORD(2, 2);
@@ -247,33 +124,79 @@ bool TcpClient::Open() {
     return false;
   }
 
-  if (::connect(m_tcpSock, (sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
-    if (EINPROGRESS != errno && EWOULDBLOCK != errno) {
-      LogError("connect failed %d", errno);
-    } else if (EINPROGRESS == errno) {
-      LogWarning("connect lidar time out");
-    }
-    Close();
-    LogError("connect lidar fail errno %d", errno);
-    return false;
+  // 设置非阻塞模式  
+#ifdef _MSC_VER  
+  u_long mode = 1; // 1为非阻塞模式  
+  ioctlsocket(m_tcpSock, FIONBIO, &mode);
+#else  
+  int flags = fcntl(m_tcpSock, F_GETFL, 0); 
+  fcntl(m_tcpSock, F_SETFL, flags | O_NONBLOCK);  
+#endif 
+
+  int result = connect(m_tcpSock, (sockaddr*)&serverAddr, sizeof(serverAddr));  
+  if (result < 0) {  
+#ifdef _MSC_VER  
+    if (WSAGetLastError() != WSAEWOULDBLOCK) 
+#else  
+    if (errno != EINPROGRESS)  
+#endif  
+    {
+      LogError("socket Connection error.");  
+      Close();
+      return false;  
+    }  
   }
+
+  fd_set writefds;  
+  FD_ZERO(&writefds);  
+  FD_SET(m_tcpSock, &writefds);  
+  struct timeval tv;  
+  tv.tv_sec = int(timeout_);
+  tv.tv_usec = int(timeout_ * 1000000) % 1000000;   
+  result = select((int)m_tcpSock + 1, nullptr, &writefds, nullptr, &tv);  
+  if (result <= 0) {  
+    Close();
+    return false;  
+  } else {
+    int slen = sizeof(int);
+    int error = -1;
+    getsockopt(m_tcpSock, SOL_SOCKET, SO_ERROR, (char *)&error, (socklen_t *)&slen);
+    if (error != 0) {
+      Close();
+      return false;
+    }
+  }
+  LogInfo("TryOpen succeed, IP %s port %u", m_sServerIP.c_str(), ptc_port_);
   
-  LogInfo(" succeed, IP %s port %u", m_sServerIP.c_str(), ptc_port_);
+#ifdef _MSC_VER  
+  mode = 0; // 0为阻塞模式  
+  ioctlsocket(m_tcpSock, FIONBIO, &mode);  
+#else  
+  flags = fcntl(m_tcpSock, F_GETFL, 0); 
+  fcntl(m_tcpSock, F_SETFL, flags & ~O_NONBLOCK); 
+#endif  
 
   m_bLidarConnected = true;
+  SetTimeout(kDefaultTimeout, kDefaultTimeout);
+  if (running == false) {
+    running = true;
+    dataIndex = 0;
+    dataLength = 0;
+    runningRecvThreadPtr = new std::thread(std::bind(&TcpSource::ReceivedThread, this));
+  }
 
   return true;
 }
 
-bool TcpClient::IsOpened() {
+bool TcpSource::IsOpened() {
   return m_bLidarConnected;
 }
 
-bool TcpClient::IsOpened(bool bExpectation) {
+bool TcpSource::IsOpened(bool bExpectation) {
   return m_bLidarConnected == bExpectation;
 }
 
-int TcpClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
+int TcpSource::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
   int len = -1;
   bool ret = true;
 
@@ -290,56 +213,87 @@ int TcpClient::Send(uint8_t *u8Buf, uint16_t u16Len, int flags) {
   return len;
 }
 
-int TcpClient::Receive(uint8_t *u8Buf, uint32_t u32Len, int flags) {
-  int len = -1;
-  bool ret = true;
-
-  if (!IsOpened()) ret = Open();
-
-  int tick = GetMicroTickCount();
-  if (ret) {
-    if (flags == 0xFF) {
-  // 设置非阻塞模式  
-#ifdef _MSC_VER  
-      u_long mode = 1; // 1为非阻塞模式  
-      ioctlsocket(m_tcpSock, FIONBIO, &mode);
-#else  
-      int flags = fcntl(m_tcpSock, F_GETFL, 0); 
-      fcntl(m_tcpSock, F_SETFL, flags | O_NONBLOCK);  
-#endif 
+void TcpSource::ReceivedThread() {
+  while (running) {
+    if (!IsOpened()) Open();
+    if (!IsOpened()) {
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+      continue;
     }
-    len = recv(m_tcpSock, (char*)u8Buf, u32Len, flags);
-    if (len == 0 || (len == -1 && errno != EINTR && errno != EAGAIN &&
-                     errno != EWOULDBLOCK)) {
-      if (flags != 0xFF) {
-        LogError("Receive, len: %d errno: %d", len, errno);
-        Close();
+    int len = recv(m_tcpSock, (char*)m_receiveBuffer + dataIndex, kDataMaxLength - dataLength, 0);
+    if (len == -1 && errno != EINTR && errno != EAGAIN &&
+                     errno != EWOULDBLOCK) {
+      LogError("TcpSource Receive, len: %d errno: %d", len, errno);
+      Close();
+      continue;
+    }
+    if (len > 0) {
+      dataLength += len;
+      // while (dataIndex + 1 < dataLength) {
+      //   if (m_receiveBuffer[dataIndex] == 0xEE && m_receiveBuffer[dataIndex + 1] == 0xFF) { 
+      //     break;
+      //   }
+      //   dataIndex++;
+      // }
+      // int idx = dataIndex + 2;
+      // while (idx + 1 < dataLength) {
+      //   if (m_receiveBuffer[idx] == 0xEE && m_receiveBuffer[idx + 1] == 0xFF) {
+      //     if (idx - dataIndex <= kBufSize) {
+      //       UdpPacket udpPacket;
+      //       memcpy(udpPacket.buffer, m_receiveBuffer + dataIndex, idx - dataIndex);
+      //       udpPacket.packet_len = idx - dataIndex;
+      //       pointCloudRecvBuf.emplace_back(udpPacket);
+      //     }
+      //     else {
+      //       LogError("receive one packet size is too large, %d", idx - dataIndex);
+      //     }
+      //     dataIndex = idx;
+      //     idx += 2;
+      //   }
+      //   else {
+      //     idx++;
+      //   }
+      // }
+      /* ------------ linshi ------------------*/
+      while (dataIndex + 581 <= dataLength) { 
+        UdpPacket udpPacket;
+        memcpy(udpPacket.buffer + 2, m_receiveBuffer + dataIndex, 581);
+        udpPacket.buffer[0] = 0xEE;
+        udpPacket.buffer[1] = 0xFF;
+        udpPacket.packet_len = 581 + 2;
+        pointCloudRecvBuf.emplace_back(udpPacket);
+        dataIndex += 581;
       }
+      /* -------------end----------------------*/
     }
-    if (flags == 0xFF) {
-#ifdef _MSC_VER  
-      u_long mode = 0; // 0为阻塞模式  
-      ioctlsocket(m_tcpSock, FIONBIO, &mode);  
-#else  
-      flags = fcntl(m_tcpSock, F_GETFL, 0); 
-      fcntl(m_tcpSock, F_SETFL, flags & ~O_NONBLOCK); 
-#endif 
+    if (dataLength - dataIndex > kBufSize) {
+      dataIndex = dataLength;
+      LogError("receive one packet size is too large, %d", dataLength - dataIndex);
+    }
+    if (dataLength + kBufSize * 5 > kDataMaxLength) {
+      if (dataIndex != dataLength) {
+        memcpy(m_receiveBuffer, m_receiveBuffer + dataIndex, dataLength - dataIndex);
+      }
+      dataLength = dataLength - dataIndex;
+      dataIndex = 0;
     }
   }
+}
 
-  int delta = GetMicroTickCount() - tick;
-
-  if (delta >= 1000000) {
-    LogDebug("Receive execu: %dus", delta);
+int TcpSource::Receive(UdpPacket& udpPacket, uint16_t u32Len, int flags, int timeout) {
+  bool ret = false;
+  while (ret == false && timeout >= 0) {
+    ret = pointCloudRecvBuf.try_pop_front(udpPacket);
+    timeout -= 100;
   }
-
-  return len;
+  if (ret) return udpPacket.packet_len;
+  return -1;
 }
 
 
-bool TcpClient::SetReceiveTimeout(uint32_t u32Timeout) {
+bool TcpSource::SetReceiveTimeout(uint32_t u32Timeout) {
   if ((int)m_tcpSock == -1) {
-    LogWarning("TcpClient not open");
+    LogWarning("TcpSource not open");
     return false;
   }
 #ifdef _MSC_VER
@@ -358,10 +312,10 @@ bool TcpClient::SetReceiveTimeout(uint32_t u32Timeout) {
   return retVal == 0;
 }
 
-int TcpClient::SetTimeout(uint32_t u32RecMillisecond,
+int TcpSource::SetTimeout(uint32_t u32RecMillisecond,
                           uint32_t u32SendMillisecond) {
   if ((int)m_tcpSock == -1) {
-    LogWarning("TcpClient not open");
+    LogWarning("TcpSource not open");
     return -1;
   }
   m_u32RecTimeout = u32RecMillisecond;
@@ -399,23 +353,23 @@ int TcpClient::SetTimeout(uint32_t u32RecMillisecond,
   return retVal;
 }
 
-void TcpClient::SetReceiveBufferSize(const uint32_t &size) {
+void TcpSource::SetSocketBufferSize(uint32_t u32BufSize) {
   if ((int)m_tcpSock == -1) {
-    LogWarning("TcpClient not open");
+    LogWarning("TcpSource not open");
     return;
   }
 
-  m_u32ReceiveBufferSize = size;
+  m_u32ReceiveBufferSize = u32BufSize;
   uint32_t recbuffSize;
   socklen_t optlen = sizeof(recbuffSize);
   int ret = getsockopt(m_tcpSock, SOL_SOCKET, SO_RCVBUF, (char*)&recbuffSize, &optlen);
-  if (ret == 0 && recbuffSize < size) {
-    setsockopt(m_tcpSock, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(size));
+  if (ret == 0 && recbuffSize < u32BufSize) {
+    setsockopt(m_tcpSock, SOL_SOCKET, SO_RCVBUF, (char*)&u32BufSize, sizeof(u32BufSize));
   }
 }
 
 
-int TcpClient::WaitFor(const int &socketfd, uint32_t timeoutSeconds) {
+int TcpSource::WaitFor(const int &socketfd, uint32_t timeoutSeconds) {
   struct timeval tv;
   tv.tv_sec = timeoutSeconds;
   tv.tv_usec = 0;
