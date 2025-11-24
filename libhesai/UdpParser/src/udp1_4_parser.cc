@@ -378,7 +378,7 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32
     }
     /* JT128 begin */ 
     else if (this->lidar_type_ == STR_OTHER) {
-      block_ns_offset = PandarN::OTHER_BLOCK_NS_OFFSET2 * int((frame.block_num - blockid - 1) / (frame.return_mode < RETURN_MODE_MULTI ? 1 : 2));
+      block_ns_offset = PandarN::OTHER_BLOCK_NS_OFFSET1 + PandarN::OTHER_BLOCK_NS_OFFSET2 * int((frame.block_num - blockid - 1) / (frame.return_mode < RETURN_MODE_MULTI ? 1 : 2));
     }
     /* JT128 end */
     else {
