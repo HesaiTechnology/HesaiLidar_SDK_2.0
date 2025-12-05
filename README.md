@@ -1,7 +1,5 @@
 # HesaiLidar_SDK_2.0
 
-[👉 Chinese version](README_CN.md)
-
 ## 1 Check Compatibility
 
 ### 1.1 Lidar Models
@@ -40,7 +38,7 @@ Windows
 ### 2.1 Clone
 
 ```bash
-git clone --recurse-submodules https://github.com/HesaiTechnology/HesaiLidar_SDK_2.0.git
+git clone https://github.com/leonardonels/HesaiLidar_SDK_2.0.git
 ```
 
 > On Windows systems, downloading the repository as a ZIP file is not recommended as it may cause compilation errors due to symbolic link issues.
