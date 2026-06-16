@@ -463,7 +463,7 @@ int PtcClient::GetLidarStatus() {
     size_t offset = 0;
     systemp_uptime = extractField<uint32_t>(dataOut, offset);
     motor_speed = extractField<uint16_t>(dataOut, offset);
-    for (int i = 0; i < 8; i ++ ) {
+    for (int i = 0; i < 9; i ++ ) {
       temperature[i] = extractField<uint32_t>(dataOut, offset);
     }
     gps_pps_lock = extractField<uint8_t>(dataOut, offset);
