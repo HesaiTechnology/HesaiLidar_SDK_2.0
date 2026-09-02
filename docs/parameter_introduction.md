@@ -10,6 +10,10 @@
    - `0`: Point cloud timestamp (default)
    - `1`: System local time
 
+3. `imu_publish_period_sec`: IMU publish interval in seconds when the packet does not provide a unique `sample_timestamp_us`.  
+   - `0`: Publish on every IMU-bearing decode (default)
+   - `> 0`: Publish at most once per interval (timestamp snapped to the interval boundary)
+
 #### 1.2 Frame Processing
 1. `frame_start_azimuth`: Frame segmentation start angle (0-360 degrees)
     *(Default: 0.0)*

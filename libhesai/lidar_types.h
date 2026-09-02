@@ -144,25 +144,18 @@ struct LidarImuData {
   double imu_ang_vel_x;
   double imu_ang_vel_y;
   double imu_ang_vel_z;
+  uint64_t sample_timestamp_us;
   bool flag;
   LidarImuData() {
     flag = false;
     timestamp = 0;
+    sample_timestamp_us = 0;
     imu_accel_x = 0;
     imu_accel_y = 0;
     imu_accel_z = 1;
     imu_ang_vel_x = -1;
     imu_ang_vel_y = -1;
     imu_ang_vel_z = -1;
-  }
-
-  bool isSameImuValue(const LidarImuData& other) const {
-    return imu_accel_x == other.imu_accel_x &&
-           imu_accel_y == other.imu_accel_y &&
-           imu_accel_z == other.imu_accel_z &&
-           imu_ang_vel_x == other.imu_ang_vel_x &&
-           imu_ang_vel_y == other.imu_ang_vel_y &&
-           imu_ang_vel_z == other.imu_ang_vel_z;
   }
 };
 
