@@ -621,7 +621,19 @@ int Udp1_4Parser<T_Point>::DecodePacket(LidarDecodedFrame<T_Point> &frame, const
       reinterpret_cast<const HS_LIDAR_TAIL_IMU_ME_V4 *>(
             (const unsigned char *)pTail + sizeof(HS_LIDAR_TAIL_ME_V4) + 
             (hasSeqNum(pHeader->m_u8Status) ? sizeof(HS_LIDAR_TAIL_SEQ_NUM_ME_V4) : 0));
-    frame.imu_config.timestamp = frame.frame_end_timestamp;
+    frame.imu_config.sample_timestamp_us = pTailImu->GetIMUTimestamp();
+    if (frame.fParam.use_timestamp_type == 0) {
+      if (frame.imu_config.sample_timestamp_us != 0) {
+        const uint64_t lidar_us = frame.packetData[packet_index_use].t.sensor_timestamp;
+        const uint64_t lidar_tail_us = pTail->GetTimestamp();
+        const uint64_t imu_us = lidar_us - lidar_tail_us + frame.imu_config.sample_timestamp_us;
+        frame.imu_config.timestamp = double(imu_us) / kMicrosecondToSecond;
+      } else {
+        frame.imu_config.timestamp = frame.frame_end_timestamp;
+      }
+    } else {
+      frame.imu_config.timestamp = double(udpPacket.recv_timestamp) / kMicrosecondToSecond;
+    }
     frame.imu_config.imu_accel_x = pTailImu->GetIMUXAccel();
     frame.imu_config.imu_accel_y = pTailImu->GetIMUYAccel();
     frame.imu_config.imu_accel_z = pTailImu->GetIMUZAccel();

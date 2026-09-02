@@ -83,8 +83,12 @@ class Udp7_3Parser : public GeneralParser<T_Point> {
         reinterpret_cast<const HS_LIDAR_BODY_IMU_FT_V3 *>(
             (const unsigned char *)pHeader + sizeof(HS_LIDAR_HEADER_IMU_FT_V3));
       if (frame.fParam.use_timestamp_type == 0) {
-        frame.imu_config.timestamp = double(pHeader->GetMicroLidarTimeU64(this->last_utc_time)) / kMicrosecondToSecond;
+        const uint64_t sample_us =
+            static_cast<uint64_t>(pHeader->GetMicroLidarTimeU64(this->last_utc_time));
+        frame.imu_config.sample_timestamp_us = sample_us;
+        frame.imu_config.timestamp = double(sample_us) / kMicrosecondToSecond;
       } else {
+        frame.imu_config.sample_timestamp_us = udpPacket.recv_timestamp;
         frame.imu_config.timestamp = double(udpPacket.recv_timestamp) / kMicrosecondToSecond;
       }  
       frame.imu_config.imu_accel_x = pBody->GetIMUXAccel();

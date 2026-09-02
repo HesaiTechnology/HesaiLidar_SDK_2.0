@@ -56,7 +56,9 @@ private:
   uint32_t device_ip_address_ = 0;
   uint16_t device_udp_port_ = 0;
   uint16_t device_fault_port_ = 0;
-  LidarImuData last_imu_data_;
+  uint64_t last_imu_sample_timestamp_us_ = 0;
+  uint64_t last_imu_publish_slot_ = 0;
+  bool imu_period_initialized_ = false;
 public:
   std::shared_ptr<Lidar<T_Point>> lidar_ptr_;
 #ifdef USE_CUDA
@@ -267,10 +269,30 @@ public:
       {
       std::lock_guard<std::mutex> frame_lock(frame_decode_mutex_);
       ret = lidar_ptr_->DecodePacket(lidar_ptr_->frame_, packet);
-      if (lidar_ptr_->frame_.imu_config.flag) {
-        if (imu_cb_ && !last_imu_data_.isSameImuValue(lidar_ptr_->frame_.imu_config)) {
-          imu_cb_(lidar_ptr_->frame_.imu_config);
-          last_imu_data_ = lidar_ptr_->frame_.imu_config;
+      if (lidar_ptr_->frame_.imu_config.flag && imu_cb_) {
+        LidarImuData imu = lidar_ptr_->frame_.imu_config;
+        bool should_publish = false;
+        if (imu.sample_timestamp_us != 0) {
+          if (imu.sample_timestamp_us != last_imu_sample_timestamp_us_) {
+            should_publish = true;
+            last_imu_sample_timestamp_us_ = imu.sample_timestamp_us;
+          }
+        } else {
+          const double period = param_.decoder_param.imu_publish_period_sec;
+          if (period > 0.0) {
+            const uint64_t slot = static_cast<uint64_t>(imu.timestamp / period);
+            if (!imu_period_initialized_ || slot != last_imu_publish_slot_) {
+              should_publish = true;
+              last_imu_publish_slot_ = slot;
+              imu_period_initialized_ = true;
+              imu.timestamp = static_cast<double>(slot) * period;
+            }
+          } else {
+            should_publish = true;
+          }
+        }
+        if (should_publish) {
+          imu_cb_(imu);
         }
       }
       if(ret != 0) {
