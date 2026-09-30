@@ -62,6 +62,12 @@ class Udp1_4Parser : public GeneralParser<T_Point> {
   virtual void setFrameRightMemorySpace(LidarDecodedFrame<T_Point> &frame);
  private:
   int GetFiretimes(int laserId, uint8_t optMode, uint8_t angleState, float dist);
+  /* JT128 begin */
+  // Whether FastXYZ() applies: JT128 with distance correction, and nothing that needs the corrected angles
+  bool UseFastXYZ(const LidarDecodedFrame<T_Point> &frame) const;
+  // Distance-corrected point, computed in the channel frame and rotated by the azimuth
+  void FastXYZ(int azimuth_coll, int elevation_corr, float distance, int azimuth, float &x, float &y, float &z);
+  /* JT128 end */
   pandarN::FiretimesPandarN firetimes;
 };
 }  // namespace lidar
@@ -381,6 +387,40 @@ double Udp1_4Parser<T_Point>::GetFiretimesCorrection(int laserId, double speed, 
   return GetFiretimes(laserId, optMode, angleState, dist) * speed * 6E-9;
 }
 
+/* JT128 begin */
+// GetDistanceCorrection() with OpticalCenter turns the channel's angles into a direction, shifts the point by the
+// optical centre, and converts it back to angles, which ComputeXYZI() then turns into x/y/z again. FastXYZ() skips the
+// round trip: it shifts the point in the channel frame and rotates it by the azimuth. The point is the same up to float
+// rounding, but the corrected angles are never computed, so the filters and the remake, which need them, keep the
+// round trip.
+template<typename T_Point>
+bool Udp1_4Parser<T_Point>::UseFastXYZ(const LidarDecodedFrame<T_Point> &frame) const {
+  return (this->lidar_type_ == STR_OTHER) && this->get_correction_file_ && frame.fParam.distance_correction_flag &&
+         frame.fParam.config.multi_fov_filter_ranges.empty() && frame.fParam.config.channel_fov_filter.empty() &&
+         (frame.fParam.config.fov_start == -1 || frame.fParam.config.fov_end == -1) &&
+         (frame.fParam.remake_config.flag == false);
+}
+
+template<typename T_Point>
+void Udp1_4Parser<T_Point>::FastXYZ(int azimuth_coll, int elevation_corr, float distance, int azimuth, float &x, float &y, float &z) {
+  this->CircleRevise(azimuth_coll);
+  this->CircleRevise(elevation_corr);
+  this->CircleRevise(azimuth);
+  float xp = distance * this->cos_all_angle_[elevation_corr] * this->sin_all_angle_[azimuth_coll];
+  float yp = distance * this->cos_all_angle_[elevation_corr] * this->cos_all_angle_[azimuth_coll];
+  float zp = distance * this->sin_all_angle_[elevation_corr];
+  if (distance > 0.09f) {  // as in GetDistanceCorrection()
+    xp += this->optical_center.x;
+    yp += this->optical_center.y;
+    zp += this->optical_center.z;
+  }
+  const float c = this->cos_all_angle_[azimuth], s = this->sin_all_angle_[azimuth];
+  x = xp * c + yp * s;
+  y = yp * c - xp * s;
+  z = zp;
+}
+/* JT128 end */
+
 template<typename T_Point>
 int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32_t packet_index) {
   if (packet_index >= frame.maxPacketPerFrame || frame.point_cloud_raw_data == nullptr) {
@@ -404,6 +444,9 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32
   int point_num = 0;
   auto& packetData = frame.packetData[packet_index];
   int32_t block_ns_offset = 0;
+  /* JT128 begin */
+  const bool fast_xyz = UseFastXYZ(frame);
+  /* JT128 end */
   for (int blockid = 0; blockid < frame.block_num; blockid++) {
     int current_block_echo_count = ((pHeader->GetEchoCount() > 0 && pHeader->GetEchoNum() > 0) ?
             ((pHeader->GetEchoCount() - 1 + blockid) % pHeader->GetEchoNum() + 1) : 0);
@@ -461,10 +504,18 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32
           doubleToInt(GetFiretimesCorrection(channel_index, pTail->GetMotorSpeed() * (this->lidar_type_ != STR_OTHER ? 1.0 : 0.1), 
           pTail->getOperationMode(), angleState, distance) * kAllFineResolutionInt);
       }
+      float x = 0, y = 0, z = 0;
+      bool xyz_done = false;
       if (this->get_correction_file_) {
         int azimuth_coll = doubleToInt(this->correction.azimuth[channel_index] * kAllFineResolutionFloat);
         int elevation_corr = doubleToInt(this->correction.elevation[channel_index] * kAllFineResolutionFloat);
-        if (frame.fParam.distance_correction_flag) {
+        /* JT128 begin */
+        if (fast_xyz) {
+          FastXYZ(azimuth_coll, elevation_corr, distance, azimuth, x, y, z);
+          xyz_done = true;
+        }
+        /* JT128 end */
+        else if (frame.fParam.distance_correction_flag) {
           GeneralParser<T_Point>::GetDistanceCorrection(this->optical_center, azimuth_coll, elevation_corr, distance, this->lidar_type_ != STR_OTHER ? GeometricCenter : OpticalCenter);
         }
         elevation = elevation_corr;
@@ -478,10 +529,12 @@ int Udp1_4Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32
       if (this->get_firetime_file_) {
         timestamp += block_ns_offset + GetFiretimes(channel_index, pTail->getOperationMode(), angleState, pChnUnit->GetDistance() * frame.distance_unit);
       }
-      float xyDistance = distance * this->cos_all_angle_[(elevation)];
-      float x = xyDistance * this->sin_all_angle_[(azimuth)];
-      float y = xyDistance * this->cos_all_angle_[(azimuth)];
-      float z = distance * this->sin_all_angle_[(elevation)];
+      if (!xyz_done) {
+        float xyDistance = distance * this->cos_all_angle_[(elevation)];
+        x = xyDistance * this->sin_all_angle_[(azimuth)];
+        y = xyDistance * this->cos_all_angle_[(azimuth)];
+        z = distance * this->sin_all_angle_[(elevation)];
+      }
       this->TransformPoint(x, y, z, frame.fParam.transform);
       int point_index_rerank = point_index + point_num; 
       GeneralParser<T_Point>::DoRemake(azimuth, elevation, channel_index, frame.fParam.remake_config, point_index_rerank); 
