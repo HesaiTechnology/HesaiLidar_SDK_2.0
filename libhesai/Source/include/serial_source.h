@@ -57,7 +57,9 @@ namespace hesai
 namespace lidar
 {
           
+#ifndef BOTHER
 #define    BOTHER 0010000
+#endif
 #define    HS_NCCS 19
 #define    SERIAL_POINT_CLOUD_RECV  0
 #define    SERIAL_COMMAND_RECV      1
