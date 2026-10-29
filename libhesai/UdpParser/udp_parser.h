@@ -367,6 +367,9 @@ class UdpParser {
 
   // load firetimes file
   void LoadFiretimesFile(const std::string& firetimes_path) {
+    if (firetimes_path.empty()) {
+      return;
+    }
     if (parser_ != nullptr) {
       parser_->LoadFiretimesFile(firetimes_path);
     }

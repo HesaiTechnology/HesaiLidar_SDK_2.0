@@ -11,6 +11,8 @@ set(HESAI_SDK_VERSION "${HESAI_SDK_VERSION_MAJOR}.${HESAI_SDK_VERSION_MINOR}.${H
 
 project(HesaiLidarSDK VERSION ${HESAI_SDK_VERSION})
 
+include(CTest)
+
 set(HESAI_SDK_GENERATED_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/driver/sdk_version.hpp.in"
@@ -133,6 +135,19 @@ if(NOT DISENABLE_TEST_CC)
         hesai_sdk_lib
     )
 endif(NOT DISENABLE_TEST_CC)
+
+if(BUILD_TESTING)
+    add_executable(firetimes_path_test
+        test/firetimes_path_test.cc
+    )
+    target_include_directories(firetimes_path_test PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/libhesai
+    )
+    target_link_libraries(firetimes_path_test PRIVATE
+        udpParser_lib
+    )
+    add_test(NAME firetimes_path_test COMMAND firetimes_path_test)
+endif(BUILD_TESTING)
 
 # ============================================
 # 构建信息摘要
