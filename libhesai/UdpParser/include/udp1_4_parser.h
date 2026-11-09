@@ -391,11 +391,15 @@ double Udp1_4Parser<T_Point>::GetFiretimesCorrection(int laserId, double speed, 
 // GetDistanceCorrection() with OpticalCenter turns the channel's angles into a direction, shifts the point by the
 // optical centre, and converts it back to angles, which ComputeXYZI() then turns into x/y/z again. FastXYZ() skips the
 // round trip: it shifts the point in the channel frame and rotates it by the azimuth. The point is the same up to float
-// rounding, but the corrected angles are never computed, so the filters and the remake, which need them, keep the
-// round trip.
+// rounding, but the corrected angles and range are never computed, so the filters, the remake, and point types that
+// store them keep the round trip.
 template<typename T_Point>
 bool Udp1_4Parser<T_Point>::UseFastXYZ(const LidarDecodedFrame<T_Point> &frame) const {
-  return (this->lidar_type_ == STR_OTHER) && this->get_correction_file_ && frame.fParam.distance_correction_flag &&
+  constexpr bool kPointStoresCorrectedFields = PANDAR_HAS_MEMBER(T_Point, azimuthCalib) ||
+                                               PANDAR_HAS_MEMBER(T_Point, elevationCalib) ||
+                                               PANDAR_HAS_MEMBER(T_Point, distance);
+  return !kPointStoresCorrectedFields &&
+         (this->lidar_type_ == STR_OTHER) && this->get_correction_file_ && frame.fParam.distance_correction_flag &&
          frame.fParam.config.multi_fov_filter_ranges.empty() && frame.fParam.config.channel_fov_filter.empty() &&
          (frame.fParam.config.fov_start == -1 || frame.fParam.config.fov_end == -1) &&
          (frame.fParam.remake_config.flag == false);
