@@ -31,6 +31,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "general_parser.h"
 #include "udp_protocol_v4_7.h"
+#include <cmath>
 namespace hesai
 {
 namespace lidar
@@ -394,6 +395,16 @@ int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32
   int point_index = packet_index * frame.per_points_num;
   int point_num = 0;
   auto& packetData = frame.packetData[packet_index];
+
+  // Hesai documented timing model (manual B.2/B.4):
+  //   t(m) = t0 + (m-1) * HRes / MotorSpeed   [MotorSpeed in deg/s]
+  //   t(m,n) = t(m) + Δt(n)                    [Δt(n): per-channel firetime file, always >= 0]
+  // t0 = packetData.t.sensor_timestamp, i.e. block 1's (blockid == 0) start
+  // time - block 1 gets zero offset, later blocks get a positive one.
+  constexpr float kHResDeg = 0.08f;
+  constexpr double kRawMotorSpeedToDegPerSec = 0.125;
+  const int16_t motor_speed_raw = static_cast<int16_t>(pTail->GetMotorSpeed());
+
   for (int blockid = 0; blockid < frame.block_num; blockid++) {
     int current_block_echo_count = ((pHeader->GetEchoCount() > 0 && pHeader->GetEchoNum() > 0) ?
             ((pHeader->GetEchoCount() - 1 + blockid) % pHeader->GetEchoNum() + 1) : 0);
@@ -407,6 +418,13 @@ int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32
           sizeof(HS_LIDAR_BODY_CHN_NNIT_ST_V7) * pHeader->GetLaserNum()) * blockid);
 
     int32_t u32Azimuth = pAzimuth->GetAzimuth();
+
+    double block_time_offset_ns = 0.0;
+    if (motor_speed_raw != 0) {
+      double angular_rate_deg_per_s = std::fabs(static_cast<double>(motor_speed_raw)) * kRawMotorSpeedToDegPerSec;
+      block_time_offset_ns = (blockid * static_cast<double>(kHResDeg)) / angular_rate_deg_per_s * kNanosecondToSecondInt;
+    }
+
     const HS_LIDAR_BODY_CHN_NNIT_ST_V7 * pChnUnit = reinterpret_cast<const HS_LIDAR_BODY_CHN_NNIT_ST_V7 *>(
         (const unsigned char *)pAzimuth + sizeof(HS_LIDAR_BODY_AZIMUTH_ST_V7) + sizeof(HS_LIDAR_BODY_FINE_AZIMUTH_ST_V7));
     for (int channel_index = 0; channel_index < frame.laser_num; ++channel_index) {
@@ -460,7 +478,17 @@ int Udp4_7Parser<T_Point>::ComputeXYZI(LidarDecodedFrame<T_Point> &frame, uint32
         set_z(ptinfo, z); 
         set_ring(ptinfo, channel_index); 
         set_intensity(ptinfo, pChnUnit->GetReflectivity());  
-        set_timestamp(ptinfo, double(packetData.t.sensor_timestamp) / kMicrosecondToSecond);
+        uint64_t point_time_ns = (uint64_t)packetData.t.sensor_timestamp * kMicrosecondToNanosecondInt
+                                  + (uint64_t)block_time_offset_ns;
+        if (this->get_firetime_file_ && frame.fParam.firetimes_flag) {
+          // Correction file values are a per-channel fire delay in
+          // nanoseconds (see ATX_Firetime Correction File.csv)
+          uint64_t firetime_ns = (frameID % 2 == 0)
+              ? (uint64_t)m_ATX_firetimes.floatCorr.even_firetime_correction_[channel_index]
+              : (uint64_t)m_ATX_firetimes.floatCorr.odd_firetime_correction_[channel_index];
+          point_time_ns += firetime_ns;
+        }
+        set_timestamp(ptinfo, double(point_time_ns) / kNanosecondToSecondInt);
         set_confidence(ptinfo, pChnUnit->GetConfidenceLevel());
         set_azimuth_lazy(ptinfo, [u32Azimuth]() { return static_cast<float>(u32Azimuth) / kFineResolutionFloat; }); 
         set_azimuthCalib_lazy(ptinfo, [azimuth]() {return static_cast<float>(azimuth) / kAllFineResolutionFloat; }); 
